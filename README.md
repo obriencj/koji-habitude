@@ -14,6 +14,8 @@ The tool synchronizes local koji data expectations with a hub instance, allowing
 - Apply changes in the correct order through tiered execution
 - Validate configurations offline before deployment
 
+This project is an offshoot of [koji-boxed](https://github.com/obriencj/koji-boxed), fulfilling the need for populating a boxed koji instance with a bunch of tags and targets. However it is being written such that it can be used with any koji instance, in the hopes that it may bring joy into the lives of those trying to keep projects packagers happy.
+
 
 ## CLI
 
@@ -166,11 +168,12 @@ pip install -e .
 
 This project was developed with assistance from [Claude](https://claude.ai) (Claude 3.5 Sonnet) via Cursor IDE. The AI assistant helped with bootstrapping and documentation while following the project's functional programming principles and coding standards.
 
+
 ## License
 
 This project is licensed under the GNU General Public License v3.0.
 
-```
+
 koji-habitude - Synchronize local koji data expectations with hub instance
 Copyright (C) 2025 Christopher O'Brien
 
@@ -186,4 +189,6 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
-```
+
+
+<!-- The end -->
