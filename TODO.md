@@ -2,26 +2,6 @@
 
 This document tracks planned features and improvements for koji-habitude.
 
-## 🐳 Containerization
-
-**Goal**: Create a containerized version that can run sync operations from mounted volumes.
-
-- [ ] Create Dockerfile that installs the wheel
-- [ ] Design entrypoint script that accepts environment variables
-- [ ] Support volume mounting for data/templates
-- [ ] Implement authentication mechanisms:
-  - [ ] Certificate-based authentication
-  - [ ] Kerberos keytab + principal authentication
-- [ ] Environment variable configuration:
-  - [ ] `KOJI_PROFILE` - koji profile to use
-  - [ ] `KOJI_CERT_PATH` - path to client certificate
-  - [ ] `KOJI_KEYTAB_PATH` - path to kerberos keytab
-  - [ ] `KOJI_PRINCIPAL` - kerberos principal
-  - [ ] `DATA_PATH` - path to data directory in container
-  - [ ] `TEMPLATES_PATH` - path to templates directory
-- [ ] Document container usage in README
-- [ ] Add container build to CI/CD pipeline
-
 ## 🧪 Unit Testing
 
 **Goal**: Comprehensive test coverage for core functionality.
@@ -32,7 +12,7 @@ This document tracks planned features and improvements for koji-habitude.
 - [ ] Test object data structure validation
 - [ ] Test invalid data handling
 
-### Comparison Testing  
+### Comparison Testing
 - [ ] Test koji object diffing logic (once implemented)
 - [ ] Test update call generation
 - [ ] Test multicall result processing
@@ -64,7 +44,7 @@ This document tracks planned features and improvements for koji-habitude.
 - [ ] Document FakeHub setup requirements
 - [ ] Performance benchmarking vs standard koji client
 
-**Notes**: 
+**Notes**:
 - FakeHub only available from koji git repository
 - Requires direct database access permissions
 - Same core logic, different authentication/connection method
@@ -82,7 +62,7 @@ This document tracks planned features and improvements for koji-habitude.
 
 ### Supported Type Names
 - `external-repo` - External repositories
-- `user` - Koji users  
+- `user` - Koji users
 - `tag` - Build tags
 - `target` - Build targets
 - `host` - Build hosts
