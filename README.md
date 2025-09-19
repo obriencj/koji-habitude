@@ -14,7 +14,7 @@ The tool synchronizes local koji data expectations with a hub instance, allowing
 - Apply changes in the correct order through tiered execution
 - Validate configurations offline before deployment
 
-This project is an offshoot of [koji-boxed](https://github.com/obriencj/koji-boxed), fulfilling the need for populating a boxed koji instance with a bunch of tags and targets. However it is being written such that it can be used with any koji instance, in the hopes that it may bring joy into the lives of those trying to keep projects packagers happy.
+This project is an offshoot of [koji-box](https://github.com/obriencj/koji-box), fulfilling the need for populating a boxed koji instance with a bunch of tags and targets. However it is being written such that it can be used with any koji instance, in the hopes that it may bring joy into the lives of those trying to keep projects packagers happy.
 
 
 ## CLI
