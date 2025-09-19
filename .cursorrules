@@ -1,0 +1,101 @@
+# Cursor Rules for koji-habitude
+
+## Project Overview
+This is a Python project called koji-habitude that synchronizes local koji data expectations with a hub instance. It provides a CLI tool for managing koji objects through templates and data files.
+
+## Python Development Guidelines
+
+### Code Style & Structure
+- Use purely functional definitions instead of classes when objects aren't being modeled
+- Only use object-oriented programming when actually modeling objects
+- Do NOT use classes as namespaces for static or class methods
+- Prefer functional programming patterns where appropriate
+- Keep dependencies at an absolute minimum
+
+### CLI Implementation
+- Use clique for CLI operations with subcommands
+- CLI should accept koji profile (optional), templates path, and data directory
+
+### Configuration Files
+- Prefer setup.cfg over pyproject.toml
+- Use setup.cfg for configuration of tools like tox, flake8, etc.
+- Keep all tool configurations centralized in setup.cfg when possible
+
+### Dependencies
+- Minimize dependencies to absolute essentials
+- Approved dependencies: clique (CLI), koji (mandatory for koji operations)
+- Justify any additional dependencies before adding them
+
+## Git Operations
+- Use `git mv` instead of `mv` when moving files
+- Use `git --no-pager status` instead of `git status` for programmatic operations
+- Use `git --no-pager log` instead of `git log` for programmatic operations
+- Use heredoc format for commits instead of quoted multi-line strings:
+  ```bash
+  git commit -F - << 'EOF'
+  Commit message here
+  
+  Detailed description
+  EOF
+  ```
+
+## Implementation Notes
+- Object diffing against koji data should be left as TODO stubs
+- Focus on the core architecture: template loading, object data loading, dependency resolution, and model application
+- The project uses YAML for both templates and data files
+- Templates use Jinja2 for expansion
+- Core koji types: tag, external-repo, user, target, host, group
+- Object identification uses (type, name) tuples
+- Dependency resolution creates tiers for ordered operations
+
+## File Structure
+- Templates directory contains YAML template definitions
+- Data directory contains YAML object definitions
+- Each YAML file can contain multiple objects
+- Templates can expand into multiple core objects
+
+## Architecture Components
+1. Template loading and registry
+2. Object data loading with type resolution
+3. Template inlining via Jinja2
+4. Dependency resolution with tiered execution
+5. Model application to koji instance via multicalls
+
+## Code Quality
+- Write clear, functional code
+- Use type hints where appropriate
+- Follow PEP 8 style guidelines
+- Keep functions focused and single-purpose
+- Document complex logic with clear comments
+
+### String Quote Conventions
+- Use single quotes for identifiers and simple keys (type names, dictionary keys, etc.)
+- Use double quotes for human-readable text (names, error messages, print output, logging, help text, descriptions)
+
+## File Formatting Standards
+- Every Python file must end with a comment containing exactly: `# The end.`
+- Every Python file must start with a module docstring following this format:
+  ```python
+  """
+  koji-habitude - [module_name]
+  
+  [Brief explanation of what this module does]
+  
+  Author: Christopher O'Brien <obriencj@gmail.com>
+  License: GNU General Public License v3
+  AI-Assistant: Claude 3.5 Sonnet via Cursor
+  """
+  ```
+
+## Docstring Formatting
+- Triple quotes should be on their own lines (opening and closing)
+- Docstrings should be followed by a blank line, even in method bodies
+- Example format:
+  ```python
+  def function_name():
+      """
+      Function description here.
+      """
+      
+      # Function body starts here
+  ```
