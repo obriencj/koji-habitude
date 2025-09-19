@@ -2,6 +2,7 @@
 
 > **⚠️ Work In Progress**: This project is currently under development and is not yet functional.
 
+
 ## Overview
 
 koji-habitude is a configuration management tool for [Koji](https://pagure.io/koji) build systems. It provides a declarative approach to managing koji objects through YAML templates and data files, with intelligent dependency resolution and tiered execution.
@@ -9,37 +10,48 @@ koji-habitude is a configuration management tool for [Koji](https://pagure.io/ko
 The tool synchronizes local koji data expectations with a hub instance, allowing you to:
 - Define koji objects (tags, external repos, users, targets, hosts, groups) in YAML
 - Use Jinja2 templates for dynamic configuration generation  
-- Automatically resolve dependencies between objects
+- Automatically resolve dependencies between objects (tag inheritance)
 - Apply changes in the correct order through tiered execution
 - Validate configurations offline before deployment
+
 
 ## CLI
 
 koji-habitude is built using [Clique](https://github.com/obriencj/python-clique) and provides three main commands:
 
+
 ### Synchronize with Koji Hub
 
 ```bash
-koji-habitude sync --templates-path /path/to/templates --data-dir /path/to/data [OPTIONS]
+koji-habitude sync [OPTIONS] DATA [DATA...]
 ```
 
 **Options:**
-- `--koji-profile PROFILE`: Koji profile to use for connection (optional)
+- `DATA`: directories or files to work with
+- `--templates PATH`: location to find templates that are not available in `DATA`
+- `--profile PROFILE`: Koji profile to use for connection (optional)
 - `--offline`: Run in offline mode (no koji connection)
 - `--dry-run`: Show what would be done without making changes
+
+```bash
+koji-habitude diff [OPTIONS] DATA [DATA...]
+```
+
+A convenience alias for `koji-habitude sync --dry-run`
 
 ### List Available Templates
 
 ```bash
-koji-habitude list-templates --templates-path /path/to/templates
+koji-habitude list-templates [OPTIONS] PATH [PATH...]
 ```
 
-Shows all templates found in the templates directory with their configuration details.
+Shows all templates found in the given locations with their configuration details.
+
 
 ### Validate Configuration
 
 ```bash
-koji-habitude validate --templates-path /path/to/templates --data-dir /path/to/data
+koji-habitude validate [OPTIONS] DATA [DATA...]
 ```
 
 Validates templates and data files without connecting to koji, checking for:
@@ -47,6 +59,7 @@ Validates templates and data files without connecting to koji, checking for:
 - Circular dependencies
 - Missing dependencies
 - Data consistency
+
 
 ## Templates
 
@@ -78,6 +91,7 @@ schema:
   # Optional schema validation
 ```
 
+
 ### Template Expansion
 
 When processing data files, objects with `type` matching a template name trigger template expansion:
@@ -92,6 +106,7 @@ parents:
 ```
 
 This expands into the final koji objects through recursive template processing.
+
 
 ## Types
 
@@ -124,6 +139,7 @@ Objects are processed in dependency-resolved tiers:
 
 Cross-dependencies within the same tier are resolved through automatic deferral mechanisms.
 
+
 ## Requirements
 
 - [Python](https://python.org) 3.8+
@@ -138,15 +154,17 @@ Cross-dependencies within the same tier are resolved through automatic deferral 
 pip install -e .
 ```
 
+
 ## Contact
 
 **Author**: Christopher O'Brien <obriencj@gmail.com>
 
 **Original Git Repo**: *Coming soon*
 
+
 ## AI Assistance Disclaimer
 
-This project was developed with assistance from [Claude](https://claude.ai) (Claude 3.5 Sonnet) via Cursor IDE. The AI assistant helped with architecture design, code implementation, and documentation while following the project's functional programming principles and coding standards.
+This project was developed with assistance from [Claude](https://claude.ai) (Claude 3.5 Sonnet) via Cursor IDE. The AI assistant helped with bootstrapping and documentation while following the project's functional programming principles and coding standards.
 
 ## License
 
@@ -154,7 +172,7 @@ This project is licensed under the GNU General Public License v3.0.
 
 ```
 koji-habitude - Synchronize local koji data expectations with hub instance
-Copyright (C) 2024 Christopher O'Brien
+Copyright (C) 2025 Christopher O'Brien
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
