@@ -22,26 +22,26 @@ help:
 
 # Build wheel distribution
 build:
-	tox -e build
+	tox -qe build
 
 # Run flake8 linting
 flake8:
-	tox -e flake8
+	tox -qe flake8
 
 # Run mypy type checking
 mypy:
-	tox -e mypy
+	tox -qe mypy
 
 # Check package with twine
 twine:  build
-	tox -e twine
+	tox -qe twine
 
 # Run tests
 test:
-	tox
+	tox -q
 
 quicktest:
-	tox -e quicktest
+	tox -qe quicktest
 
 tidy:
 	@rm -rf *.egg-info/
