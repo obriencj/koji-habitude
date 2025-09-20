@@ -4,7 +4,7 @@
 # License: GNU General Public License v3
 # AI-Assistant: Claude 3.5 Sonnet via Cursor
 
-.PHONY: build flake8 mypy twine test clean help tidy purge
+.PHONY: build flake8 mypy twine test clean help tidy purge quicktest
 
 # Default target
 help:
@@ -14,6 +14,7 @@ help:
 	@echo "  mypy    - Run mypy type checking"
 	@echo "  twine   - Check package with twine"
 	@echo "  test    - Run tests with pytest"
+	@echo "  quicktest - Run tests with system Python (faster)"
 	@echo "  tidy    - Tidy up stray python cache files"
 	@echo "  clean   - Tidy up, then clean build artifacts"
 	@echo "  purge   - Clean up, then purge tox environments"
@@ -37,7 +38,10 @@ twine:  build
 
 # Run tests
 test:
-	tox -e py38,py39,py310,py311
+	tox
+
+quicktest:
+	tox -e quicktest
 
 tidy:
 	@rm -rf *.egg-info/
