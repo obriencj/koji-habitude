@@ -1,0 +1,6 @@
+---
+name: test_template
+template: |
+  type: user
+  name: {{ name }}
+---

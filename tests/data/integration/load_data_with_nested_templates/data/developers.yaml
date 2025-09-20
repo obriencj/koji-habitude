@@ -1,0 +1,12 @@
+---
+type: base_user
+name: admin_user
+description: System administrator
+email: admin@example.com
+---
+type: developer
+name: dev_user
+description: Software developer
+email: dev@example.com
+parent_tag: el9-build
+---

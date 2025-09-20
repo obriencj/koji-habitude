@@ -1,0 +1,15 @@
+---
+name: user_template
+template: |
+  type: user
+  name: {{ name }}
+  description: {{ description }}
+schema:
+  required: [name, description]
+---
+name: tag_template
+template: |
+  type: tag
+  name: {{ name }}
+  description: {{ description }}
+---

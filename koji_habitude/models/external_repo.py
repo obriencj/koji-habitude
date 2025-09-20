@@ -16,15 +16,22 @@ class ExternalRepo(BaseKojiObject):
     """
     Koji external repository object model.
     """
-    
+
     def dependent_keys(self) -> List[Tuple[str, str]]:
         """
         Return dependencies for this external repo.
-        
-        External repos typically have no dependencies on other koji objects.
-        They are usually leaf nodes in the dependency tree.
+
+        External repos depend on:
+        - Tags they are associated with
         """
-        
-        return []
+
+        deps = []
+
+        # Check for tag dependency
+        tag = self.data.get('tag')
+        if tag:
+            deps.append(('tag', tag))
+
+        return deps
 
 # The end.

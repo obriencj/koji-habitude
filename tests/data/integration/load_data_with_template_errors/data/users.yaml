@@ -1,0 +1,8 @@
+---
+type: error_template
+name: test_user
+---
+type: user
+name: working_user
+description: This should still work
+---

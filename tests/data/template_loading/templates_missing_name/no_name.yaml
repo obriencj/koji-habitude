@@ -1,0 +1,8 @@
+---
+template: |
+  type: user
+  name: {{ name }}
+---
+name: valid_template
+template: valid content
+---

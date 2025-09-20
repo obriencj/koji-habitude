@@ -1,0 +1,15 @@
+---
+name: user_with_tag
+template: |
+  ---
+  type: user
+  name: {{ name }}
+  description: {{ description }}
+  ---
+  type: tag
+  name: {{ name }}-tag
+  description: Build tag for {{ name }}
+  parent: {{ parent_tag }}
+schema:
+  required: [name, description, parent_tag]
+---

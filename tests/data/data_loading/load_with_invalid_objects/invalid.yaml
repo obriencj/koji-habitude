@@ -1,0 +1,8 @@
+---
+type: user
+description: Missing name field
+---
+type: tag
+name: valid_tag
+description: Valid tag
+---

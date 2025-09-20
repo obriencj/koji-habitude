@@ -1,0 +1,10 @@
+---
+name: base_user
+template: |
+  type: user
+  name: {{ name }}
+  description: {{ description }}
+  email: {{ email }}
+schema:
+  required: [name, description, email]
+---

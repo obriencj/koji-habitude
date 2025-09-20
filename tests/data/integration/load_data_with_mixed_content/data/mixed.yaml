@@ -1,0 +1,15 @@
+---
+type: user_template
+name: templated_user
+description: User from template
+---
+type: tag
+name: direct_tag
+description: Tag created directly
+parent: el9-build
+---
+type: user
+name: direct_user
+description: User created directly
+email: user@example.com
+---

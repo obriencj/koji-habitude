@@ -1,0 +1,24 @@
+---
+name: full_developer
+template: |
+  ---
+  type: user
+  name: {{ name }}
+  description: {{ description }}
+  email: {{ email }}
+  ---
+  type: tag
+  name: {{ name }}-dev
+  description: Development tag for {{ name }}
+  parent: {{ parent_tag }}
+  ---
+  type: tag
+  name: {{ name }}-test
+  description: Testing tag for {{ name }}
+  parent: {{ name }}-dev
+  ---
+  type: external-repo
+  name: {{ name }}-repo
+  url: {{ repo_url }}
+  tag: {{ name }}-dev
+---

@@ -1,0 +1,7 @@
+---
+name: user_template
+template: |
+  type: user
+  name: {{ name }}
+  description: {{ description }}
+---

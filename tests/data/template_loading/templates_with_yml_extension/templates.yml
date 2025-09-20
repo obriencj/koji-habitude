@@ -1,0 +1,6 @@
+---
+name: yml_template
+template: |
+  type: user
+  name: {{ name }}
+---

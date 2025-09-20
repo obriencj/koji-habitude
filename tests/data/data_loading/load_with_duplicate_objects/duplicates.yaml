@@ -1,0 +1,9 @@
+---
+type: user
+name: duplicate_user
+description: First instance
+---
+type: user
+name: duplicate_user
+description: Second instance (should override)
+---
