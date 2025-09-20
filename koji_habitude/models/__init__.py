@@ -8,6 +8,9 @@ License: GNU General Public License v3
 AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
+# Vibe-Coding State: AI Generated with Human Rework
+
+
 from .base import BaseKojiObject
 from .tag import Tag
 from .external_repo import ExternalRepo
@@ -16,25 +19,30 @@ from .target import Target
 from .host import Host
 from .group import Group
 
-# Registry of core model types
+
+__all__ = (
+    'CORE_MODELS',
+
+    'BaseKojiObject',
+    'ExternalRepo',
+    'Group',
+    'Host',
+    'Tag',
+    'Target',
+    'User',
+)
+
+
 CORE_MODELS = {
-    'tag': Tag,
     'external-repo': ExternalRepo,
-    'user': User,
-    'target': Target,
-    'host': Host,
     'group': Group,
+    'host': Host,
+    'tag': Tag,
+    'target': Target,
+    'user': User,
+
+    # TODO: channel, permission
 }
 
-__all__ = [
-    'BaseKojiObject',
-    'Tag',
-    'ExternalRepo', 
-    'User',
-    'Target',
-    'Host',
-    'Group',
-    'CORE_MODELS',
-]
 
 # The end.
