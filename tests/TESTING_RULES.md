@@ -97,6 +97,17 @@ Every test file must end with a comment containing exactly `# The end.` and a si
 - Complex test scenarios should be documented within the data files themselves
 - Bad data files should include comments explaining why they are invalid
 
+### File Count Maintenance
+**IMPORTANT**: When adding or removing files from the `tests/data/` directory, you **MUST** update the global file count constants at the top of `tests/test_loader.py`:
+
+- `TEMPLATES_YAML_COUNT` - Count of `.yaml` and `.yml` files in `tests/data/templates/`
+- `TEMPLATES_J2_COUNT` - Count of `.j2` files in `tests/data/templates/`
+- `SAMPLES_YAML_COUNT` - Count of `.yaml/.yml` files in `tests/data/samples/` (including nested)
+- `BAD_YAML_COUNT` - Count of `.yaml/.yml` files in `tests/data/bad/`
+- `BAD_TOTAL_COUNT` - Count of all files in `tests/data/bad/`
+
+Failure to update these constants will cause loader tests to fail with incorrect file count assertions.
+
 ## Testing Patterns
 
 ### Path Handling

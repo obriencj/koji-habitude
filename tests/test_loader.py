@@ -16,6 +16,17 @@ from pathlib import Path
 from koji_habitude.loader import find_files, combine_find_files, YAMLLoader, MultiLoader
 
 
+# Global file count constants for test data directories
+# Update these when adding/removing test files
+TEMPLATES_YAML_COUNT = 9  # .yaml and .yml files in templates/ (excluding .j2)
+TEMPLATES_J2_COUNT = 1    # .j2 files in templates/
+TEMPLATES_TOTAL_COUNT = TEMPLATES_YAML_COUNT + TEMPLATES_J2_COUNT
+
+SAMPLES_YAML_COUNT = 2    # .yaml/.yml files in samples/ (including nested/)
+BAD_YAML_COUNT = 5        # .yaml/.yml files in bad/ (excluding .txt)
+BAD_TOTAL_COUNT = 6       # All files in bad/ (including .txt)
+
+
 class TestFindFiles(unittest.TestCase):
     """
     Test cases for the find_files function.
@@ -60,7 +71,7 @@ class TestFindFiles(unittest.TestCase):
 
         result = find_files(self.templates_dir)
 
-        self.assertEqual(len(result), 6, "Should find all YAML files in templates directory")
+        self.assertEqual(len(result), TEMPLATES_YAML_COUNT, "Should find all YAML files in templates directory")
 
         # Results should be sorted - check that original files are included
         expected_original_files = [
@@ -80,7 +91,7 @@ class TestFindFiles(unittest.TestCase):
 
         result = find_files(self.samples_dir)
 
-        self.assertEqual(len(result), 2, "Should find YAML files recursively")
+        self.assertEqual(len(result), SAMPLES_YAML_COUNT, "Should find YAML files recursively")
 
         # Check that nested file is included
         nested_file = self.samples_dir / 'nested' / 'deep.yml'
@@ -95,7 +106,7 @@ class TestFindFiles(unittest.TestCase):
 
         # Now there's malformed.yaml in bad directory, but we should still find it
         # since it has .yaml extension (even though it's malformed)
-        self.assertEqual(len(result), 1, "Should find the YAML file in bad directory")
+        self.assertEqual(len(result), BAD_YAML_COUNT, "Should find the YAML files in bad directory")
         self.assertTrue(result[0].name.endswith('.yaml'), "Found file should be YAML")
 
     def test_find_files_with_custom_extensions(self):
@@ -176,7 +187,7 @@ class TestCombineFindFiles(unittest.TestCase):
 
         result = combine_find_files([self.templates_dir])
 
-        self.assertEqual(len(result), 6, "Should find all files in templates directory")
+        self.assertEqual(len(result), TEMPLATES_YAML_COUNT, "Should find all files in templates directory")
 
     def test_combine_multiple_directories(self):
         """
@@ -185,14 +196,14 @@ class TestCombineFindFiles(unittest.TestCase):
 
         result = combine_find_files([self.templates_dir, self.samples_dir])
 
-        self.assertEqual(len(result), 8, "Should find files from both directories")
+        self.assertEqual(len(result), TEMPLATES_YAML_COUNT + SAMPLES_YAML_COUNT, "Should find files from both directories")
 
         # Check that files from both directories are included
         template_files = [f for f in result if 'templates' in str(f)]
         sample_files = [f for f in result if 'samples' in str(f)]
 
-        self.assertEqual(len(template_files), 6, "Should include all template files")
-        self.assertEqual(len(sample_files), 2, "Should include all sample files")
+        self.assertEqual(len(template_files), TEMPLATES_YAML_COUNT, "Should include all template files")
+        self.assertEqual(len(sample_files), SAMPLES_YAML_COUNT, "Should include all sample files")
 
     def test_combine_mixed_paths(self):
         """
@@ -236,7 +247,7 @@ class TestCombineFindFiles(unittest.TestCase):
         result = combine_find_files([self.templates_dir, self.templates_dir])
 
         # Current implementation will return duplicates
-        self.assertEqual(len(result), 12, "Current implementation returns duplicates (6 files x 2)")
+        self.assertEqual(len(result), TEMPLATES_YAML_COUNT * 2, f"Current implementation returns duplicates ({TEMPLATES_YAML_COUNT} files x 2)")
 
     def test_combine_with_nonexistent_path_strict(self):
         """
@@ -260,7 +271,7 @@ class TestCombineFindFiles(unittest.TestCase):
         result = combine_find_files(paths, strict=False)
 
         # Should only find files from the existing directory
-        self.assertEqual(len(result), 6, "Should find files from existing directory only")
+        self.assertEqual(len(result), TEMPLATES_YAML_COUNT, "Should find files from existing directory only")
 
         # All found files should be from templates directory
         for file_path in result:
