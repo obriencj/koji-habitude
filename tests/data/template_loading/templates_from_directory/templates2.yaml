@@ -1,6 +1,0 @@
----
-name: external_repo_template
-template_file: external_repo.j2
-schema:
-  required: [name, url]
----

@@ -1,9 +1,0 @@
----
-name: validated_template
-template: |
-  type: user
-  name: {{ name }}
-  description: {{ description }}
-schema:
-  required: [name, description]
----
