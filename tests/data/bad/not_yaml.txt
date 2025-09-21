@@ -1,0 +1,2 @@
+# This is not a YAML file - it's a text file
+This file should not be picked up by YAML file finding functions.

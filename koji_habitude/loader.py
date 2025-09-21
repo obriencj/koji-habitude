@@ -14,7 +14,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 import yaml
 
 from itertools import chain
-from typing import Any, Dict, Iterator, List
+from typing import Any, Dict, Iterator, List, Protocol, Sequence, Type
 from pathlib import Path
 
 
@@ -26,6 +26,14 @@ class NumberedSafeLoader(yaml.SafeLoader):
         mapping = super().construct_mapping(node, deep=deep)
         mapping['__line__'] = node.start_mark.line + 1
         return mapping
+
+
+class LoaderProtocol(Protocol):
+    extensions: Sequence[str]
+    def __init__(self, filename: str | Path):
+        ...
+    def load(self) -> Iterator[Dict[str, Any]]:
+        ...
 
 
 class YAMLLoader:
@@ -62,39 +70,47 @@ class YAMLLoader:
 
 class MultiLoader:
 
-    def __init__(self, loader_types=[]):
-        self.extmap = {}
+    def __init__(self, loader_types: List[Type[LoaderProtocol]]):
+        self.extmap: Dict[str, Type[LoaderProtocol]] = {}
 
         for loader in loader_types:
-            self.add_loader(loader)
+            self.add_loader_type(loader)
 
 
-    def add_loader_type(self, loader_type):
+    def add_loader_type(self, loader_type: Type[LoaderProtocol]) -> None:
         for ext in loader_type.extensions:
             self.extmap[ext] = loader_type
 
 
-    def lookup_loader_type(self, filename: str | Path):
+    def lookup_loader_type(self, filename: str | Path) -> Type[LoaderProtocol]:
         filename = filename and Path(filename)
         if not filename:
             return None
         return self.extmap.get(filename.suffix)
 
 
-    def loader(self, filename: str|Path):
+    def loader(self, filename: str | Path) -> LoaderProtocol:
         cls = self.lookup_loader_type(filename)
         if not cls:
-            raise ValueError("No loader accepting filename {filename}")
+            raise ValueError(f"No loader accepting filename {filename}")
         return cls(filename)
 
 
     def load(self, paths: List[str|Path]) -> Iterator[Dict[str, Any]]:
+
+        # the extmap is just going to be used to loop over, and to check whether a file
+        # suffix is 'in' it, both behaviours are suppoted by dict, so don't bother
+        # converting via .keys()
         filepaths = combine_find_files(paths, self.extmap)
         return chain(*(self.loader(f).load() for f in filepaths))
 
 
-def find_files(path, extensions=(".yml", ".yaml")):
+def find_files(path, extensions: Sequence[str] = (".yml", ".yaml"), strict=True):
     path = path and Path(path)
+
+    if strict and not path.exists():
+        raise FileNotFoundError(f"Path not found: {path}")
+
     if path.is_file() and path.suffix in extensions:
         return [path]
 
@@ -105,10 +121,10 @@ def find_files(path, extensions=(".yml", ".yaml")):
     return sorted(found)
 
 
-def combine_find_files(pathlist, extensions=(".yml", ".yaml")):
+def combine_find_files(pathlist, extensions: Sequence[str] = (".yml", ".yaml"), strict=True):
     found = []
     for path in pathlist:
-        found.extend(find_files(path, extensions))
+        found.extend(find_files(path, extensions, strict))
     return found
 
 

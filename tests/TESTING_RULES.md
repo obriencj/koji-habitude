@@ -82,7 +82,7 @@ Follow the project's string quote conventions:
 - Use double quotes for human-readable text (error messages, descriptions, assertions)
 
 ### File Ending
-Every test file must end with a comment containing exactly: `# The end.`
+Every test file must end with a comment containing exactly `# The end.` and a single newline
 
 ## Test Data Standards
 
@@ -101,8 +101,8 @@ Every test file must end with a comment containing exactly: `# The end.`
 
 ### Path Handling
 - Use absolute paths when referencing test data files
-- Construct paths using `os.path.join()` or `pathlib.Path`
-- Example: `test_data_path = os.path.join(os.path.dirname(__file__), 'data', 'templates', 'simple.yaml')`
+- Construct paths using `pathlib.Path`
+- Example: `test_data_path = Path(__file__).parent / 'data' / 'templates' / 'simple.yaml'`
 
 ### Error Testing
 - Test both positive and negative cases
@@ -179,8 +179,9 @@ This document may be extended with additional rules as the project evolves. Comm
 - Utilize `unittest.mock` for necessary mocking scenarios
 
 ### Test Runner
-- Tests should be runnable via `python -m unittest discover`
-- Individual test files should be runnable directly
+- A simple test entrypoint is via `make quicktest`
+- More detailed test data is runnable via `tox -qe quicktest -- -v`
+- Individual test files should be runnable directly via `tox -qe quicktest -- [testfile] -v`
 - Follow the project's existing test execution patterns
 
 ### Linting and Formatting

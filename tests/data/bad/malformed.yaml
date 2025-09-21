@@ -1,0 +1,6 @@
+# Malformed YAML - missing closing bracket
+name: malformed-doc
+type: tag
+properties:
+  arches: ["x86_64", "aarch64"
+  # Missing closing bracket above

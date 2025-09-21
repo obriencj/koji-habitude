@@ -1,0 +1,5 @@
+# Simple template for testing
+type: template
+name: simple-template
+target_type: tag
+description: "A simple test template"

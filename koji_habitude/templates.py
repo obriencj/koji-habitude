@@ -47,8 +47,7 @@ class Template:
     def __init__(
         self,
         name: str,
-        template_data: Dict[str, Any],
-        base_path: Optional[Path] = None):
+        template_data: Dict[str, Any]):
 
         """
         Initialize template.
@@ -56,8 +55,6 @@ class Template:
         Args:
             name: Name of the template
             template_data: Template configuration data
-            base_path: Base path for this definition, for loading jinja2
-                       from file
         """
 
         name = name and name.strip()
@@ -67,8 +64,9 @@ class Template:
         self.name = name
         self.data = template_data
 
-        template_content = template_data.get('template')
-        template_file = template_data.get('template_file')
+        base_path = template_data.get('__file__')
+        template_content = template_data.get('content')
+        template_file = template_data.get('file')
 
         if template_file:
             if not base_path:

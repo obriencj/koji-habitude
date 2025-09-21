@@ -1,0 +1,5 @@
+
+# Document starts at line 3 after blank lines
+type: group
+name: whitespace-doc
+description: "Document with leading whitespace"
