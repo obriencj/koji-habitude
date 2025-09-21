@@ -1,6 +1,6 @@
 # koji-habitude
 
-> **⚠️ Work In Progress**: This project is currently under development and is not yet functional.
+> **⚠️ Work In Progress**: This project is currently under development. Core CLI functionality is available, but synchronization with Koji hubs is not yet implemented.
 
 
 ## Overview
@@ -11,6 +11,7 @@ The tool synchronizes local koji data expectations with a hub instance, allowing
 - Define koji objects (tags, external repos, users, targets, hosts, groups) in YAML
 - Use Jinja2 templates for dynamic configuration generation
 - Automatically resolve dependencies between objects (tag inheritance)
+- Preview template expansion results with the `expand` command
 - Apply changes in the correct order through tiered execution
 - Validate configurations offline before deployment
 
@@ -19,7 +20,7 @@ This project is an offshoot of [koji-box](https://github.com/obriencj/koji-box),
 
 ## CLI
 
-koji-habitude is built using [Clique](https://github.com/obriencj/python-clique) and provides three main commands:
+koji-habitude is built using [Click](https://click.palletsprojects.com/) and provides four main commands:
 
 
 ### Synchronize with Koji Hub
@@ -61,6 +62,21 @@ Validates templates and data files without connecting to koji, checking for:
 - Circular dependencies
 - Missing dependencies
 - Data consistency
+
+
+### Expand Templates and Data
+
+```bash
+koji-habitude expand [OPTIONS] DATA [DATA...]
+```
+
+**Options:**
+- `DATA`: directories or files to work with
+- `--templates PATH`: location to find templates that are not available in `DATA`
+- `--profile PROFILE`: Koji profile to use for connection (optional)
+- `--offline`: Run in offline mode (no koji connection)
+
+Expands templates and data files into final YAML output. This command loads templates from the specified locations, processes the data files through template expansion, and outputs the final YAML content to stdout. Useful for previewing the results of template expansion before applying changes.
 
 
 ## YAML Format
@@ -153,7 +169,7 @@ Cross-dependencies within the same tier are resolved through automatic deferral 
 
 - [Python](https://python.org) 3.8+
 - [Koji](https://pagure.io/koji) client libraries
-- [Clique](https://github.com/obriencj/python-clique) for CLI
+- [Click](https://click.palletsprojects.com/) for CLI
 - PyYAML for configuration parsing
 - Jinja2 for template processing
 
@@ -168,12 +184,14 @@ pip install -e .
 
 **Author**: Christopher O'Brien <obriencj@gmail.com>
 
-**Original Git Repo**: *Coming soon*
+**Original Git Repo**: https://github.com/obriencj/koji-habitude
 
 
 ## AI Assistance Disclaimer
 
 This project was developed with assistance from [Claude](https://claude.ai) (Claude 3.5 Sonnet) via Cursor IDE. The AI assistant helped with bootstrapping and documentation while following the project's functional programming principles and coding standards.
+
+See VIBE.md for a very human blurb about how much of an impact this has had on various files.
 
 
 ## License
