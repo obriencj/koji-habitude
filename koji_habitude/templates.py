@@ -19,6 +19,9 @@ from jinja2 import Environment, FileSystemLoader
 import yaml
 
 
+from .models import Base, BaseObject
+
+
 logger = logging.getLogger("koji_habitude.templates")
 
 
@@ -34,7 +37,19 @@ class TemplateCall:
         self.data = data
 
 
-class Template:
+class TemplateProtocol(Base):
+
+    def validate(self, data: Dict[str, Any]) -> bool:
+        ...
+    def render(self, data: Dict[str, Any]) -> str:
+        ...
+    def render_and_load(self, data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
+        ...
+    def render_call(self, call: TemplateCall) -> Iterator[Dict[str, Any]]:
+        ...
+
+
+class Template(BaseObject, TemplateProtocol):
 
     """
     A Template allows for the expansion of some YAML data into zero or
@@ -46,8 +61,7 @@ class Template:
 
     def __init__(
         self,
-        name: str,
-        template_data: Dict[str, Any]):
+        data: Dict[str, Any]):
 
         """
         Initialize template.
@@ -57,16 +71,15 @@ class Template:
             template_data: Template configuration data
         """
 
-        name = name and name.strip()
-        if not name:
-            raise TemplateValueError("Template name is required")
+        super().__init__(data)
 
-        self.name = name
-        self.data = template_data
+        template_content = data.get('content')
+        template_file = data.get('file')
 
-        base_path = template_data.get('__file__')
-        template_content = template_data.get('content')
-        template_file = template_data.get('file')
+        if self.filename:
+            base_path = Path(self.filename).parent
+        else:
+            base_path = None
 
         if template_file:
             if not base_path:
@@ -92,8 +105,10 @@ class Template:
         self.template_content = template_content
 
         # TODO: load the schema into a JSON schema validator if present
-        self.schema = template_data.get('schema')
+        self.schema = data.get('schema')
 
+        # do not catch errors from the jinja2 environment, let them bubble up.
+        # If there's a problem, we want to know about it.
         if template_file:
             jinja_env = Environment(
                 loader=FileSystemLoader(base_path),
@@ -114,7 +129,7 @@ class Template:
         return f"Template(name={self.name}, template_file={self.template_file}, template_content={self.template_content})"
 
 
-    def validate_data(self, data: Dict[str, Any]) -> bool:
+    def validate(self, data: Dict[str, Any]) -> bool:
         """
         Validate data against template schema if configured.
 
@@ -137,7 +152,7 @@ class Template:
         Render the template with the given data into a str
         """
 
-        if not self.validate_data(data):
+        if not self.validate(data):
             msg = f"Data validation failed for template {self.name!r}"
             raise TemplateValueError(msg)
 

@@ -1,0 +1,7 @@
+# Template missing required name field
+---
+type: template
+content: |
+  ---
+  type: tag
+  name: {{ name }}

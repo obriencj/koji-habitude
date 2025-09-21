@@ -11,21 +11,47 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: AI Generated with Human Rework
 
 
-from typing import Dict, List, Tuple, Optional, Any, TYPE_CHECKING
+from typing import Dict, List, Tuple, Optional, Any, TYPE_CHECKING, Protocol
 from abc import ABC, abstractmethod
 
 
-class BaseKojiObject(ABC):
+class Base(Protocol):
+    typename: str
+
+    name: str
+
+    filename: Optional[str]
+    lineno: Optional[int]
+
+    def __init__(self, data: Dict[str, Any]) -> None:
+        ...
+
+
+class BaseObject(Base):
+
+    typename = 'object'
+
+    def __init__(self, data: Dict[str, Any]) -> None:
+        name = data.get('name')
+        name = name and name.strip()
+        if not name:
+            raise ValueError("Non-empty name is required")
+
+        self.name = data['name']
+        self.filename = data.get('__file__')
+        self.lineno = data.get('__line__')
+
+
+class BaseKojiObject(ABC, BaseObject):
     """
     Base class for all koji object models.
     """
 
-
     # override in subclasses
-    typename = 'object'
+    typename = 'koji-object'
 
 
-    def __init__(self, data: Dict[str, Any]):
+    def __init__(self, data: Dict[str, Any]) -> None:
         """
         Initialize koji object from data dictionary.
 

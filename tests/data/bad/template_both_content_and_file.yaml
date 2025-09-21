@@ -1,0 +1,10 @@
+# Template with both content and file specified (invalid)
+---
+type: template
+name: conflicted-template
+content: |
+  ---
+  type: tag
+  name: {{ name }}
+file: template.j2
+__file__: /fake/path
