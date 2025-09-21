@@ -16,7 +16,7 @@ import logging
 from enum import Enum, auto
 from typing import Any, Dict, Iterator, Optional, List, Type
 
-from .templates import Template, TemplateCall, TemplateProtocol
+from .templates import Template, TemplateCall
 from .models import CORE_MODELS, Base
 
 

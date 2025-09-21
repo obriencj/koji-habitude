@@ -71,10 +71,7 @@ class BaseKojiObject(ABC, BaseObject):
             data: Dictionary containing object configuration
         """
 
-        self.typename = data['type']
-        self.name = data['name']
-        self.key = (self.typename, self.name)
-
+        super().__init__(data)
         self.data = data
 
         # filled by the resolver or by defer_deps
@@ -129,7 +126,7 @@ class BaseKojiObject(ABC, BaseObject):
         String representation of the object.
         """
 
-        return f"<{self.__class__.__name__}({self.type}, {self.name})>"
+        return f"<{self.__class__.__name__}({self.typename}, {self.name})>"
 
 
 # The end.
