@@ -28,7 +28,7 @@ class NumberedSafeLoader(yaml.SafeLoader):
         return mapping
 
 
-def YAMLLoader:
+class YAMLLoader:
 
     """
     Wraps the invocation of `yaml.load_all` using a customized `SafeLoader`,
@@ -44,7 +44,7 @@ def YAMLLoader:
     extensions = (".yml", ".yaml")
 
 
-    def __init__(self, filename: str|Path):
+    def __init__(self, filename: str | Path):
 
         filename = filename and Path(filename)
         if not (filename and filename.is_file()):
@@ -60,7 +60,7 @@ def YAMLLoader:
                 yield doc
 
 
-def MultiLoader:
+class MultiLoader:
 
     def __init__(self, loader_types=[]):
         self.extmap = {}
@@ -74,7 +74,7 @@ def MultiLoader:
             self.extmap[ext] = loader_type
 
 
-    def lookup_loader_type(self, filename: str|Path):
+    def lookup_loader_type(self, filename: str | Path):
         filename = filename and Path(filename)
         if not filename:
             return None
@@ -88,16 +88,9 @@ def MultiLoader:
         return cls(filename)
 
 
-    def load(self, filepaths: List[str|Path]) -> Iterator[Dict[str, Any]]:
-        """
-        loads in-sequence, to ensure a predictably ordered object
-        stream. filepaths needs to be a list of files. If you're working
-        with a mixture of directories, use `loader.combine_find_files`
-        to flatten dirs and file into an orderly list as expected by
-        this method.
-        """
-
-        return chain(*(loader(f).load() for f in filepaths))
+    def load(self, paths: List[str|Path]) -> Iterator[Dict[str, Any]]:
+        filepaths = combine_find_files(paths, self.extmap)
+        return chain(*(self.loader(f).load() for f in filepaths))
 
 
 def find_files(path, extensions=(".yml", ".yaml")):
@@ -115,7 +108,7 @@ def find_files(path, extensions=(".yml", ".yaml")):
 def combine_find_files(pathlist, extensions=(".yml", ".yaml")):
     found = []
     for path in pathlist:
-        found.extend(find_files(path, extentions))
+        found.extend(find_files(path, extensions))
     return found
 
 

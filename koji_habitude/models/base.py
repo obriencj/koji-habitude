@@ -1,7 +1,7 @@
 """
-koji-habitude - models.base
+koji_habitude.models.base
 
-Base class for all koji object models with dependency tracking.
+Base class for koji object models
 
 Author: Christopher O'Brien <obriencj@gmail.com>
 License: GNU General Public License v3
@@ -20,6 +20,11 @@ class BaseKojiObject(ABC):
     Base class for all koji object models.
     """
 
+
+    # override in subclasses
+    typename = 'object'
+
+
     def __init__(self, data: Dict[str, Any]):
         """
         Initialize koji object from data dictionary.
@@ -34,6 +39,7 @@ class BaseKojiObject(ABC):
 
         self.data = data
 
+        # filled by the resolver or by defer_deps
         self.dependants = []
 
 
@@ -41,7 +47,7 @@ class BaseKojiObject(ABC):
         return ()
 
 
-    def defer_deps(self)) -> 'BaseKojiObject':
+    def defer_deps(self) -> 'BaseKojiObject':
         """
         Create a minimal copy of this object specifying only that it needs
         to exist, with a dependant link on the original object.
@@ -56,7 +62,7 @@ class BaseKojiObject(ABC):
             "name": self.name
         })
 
-        deferal.dependants.append(self)
+        deferal.dependants = [self]
         return deferal
 
 

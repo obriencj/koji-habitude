@@ -8,14 +8,14 @@ License: GNU General Public License v3
 AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
-# Vibe-Coding State: AI Generated, Mostly Human
+# Vibe-Coding State: AI Assisted, Mostly Human
 
 
 import logging
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Generator
 
-from jinja2 import Environment, FileSystemLoader, Template as Jinja2Template
+from jinja2 import Environment, FileSystemLoader
 import yaml
 
 
@@ -100,14 +100,12 @@ class Template:
             jinja_env = Environment(
                 loader=FileSystemLoader(base_path),
                 trim_blocks=True,
-                lstrip_blocks=True
-            )
+                lstrip_blocks=True)
             self.jinja2_template = jinja_env.get_template(template_file)
         else:
             jinja_env = Environment(
                 trim_blocks=True,
-                lstrip_blocks=True
-            )
+                lstrip_blocks=True)
             self.jinja2_template = jinja_env.from_string(template_content)
 
 
@@ -142,7 +140,7 @@ class Template:
         """
 
         if not self.validate_data(data):
-            msg = f"Data validation failed for template {self.name!r}")
+            msg = f"Data validation failed for template {self.name!r}"
             raise TemplateValueError(msg)
 
         return self.jinja2_template.render(**data)
@@ -198,92 +196,6 @@ class TemplateValueError(ValueError):
     """
 
     pass
-
-
-def _iter_load_templates_from_file(
-    yaml_file: Path,
-    strict: bool = True) -> Iterator[Template]:
-
-    """
-    Iterate over templates in a YAML file.
-    """
-
-    print("iter_load_templates_from_file", yaml_file, strict)
-
-    # TODO: it would be great if we could identify the line number of
-    # templates as we load them, this would really aid in debugging
-    # and even plain introspection.
-
-    if strict:
-        # if an exception happens, we let that sucker propagate.
-        with open(yaml_file, 'r') as f:
-            for doc in yaml.safe_load_all(f):
-                print("doc", doc)
-                if doc and doc.get('type') == 'template':
-                    yield Template(doc.get('name'), doc, yaml_file.parent)
-        return
-
-    # if an exception happens, we log it and continue.
-    try:
-        with open(yaml_file, 'r') as f:
-            try:
-                loaded_docs = yaml.safe_load_all(f)
-            except yaml.YAMLError as e:
-                logger.error(f"Error loading template file {yaml_file}: {e}")
-                return
-
-            for doc in loaded_docs:
-                if doc and doc.get('type') == 'template':
-                    try:
-                        yield Template(doc.get('name'), doc, yaml_file.parent)
-                    except Exception as e:
-                        logger.error(f"Error processing template file {yaml_file}: {e}")
-
-    except Exception as e:
-        logger.error(f"Error loading template file {yaml_file}: {e}")
-        return
-
-
-def _iter_load_templates(
-    template_path: Path,
-    strict: bool = True) -> Iterator[Template]:
-
-    """
-    Iterate over templates in a directory.
-    """
-
-    if not template_path.exists():
-        raise FileNotFoundError(f"Templates path not found: {template_path}")
-
-    if template_path.is_file():
-        return _iter_load_templates_from_file(template_path, strict=strict)
-
-    yaml_files = list(template_path.glob("*.yaml")) + list(template_path.glob("*.yml"))
-
-    # Load all YAML files in the templates directory
-    for yaml_file in yaml_files:
-        yield from _iter_load_templates_from_file(yaml_file, strict=strict)
-
-
-def load_templates(
-    template_path: str|Path,
-    allow_redefinition: bool = False,
-    strict: bool = True) -> Dict[str, Template]:
-
-    """
-    Load all YAML templates from directory. Skips all non-template declarations.
-
-    Args:
-        templates_path: Path to directory containing template files
-        strict: Whether to raise an error if a template is not found or is invalid. If False, will log an error and continue.
-
-    Returns:
-        Dictionary mapping template names to Template objects
-    """
-
-    registry = TemplateRegistry(allow_redefinition=allow_redefinition, strict=strict)
-    registry.load_templates(Path(template_path))
-    return registry.templates
 
 
 # The end.

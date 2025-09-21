@@ -33,16 +33,14 @@ __all__ = (
 )
 
 
-CORE_MODELS = {
-    'external-repo': ExternalRepo,
-    'group': Group,
-    'host': Host,
-    'tag': Tag,
-    'target': Target,
-    'user': User,
-
-    # TODO: channel, permission
-}
+CORE_MODELS = (
+    ExternalRepo,
+    Group,
+    Host,
+    Tag,
+    Target,
+    User,
+)
 
 
 # The end.

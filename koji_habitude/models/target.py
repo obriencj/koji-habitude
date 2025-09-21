@@ -16,28 +16,31 @@ class Target(BaseKojiObject):
     """
     Koji build target object model.
     """
-    
+
+    typename = "target"
+
+
     def dependent_keys(self) -> List[Tuple[str, str]]:
         """
         Return dependencies for this target.
-        
+
         Targets depend on:
         - Build tag
         - Destination tag
         """
-        
+
         deps = []
-        
+
         # Build tag dependency
         build_tag = self.data.get('build_tag')
         if build_tag:
             deps.append(('tag', build_tag))
-            
+
         # Destination tag dependency
         dest_tag = self.data.get('dest_tag')
         if dest_tag:
             deps.append(('tag', dest_tag))
-            
+
         return deps
 
 # The end.

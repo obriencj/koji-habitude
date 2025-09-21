@@ -17,6 +17,7 @@ from enum import Enum, auto
 from typing import Any, Dict, Iterator, Optional
 
 from .template import Template, TemplateCall
+from .models import CORE_MODELS
 
 
 default_logger = logging.getLogger(__name__)
@@ -61,7 +62,7 @@ def _add_into(
         key: Any,
         obj: Any,
         redefine: Redefine = Redefine.ERROR,
-        logger: Optional[Logger] = None):
+        logger: Optional[logging.Logger] = None):
 
     orig = into.get(key, None)
 
@@ -89,17 +90,26 @@ def _add_into(
     elif redefine == Redefine.IGNORE_WARN:
         logger.warn(f"Ignored redefinition of {stmt}")
 
-    elif redef == Redefine.ALLOW_WARN:
+    elif redefine == Redefine.ALLOW_WARN:
         logger.warn(f"Redefined {stmt}")
-        self._ns[key] = obj
+        info[key] = obj
 
     else:
-        assert False, f"Unhandled redefine value {redef}"
+        assert False, f"Unknown redefine setting {redefine!r}"
+
+
+class NamespaceRedefine(Exception):
+    pass
 
 
 class Namespace:
 
-    def __init__(self, redefine=Redefine.ERROR, logger=None):
+    def __init__(
+            self,
+            coretypes=CORE_MODELS,
+            enable_templates=True,
+            redefine=Redefine.ERROR,
+            logger=None):
 
         self.redefine = redefine
         self.logger = logger or default_logger
@@ -108,6 +118,13 @@ class Namespace:
         # indicates the class to be used when nothing else matches. This
         # is normally a TemplateCall
         self.typemap = {}
+
+        for tp in coretypes:
+            self.typemap[tp.typename] = tp
+
+        if enable_templates:
+            self.typemap["template"] = Template
+            self.typemap[None] = TemplateCall
 
         # a sequence of un-processed objects to be added into this
         # namespace
@@ -154,8 +171,16 @@ class Namespace:
                          self.redefine, self.logger)
 
 
+    def feed_raw(self, data):
+        return self.feed(self.to_object(data))
+
+
+    def feedall_raw(self, datasequence):
+        return self.feedall(self.to_objects(datasequence))
+
+
     def feed(self, obj):
-    """
+        """
         Appends an object to the queue of objects to be added to this
         namespace. This queue is processed via the `expand()` method.
         """
@@ -209,28 +234,14 @@ class Namespace:
 
         acted = False
 
-        coretypes = self._coretypes
         for obj in sequence:
-            if isinstance(obj, coretypes):
-                if deferals:
-                    deferals.append(obj)
-                else:
-                    self.add(obj)
-
-                    # Let's actually not consider this as impacting how
-                    # we consider deferals. Just because we added a core
-                    # type doesn't mean we've moved closer to being able
-                    # to resolve any unresolved TemplateCalls
-
-                    # acted = True
-
-            elif isinstance(obj, Template):
+            if isinstance(obj, Template):
                 self.add_template(obj)
                 acted = True
 
             elif isinstance(obj, TemplateCall):
 
-                templ = self._templates.get(call.typename)
+                templ = self._templates.get(obj.typename)
                 if not templ:
                     # defer for another pass
                     deferals.append(obj)
@@ -245,9 +256,54 @@ class Namespace:
                         deferals)
 
             else:
-                raise ValueError(f"Unknown object type during expand {obj}")
+                if deferals:
+                    deferals.append(obj)
+                else:
+                    self.add(obj)
+
+                    # Let's actually not consider this as impacting how
+                    # we consider deferals. Just because we added a core
+                    # type doesn't mean we've moved closer to being able
+                    # to resolve any unresolved TemplateCalls
+
+                    # acted = True
 
         return acted
+
+
+class TemplateNamespace(Namespace):
+
+    def __init__(
+            self,
+            coretypes=CORE_MODELS,
+            redefine=Redefine.ERROR,
+            logger=None):
+
+        super().__init__(
+            coretypes=coretypes,
+            enable_templates=True,
+            redefine=redefine,
+            logger=logger)
+
+        # we need to know what to skip, because the default is to
+        # assume it's a TemplateCall
+        self.ignored_types = set(tp.typename for tp in coretypes)
+
+
+    def to_objects(self, dataseq):
+        # updated to chop out the None values that our to_object will
+        # return for ignored_types
+        return filter(map(self.to_object, dataseq))
+
+
+    def to_object(self, data):
+        if data['type'] in self.ignore_types:
+            return None
+        return super().to_object(data)
+
+
+    def add(self, obj):
+        pass
 
 
 # The end.

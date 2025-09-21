@@ -16,23 +16,26 @@ class Group(BaseKojiObject):
     """
     Koji group object model.
     """
-    
+
+    typename = "group"
+
+
     def dependent_keys(self) -> List[Tuple[str, str]]:
         """
         Return dependencies for this group.
-        
+
         Groups may depend on:
         - Tags (for tag-specific group configurations)
         - Users (for group membership)
         """
-        
+
         deps = []
-        
+
         # Tag dependency if this is a tag-specific group
         tag = self.data.get('tag')
         if tag:
             deps.append(('tag', tag))
-            
+
         # User dependencies for group members
         members = self.data.get('members', [])
         if isinstance(members, list):
@@ -41,7 +44,7 @@ class Group(BaseKojiObject):
                     deps.append(('user', member['name']))
                 elif isinstance(member, str):
                     deps.append(('user', member))
-                    
+
         return deps
 
 # The end.
