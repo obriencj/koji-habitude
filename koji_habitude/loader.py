@@ -12,10 +12,53 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 import yaml
+import sys
 
 from itertools import chain
 from typing import Any, Dict, Iterator, List, Protocol, Sequence, Type
 from pathlib import Path
+
+
+class PrettyYAML(yaml.Dumper):
+    # it's not as easy as making JSON pretty, but at least it's possible.
+    def increase_indent(self, flow=False, indentless=False):
+        return super().increase_indent(flow, False)
+
+
+def pretty_yaml_all(sequence, out=sys.stdout):
+    for doc in sequence:
+        pretty_yaml(doc, out)
+        out.write('\n')
+
+
+def pretty_yaml(doc, out=sys.stdout):
+    doc = doc.copy()
+    out.write('---\n')
+
+    filename = doc.pop('__file__')
+    line = doc.pop('__line__')
+
+    if filename:
+        if line:
+            out.write(f"# From {filename}:{line}\n")
+        else:
+            out.write(f"# From {filename}\n")
+
+    trace = doc.pop('__trace__')
+    if trace:
+        out.write('# Expanded from:\n')
+        for tr in trace:
+            filename = tr.get('file')
+            lineno = tr.get('line')
+            template = tr.get('template', '<unknown>')
+            if filename:
+                if lineno:
+                    out.write(f"#   {template} in {filename}:{lineno}\n")
+                else:
+                    out.write(f"#   {template} in {filename}\n")
+
+    return yaml.dump(doc, Dumper=PrettyYAML, stream=out,
+                     default_flow_style=False, explicit_start=False)
 
 
 class NumberedSafeLoader(yaml.SafeLoader):
