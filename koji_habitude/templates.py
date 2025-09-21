@@ -15,9 +15,9 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Generator
 
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, Undefined, StrictUndefined
+from jinja2.exceptions import UndefinedError
 import yaml
-
 
 from .models import Base, BaseObject
 
@@ -73,6 +73,8 @@ class Template(BaseObject, TemplateProtocol):
 
         super().__init__(data)
 
+        self.vars = data.get('vars', {})
+
         template_content = data.get('content')
         template_file = data.get('file')
 
@@ -113,12 +115,14 @@ class Template(BaseObject, TemplateProtocol):
             jinja_env = Environment(
                 loader=FileSystemLoader(base_path),
                 trim_blocks=True,
-                lstrip_blocks=True)
+                lstrip_blocks=True,
+                undefined=StrictUndefined)
             self.jinja2_template = jinja_env.get_template(template_file)
         else:
             jinja_env = Environment(
                 trim_blocks=True,
-                lstrip_blocks=True)
+                lstrip_blocks=True,
+                undefined=StrictUndefined)
             self.jinja2_template = jinja_env.from_string(template_content)
 
 
@@ -156,7 +160,11 @@ class Template(BaseObject, TemplateProtocol):
             msg = f"Data validation failed for template {self.name!r}"
             raise TemplateValueError(msg)
 
-        return self.jinja2_template.render(**data)
+        try:
+            return self.jinja2_template.render(**self.vars, **data)
+        except UndefinedError as e:
+            msg = f"Undefined variable in template {self.name!r}: {e}"
+            raise TemplateValueError(msg)
 
 
     def render_and_load(

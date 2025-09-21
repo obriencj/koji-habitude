@@ -1,0 +1,41 @@
+# Conditional template expansion test
+# Template with conditional logic for optional override tag
+---
+type: template
+name: conditional-product-template
+content: |
+  ---
+  type: tag
+  name: {{ product }}-dest
+  description: "Destination tag for {{ product }}"
+  arches:
+    - x86_64
+    - aarch64
+  {% if use_override %}
+  ---
+  type: tag
+  name: {{ product }}-override
+  description: "Override tag for {{ product }}"
+  arches:
+    - x86_64
+    - aarch64
+  {% endif %}
+  ---
+  type: tag
+  name: {{ product }}-build
+  description: "Build tag for {{ product }}"
+  arches:
+    - x86_64
+    - aarch64
+  inheritance:
+    - parent: {{ product }}-dest
+      priority: 10
+  {% if use_override %}
+    - parent: {{ product }}-override
+      priority: 5
+  {% endif %}
+---
+# Template call with conditional override enabled
+type: conditional-product-template
+product: webapp
+use_override: true

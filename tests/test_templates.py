@@ -792,7 +792,7 @@ class TestTemplatesWithRealFiles(unittest.TestCase):
         data = {
             'name': 'minimal-target',
             'build_tag': 'minimal-build',
-            'dest_tag': 'minimal-dest'
+            'dest_tag': 'minimal-dest',
         }
 
         results = list(template.render_and_load(data))
@@ -892,6 +892,7 @@ class TestTemplatesWithRealFiles(unittest.TestCase):
         data = {
             'name': 'traced-tag',
             'arches': ['x86_64'],
+            'parents':  [],
             '__file__': '/path/to/data.yaml',
             '__line__': 42,
             '__trace__': [{

@@ -1,0 +1,35 @@
+# Basic product template expansion test
+# Template creates multiple koji objects for a product
+---
+type: template
+name: product-template
+content: |
+  ---
+  type: tag
+  name: {{ product }}-build
+  description: "Build tag for {{ product }}"
+  arches:
+    - x86_64
+    - aarch64
+  ---
+  type: tag
+  name: {{ product }}-dest
+  description: "Destination tag for {{ product }}"
+  arches:
+    - x86_64
+    - aarch64
+  ---
+  type: target
+  name: {{ product }}-target
+  description: "Build target for {{ product }}"
+  build_tag: {{ product }}-build
+  dest_tag: {{ product }}-dest
+  ---
+  type: group
+  name: {{ product }}-users
+  description: "Users group for {{ product }}"
+  tag: {{ product }}-build
+---
+# Template call to create objects for myapp product
+type: product-template
+product: myapp

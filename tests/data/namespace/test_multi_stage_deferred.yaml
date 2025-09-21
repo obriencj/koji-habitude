@@ -1,0 +1,68 @@
+# Multi-stage deferred resolution test
+# Complex chain of deferred template dependencies
+---
+# Final target depends on stage3 template (not yet defined)
+type: final-stage-template
+stage: final
+---
+# Stage 3 call depends on stage3 template (not yet defined)
+type: stage3-template
+stage: stage3
+---
+# Stage 2 call depends on stage2 template (not yet defined)
+type: stage2-template
+stage: stage2
+---
+# Stage 1 call depends on stage1 template (not yet defined)
+type: stage1-template
+stage: stage1
+---
+# Now define stage1 template
+type: template
+name: stage1-template
+content: |
+  ---
+  type: tag
+  name: {{ stage }}-build
+  description: "{{ stage }} build tag"
+  arches:
+    - x86_64
+---
+# Define stage2 template
+type: template
+name: stage2-template
+content: |
+  ---
+  type: tag
+  name: {{ stage }}-build
+  description: "{{ stage }} build tag"
+  arches:
+    - x86_64
+  inheritance:
+    - parent: stage1-build
+      priority: 10
+---
+# Define stage3 template
+type: template
+name: stage3-template
+content: |
+  ---
+  type: tag
+  name: {{ stage }}-build
+  description: "{{ stage }} build tag"
+  arches:
+    - x86_64
+  inheritance:
+    - parent: stage2-build
+      priority: 10
+---
+# Define final stage template
+type: template
+name: final-stage-template
+content: |
+  ---
+  type: target
+  name: {{ stage }}-target
+  description: "{{ stage }} target"
+  build_tag: stage3-build
+  dest_tag: stage3-build

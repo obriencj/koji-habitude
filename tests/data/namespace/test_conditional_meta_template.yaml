@@ -1,0 +1,51 @@
+# Conditional meta-template generation test
+# Meta-template with conditional logic in generated template
+---
+type: template
+name: gen-conditional-product
+content: |
+  ---
+  type: template
+  name: create-{{ product }}-version
+  content: |
+    ---
+    type: tag
+    name: {{ "{{" }} product {{ "}}" }}-{{ "{{" }} version {{ "}}" }}-dest
+    description: "Destination tag for {{ "{{" }} product {{ "}}" }} version {{ "{{" }} version {{ "}}" }}"
+    arches:
+      - x86_64
+      - aarch64
+    {% if use_override %}
+    ---
+    type: tag
+    name: {{ "{{" }} product {{ "}}" }}-{{ "{{" }} version {{ "}}" }}-override
+    description: "Override tag for {{ "{{" }} product {{ "}}" }} version {{ "{{" }} version {{ "}}" }}"
+    arches:
+      - x86_64
+      - aarch64
+    {% endif %}
+    ---
+    type: tag
+    name: {{ "{{" }} product {{ "}}" }}-{{ "{{" }} version {{ "}}" }}-build
+    description: "Build tag for {{ "{{" }} product {{ "}}" }} version {{ "{{" }} version {{ "}}" }}"
+    arches:
+      - x86_64
+      - aarch64
+    inheritance:
+      - parent: {{ "{{" }} product {{ "}}" }}-{{ "{{" }} version {{ "}}" }}-dest
+        priority: 10
+    {% if use_override %}
+      - parent: {{ "{{" }} product {{ "}}" }}-{{ "{{" }} version {{ "}}" }}-override
+        priority: 5
+    {% endif %}
+---
+# Call meta-template with conditional override
+type: gen-conditional-product
+product: webapp
+use_override: true
+---
+# Call the generated template
+type: create-webapp-version
+product: webapp
+version: "2.0"
+use_override: true

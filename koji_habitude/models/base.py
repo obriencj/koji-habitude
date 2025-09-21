@@ -54,6 +54,16 @@ class BaseObject(Base):
         return (self.filename, self.lineno)
 
 
+class RawObject(BaseObject):
+
+    typename = 'raw'
+
+    def __init__(self, data: Dict[str, Any]) -> None:
+        super().__init__(data)
+        self.data = data
+        self.typename = data.get('type', 'raw')
+
+
 class BaseKojiObject(ABC, BaseObject):
     """
     Base class for all koji object models.

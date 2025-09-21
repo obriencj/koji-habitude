@@ -1,0 +1,16 @@
+# Invalid Jinja2 syntax test
+# Template with malformed Jinja2 syntax
+---
+type: template
+name: invalid-syntax-template
+content: |
+  ---
+  type: tag
+  name: {{ invalid_syntax_missing_close
+  description: "This template has invalid Jinja2 syntax"
+  arches:
+    - x86_64
+---
+# Call the template with invalid syntax
+type: invalid-syntax-template
+product: test

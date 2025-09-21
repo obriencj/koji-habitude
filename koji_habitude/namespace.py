@@ -7,9 +7,10 @@ resolution logic for defining and expanding templates.
 
 Author: Christopher O'Brien <obriencj@gmail.com>
 License: GNU General Public License v3
+AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
-# Vibe-Coding State: Pure Human
+# Vibe-Coding State: AI Assisted, Mostly Human
 
 
 import logging
@@ -103,6 +104,10 @@ class NamespaceRedefine(Exception):
     pass
 
 
+class ExpansionError(Exception):
+    pass
+
+
 class Namespace:
 
     def __init__(
@@ -137,6 +142,10 @@ class Namespace:
 
         # templates, mapping simply as `tmpl.name: tmpl`
         self._templates = {}
+
+        # if we're finding templates recursively expanding to templates,
+        # only allow that nonsense 100 deep then error
+        self.max_depth = 100
 
 
     def to_object(self, objdict):
@@ -212,10 +221,10 @@ class Namespace:
                 call = deferals[0]
                 assert isinstance(call, TemplateCall)
                 msg = f"Could not resolve template: {call.typename}"
-                raise ValueError(msg)
+                raise ExpansionError(msg)
 
 
-    def _expand(self, sequence, deferals):
+    def _expand(self, sequence, deferals, depth=0):
 
         # processes the sequence in order, either adding core objects
         # or templates to the namespace. If it hits a TemplateCall,
@@ -232,6 +241,9 @@ class Namespace:
         # from what's available, and in this manner if we encounter
         # a TemplateCall we cannot act on now, we can hope to act on it
         # later on.
+
+        if depth > self.max_depth:
+            raise ExpansionError(f"Maximum depth of {self.max_depth} reached")
 
         acted = False
 
@@ -252,22 +264,16 @@ class Namespace:
                     # deferals, then the expansion will just be inlined
                     # into the deferals. If not, then the expansion will
                     # be added
-                    acted = acted or self._expand(
-                        self.to_objects(templ.render_call(obj)),
-                        deferals)
+                    if self._expand(self.to_objects(templ.render_call(obj)),
+                                    deferals, depth=depth+1):
+                        acted = True
 
             else:
                 if deferals:
                     deferals.append(obj)
                 else:
                     self.add(obj)
-
-                    # Let's actually not consider this as impacting how
-                    # we consider deferals. Just because we added a core
-                    # type doesn't mean we've moved closer to being able
-                    # to resolve any unresolved TemplateCalls
-
-                    # acted = True
+                    acted = True
 
         return acted
 
