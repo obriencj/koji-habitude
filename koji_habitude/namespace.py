@@ -19,7 +19,7 @@ from enum import Enum, auto
 from typing import Any, Dict, Iterator, Optional, List, OrderedDict, Type
 
 from .templates import Template, TemplateCall
-from .models import CORE_MODELS, Base, BaseObject
+from .models import CORE_MODELS, Base, RawObject
 
 
 default_logger = logging.getLogger(__name__)
@@ -265,9 +265,9 @@ class Namespace:
                     # deferals, then the expansion will just be inlined
                     # into the deferals. If not, then the expansion will
                     # be added
-                    if self._expand(self.to_objects(templ.render_call(obj)),
-                                    deferals, depth=depth+1):
-                        acted = True
+                    self._expand(self.to_objects(templ.render_call(obj)),
+                                 deferals, depth=depth+1)
+                    acted = True
 
             else:
                 if deferals:
@@ -323,15 +323,16 @@ class ExpanderNamespace(Namespace):
         redefine: Redefine = Redefine.ERROR,
         logger: Optional[logging.Logger] = None):
 
-        faketypes = {name: BaseObject for name in coretypes}
-        faketypes['template'] = Template
-        faketypes[None] = TemplateCall
-
         super().__init__(
-            coretypes=faketypes,
+            coretypes=(),
             enable_templates=True,
             redefine=redefine,
             logger=logger)
+
+        faketypes = {tp.typename: RawObject for tp in coretypes}
+        faketypes['template'] = Template
+        faketypes[None] = TemplateCall
+        self.typemap = faketypes
 
 
 # The end.
