@@ -1,0 +1,8 @@
+---
+type: target
+name: {{ name }}
+build_tag: {{ build_tag }}
+dest_tag: {{ dest_tag }}
+{% if description is defined and description %}
+description: "{{ description }}"
+{% endif %}

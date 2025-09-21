@@ -17,6 +17,9 @@ class Tag(BaseKojiObject):
     Koji tag object model.
     """
 
+    typename = "tag"
+
+
     def dependent_keys(self) -> List[Tuple[str, str]]:
         """
         Return dependencies for this tag.

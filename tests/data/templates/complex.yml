@@ -1,0 +1,10 @@
+# Complex template with multiple objects
+type: template
+name: complex-template
+target_type: target
+description: "A complex test template"
+---
+type: template
+name: related-template
+target_type: host
+description: "Related template in same file"

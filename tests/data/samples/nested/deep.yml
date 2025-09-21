@@ -1,0 +1,4 @@
+# Nested sample file
+type: group
+name: deep-sample
+description: "Deeply nested sample data"

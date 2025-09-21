@@ -17,6 +17,10 @@ class ExternalRepo(BaseKojiObject):
     Koji external repository object model.
     """
 
+
+    typename = "external-repo"
+
+
     def dependent_keys(self) -> List[Tuple[str, str]]:
         """
         Return dependencies for this external repo.
@@ -33,5 +37,6 @@ class ExternalRepo(BaseKojiObject):
             deps.append(('tag', tag))
 
         return deps
+
 
 # The end.

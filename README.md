@@ -9,7 +9,7 @@ koji-habitude is a configuration management tool for [Koji](https://pagure.io/ko
 
 The tool synchronizes local koji data expectations with a hub instance, allowing you to:
 - Define koji objects (tags, external repos, users, targets, hosts, groups) in YAML
-- Use Jinja2 templates for dynamic configuration generation  
+- Use Jinja2 templates for dynamic configuration generation
 - Automatically resolve dependencies between objects (tag inheritance)
 - Apply changes in the correct order through tiered execution
 - Validate configurations offline before deployment
@@ -63,14 +63,20 @@ Validates templates and data files without connecting to koji, checking for:
 - Data consistency
 
 
+## YAML Format
+
+The yaml files can be single or multi-document. Documents are processed in-order. Each document has 'type' key, which indicates the document type. The default available types are 'template', 'tag', 'target', 'user', 'group', 'host', and 'external-repo'. Templates define new types, based on the name of the template.
+
+
 ## Templates
 
 Templates use [Jinja2](https://jinja.palletsprojects.com/) for dynamic content generation. Each template is defined in YAML with the following structure:
 
 ```yaml
 ---
+type: template
 name: my-template
-template: |
+content: |
   ---
   type: tag
   name: {{ name }}
@@ -87,8 +93,9 @@ Templates can also reference external Jinja2 files:
 
 ```yaml
 ---
+type: template
 name: my-template
-template_file: my-template.j2
+file: my-template.j2
 schema:
   # Optional schema validation
 ```
@@ -117,7 +124,7 @@ koji-habitude supports all core Koji object types:
 ### Core Types
 
 - **`tag`**: Build tags with inheritance chains and external repositories
-- **`external-repo`**: External package repositories  
+- **`external-repo`**: External package repositories
 - **`user`**: Koji users and permissions
 - **`target`**: Build targets linking build and destination tags
 - **`host`**: Build hosts and their configurations

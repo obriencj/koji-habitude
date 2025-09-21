@@ -1,8 +1,7 @@
+# Template missing required name field
 ---
-template: |
-  type: user
+type: template
+content: |
+  ---
+  type: tag
   name: {{ name }}
----
-name: valid_template
-template: valid content
----

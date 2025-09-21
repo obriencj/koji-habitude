@@ -1,0 +1,16 @@
+# First document starts at line 2
+type: target
+name: first-doc
+description: "First document in multi-doc file"
+---
+# Second document starts at line 6
+type: host
+name: second-doc
+description: "Second document in multi-doc file"
+properties:
+  enabled: true
+---
+# Third document starts at line 12
+type: user
+name: third-doc
+description: "Third document in multi-doc file"

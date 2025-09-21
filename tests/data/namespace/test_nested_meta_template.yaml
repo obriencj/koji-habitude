@@ -1,0 +1,46 @@
+# Nested meta-template generation test
+# Meta-template that generates another meta-template
+---
+type: template
+name: gen-product-family
+content: |
+  ---
+  type: template
+  name: gen-{{ product }}-product
+  vars:
+    product: {{ product }}
+  content: |
+    {% raw %}
+    ---
+    type: template
+    name: create-{{ product }}-{{ component  }}
+    vars:
+      product: {{ product }}
+      component: {{ component }}
+    content: |
+      ---
+      type: tag
+      name: {{ '{{ product }}' }}-{{ '{{ component }}' }}-{{ '{{ version }}' }}-build
+      description: "Build tag for {{ '{{ product }}' }} {{ '{{ component }}' }} version {{ '{{ version }}' }}"
+      arches:
+        - x86_64
+        - aarch64
+      ---
+      type: target
+      name: {{ '{{ product }}' }}-{{ '{{ component }}' }}-{{ '{{ version }}' }}-target
+      description: "Build target for {{ '{{ product }}' }} {{ '{{ component }}' }} version {{ '{{ version }}' }}"
+      build_tag: {{ '{{ product }}' }}-{{ '{{ component }}' }}-{{ '{{ version }}' }}-build
+      dest_tag: {{ '{{ product }}' }}-{{ '{{ component }}' }}-{{ '{{ version }}' }}-build
+    {% endraw %}
+---
+# Call the top-level meta-template
+type: gen-product-family
+product: myapp
+---
+# Call the generated meta-template with all needed variables
+type: gen-myapp-product
+component: frontend
+---
+# Call the final generated template with all variables
+type: create-myapp-frontend
+version: "3.0"

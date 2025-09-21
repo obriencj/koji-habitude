@@ -1,0 +1,39 @@
+# Multiple template calls test
+# Same template called multiple times with different parameters
+---
+type: template
+name: multi-product-template
+content: |
+  ---
+  type: tag
+  name: {{ product }}-build
+  description: "Build tag for {{ product }}"
+  arches:
+    - x86_64
+    - aarch64
+  ---
+  type: tag
+  name: {{ product }}-dest
+  description: "Destination tag for {{ product }}"
+  arches:
+    - x86_64
+    - aarch64
+  ---
+  type: target
+  name: {{ product }}-target
+  description: "Build target for {{ product }}"
+  build_tag: {{ product }}-build
+  dest_tag: {{ product }}-dest
+  ---
+  type: group
+  name: {{ product }}-users
+  description: "Users group for {{ product }}"
+  tag: {{ product }}-build
+---
+# First product
+type: multi-product-template
+product: frontend
+---
+# Second product
+type: multi-product-template
+product: backend

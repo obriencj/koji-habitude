@@ -34,10 +34,13 @@ This is a Python project called koji-habitude that synchronizes local koji data 
   ```bash
   git commit -F - << 'EOF'
   Commit message here
-  
+
   Detailed description
+
+  Assisted-by: Claude 3.5 Sonnet via Cursor
   EOF
   ```
+- All commits authored by AI must include an "Assisted-by:" line at the end with proper attribution (model name + platform)
 
 ## Implementation Notes
 - Object diffing against koji data should be left as TODO stubs
@@ -78,9 +81,9 @@ This is a Python project called koji-habitude that synchronizes local koji data 
   ```python
   """
   koji-habitude - [module_name]
-  
+
   [Brief explanation of what this module does]
-  
+
   Author: Christopher O'Brien <obriencj@gmail.com>
   License: GNU General Public License v3
   AI-Assistant: Claude 3.5 Sonnet via Cursor
@@ -96,6 +99,6 @@ This is a Python project called koji-habitude that synchronizes local koji data 
       """
       Function description here.
       """
-      
+
       # Function body starts here
   ```

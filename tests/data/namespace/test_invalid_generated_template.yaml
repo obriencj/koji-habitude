@@ -1,0 +1,24 @@
+# Invalid generated template test
+# Meta-template that generates template with invalid content
+---
+type: template
+name: gen-invalid-template
+content: |
+  ---
+  type: template
+  name: invalid-generated-{{ product }}
+  content: |
+    ---
+    type: tag
+    # Missing required name field - this makes the generated template invalid
+    description: "Invalid tag without name"
+    arches:
+      - x86_64
+---
+# Generate the invalid template
+type: gen-invalid-template
+product: broken
+---
+# Try to use the invalid generated template
+type: invalid-generated-broken
+name: test-object

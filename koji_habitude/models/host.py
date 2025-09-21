@@ -16,22 +16,26 @@ class Host(BaseKojiObject):
     """
     Koji build host object model.
     """
-    
+
+
+    typename = "host"
+
+
     def dependent_keys(self) -> List[Tuple[str, str]]:
         """
         Return dependencies for this host.
-        
+
         Hosts may depend on:
         - Users (for ownership/permissions)
         """
-        
+
         deps = []
-        
+
         # User dependency for host ownership
         user = self.data.get('user')
         if user:
             deps.append(('user', user))
-            
+
         return deps
 
 # The end.

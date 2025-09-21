@@ -1,8 +1,0 @@
----
-name: error_template
-template: |
-  type: user
-  name: {{ undefined_variable }}
-schema:
-  required: [name]
----

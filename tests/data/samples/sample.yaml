@@ -1,0 +1,4 @@
+# Sample data file
+type: user
+name: sample-data
+description: "Sample user data"

@@ -1,0 +1,6 @@
+# Template missing both content and file
+---
+type: template
+name: incomplete-template
+schema:
+  type: object

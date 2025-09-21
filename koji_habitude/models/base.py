@@ -1,154 +1,142 @@
 """
-koji-habitude - models.base
+koji_habitude.models.base
 
-Base class for all koji object models with dependency tracking.
+Base class for koji object models
 
 Author: Christopher O'Brien <obriencj@gmail.com>
 License: GNU General Public License v3
 AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
-from typing import Dict, List, Tuple, Optional, Any, TYPE_CHECKING
+# Vibe-Coding State: AI Generated with Human Rework
+
+
+from typing import Dict, List, Tuple, Optional, Any, TYPE_CHECKING, Protocol
 from abc import ABC, abstractmethod
 
-if TYPE_CHECKING:
-    from ..object_map import ObjectMap
+
+class Base(Protocol):
+    typename: str
+
+    name: str
+
+    filename: Optional[str]
+    lineno: Optional[int]
+
+    def __init__(self, data: Dict[str, Any]) -> None:
+        ...
+
+    def key(self) -> Tuple[str, str]:
+        ...
+
+    def filepos(self) -> Tuple[Optional[str], Optional[int]]:
+        ...
 
 
-class BaseKojiObject(ABC):
+class BaseObject(Base):
+
+    typename = 'object'
+
+    def __init__(self, data: Dict[str, Any]) -> None:
+        name = data.get('name')
+        name = name and name.strip()
+        if not name:
+            raise ValueError("Non-empty name is required")
+
+        self.name = data['name']
+        self.filename = data.get('__file__')
+        self.lineno = data.get('__line__')
+
+    def key(self) -> Tuple[str, str]:
+        return (self.typename, self.name)
+
+    def filepos(self) -> Tuple[Optional[str], Optional[int]]:
+        return (self.filename, self.lineno)
+
+
+class RawObject(BaseObject):
+
+    typename = 'raw'
+
+    def __init__(self, data: Dict[str, Any]) -> None:
+        super().__init__(data)
+        self.data = data
+        self.typename = data.get('type', 'raw')
+
+
+class BaseKojiObject(ABC, BaseObject):
     """
     Base class for all koji object models.
     """
-    
-    def __init__(self, data: Dict[str, Any]):
+
+    # override in subclasses
+    typename = 'koji-object'
+
+
+    def __init__(self, data: Dict[str, Any]) -> None:
         """
         Initialize koji object from data dictionary.
-        
+
         Args:
             data: Dictionary containing object configuration
         """
-        
-        self.type = data['type']
-        self.name = data['name']
-        self.data = data.copy()
-        
-    @property
-    def key(self) -> Tuple[str, str]:
+
+        super().__init__(data)
+        self.data = data
+
+        # filled by the resolver or by defer_deps
+        self.dependants = []
+
+
+    def dependency_keys(self):
+        return ()
+
+
+    def defer_deps(self) -> 'BaseKojiObject':
         """
-        Return the unique (type, name) identifier for this object.
+        Create a minimal copy of this object specifying only that it needs
+        to exist, with a dependant link on the original object.
+
+        This allows us to create cross-dependencies of the same tier without
+        any internal references that break ordering. Then the next tier can
+        add the links.
         """
-        
-        return (self.type, self.name)
-        
-    @abstractmethod
-    def dependent_keys(self) -> List[Tuple[str, str]]:
-        """
-        Return list of (type, name) keys this object depends on.
-        
-        Returns:
-            List of dependency keys that must exist before this object
-        """
-        
-        pass
-        
-    def dependents(self, obj_map: 'ObjectMap') -> List['BaseKojiObject']:
-        """
-        Resolve dependency objects from the object map.
-        
-        Args:
-            obj_map: ObjectMap to resolve dependencies from
-            
-        Returns:
-            List of resolved dependency objects
-        """
-        
-        deps = []
-        for dep_key in self.dependent_keys():
-            dep_obj = obj_map.get_object(dep_key)
-            if dep_obj:
-                deps.append(dep_obj)
-        return deps
-        
-    def defer_deps(self, dep_list: List[Tuple[str, str]]) -> 'BaseKojiObject':
-        """
-        Create copy with specified dependencies deferred.
-        
-        This creates a new object instance that removes the problematic
-        dependencies and adds a deferred dependency to handle them later.
-        
-        Args:
-            dep_list: List of dependency keys to defer
-            
-        Returns:
-            New object instance with deferred dependencies
-        """
-        
-        # Create a copy of this object's data
-        new_data = self.data.copy()
-        
-        # Remove the problematic dependencies from the copy
-        # This is model-specific and should be overridden by subclasses
-        deferred_data = self._extract_deferred_data(dep_list)
-        
-        # Create the main object without the deferred data
-        main_obj = self.__class__(new_data)
-        
-        # The deferred object will be handled by the dependency system
-        # It will be created as a ('deferred_' + type, name) object
-        return main_obj
-        
-    def _extract_deferred_data(self, dep_list: List[Tuple[str, str]]) -> Dict[str, Any]:
-        """
-        Extract data that should be deferred to later tier.
-        
-        Subclasses should override this to handle model-specific deferral.
-        
-        Args:
-            dep_list: List of dependency keys being deferred
-            
-        Returns:
-            Dictionary of data that was extracted for deferral
-        """
-        
-        return {}
-        
-    def koji_diff(self, koji_data: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+
+        deferal = type(self)({
+            "type": self.typename,
+            "name": self.name
+        })
+
+        deferal.dependants = [self]
+        return deferal
+
+
+    def koji_diff(
+            self,
+            koji_data: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+
         """
         Compare with koji data and return update calls.
-        
+
         TODO: This is left as a stub for future implementation.
-        
+
         Args:
             koji_data: Current state from koji instance, or None if not found
-            
+
         Returns:
             List of koji API calls needed to update the object
         """
-        
+
         # TODO: Implement object diffing logic
-        return []
-        
+        return ()
+
+
     def __repr__(self) -> str:
         """
         String representation of the object.
         """
-        
-        return f"{self.__class__.__name__}({self.type}, {self.name})"
-        
-    def __eq__(self, other) -> bool:
-        """
-        Equality comparison based on key.
-        """
-        
-        if not isinstance(other, BaseKojiObject):
-            return False
-        return self.key == other.key
-        
-    def __hash__(self) -> int:
-        """
-        Hash based on key for use in sets/dicts.
-        """
-        
-        return hash(self.key)
+
+        return f"<{self.__class__.__name__}({self.typename}, {self.name})>"
+
 
 # The end.

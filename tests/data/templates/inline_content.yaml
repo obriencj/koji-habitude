@@ -1,0 +1,27 @@
+# Template with inline Jinja2 content
+---
+type: template
+name: inline-tag-template
+content: |
+  ---
+  type: tag
+  name: {{ name }}
+  description: "{{ description | default('Generated tag') }}"
+  arches:
+  {% for arch in arches %}
+    - {{ arch }}
+  {% endfor %}
+  {% if parents %}
+  inheritance:
+  {% for parent in parents %}
+    - parent: {{ parent }}
+      priority: {{ loop.index * 10 }}
+  {% endfor %}
+  {% endif %}
+schema:
+  type: object
+  properties:
+    name:
+      type: string
+    arches:
+      type: array

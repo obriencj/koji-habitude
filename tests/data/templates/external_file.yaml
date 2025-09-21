@@ -1,0 +1,18 @@
+# Template with external Jinja2 file reference
+---
+type: template
+name: external-target-template
+file: target_template.j2
+schema:
+  type: object
+  properties:
+    name:
+      type: string
+    build_tag:
+      type: string
+    dest_tag:
+      type: string
+  required:
+    - name
+    - build_tag
+    - dest_tag

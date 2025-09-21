@@ -1,0 +1,9 @@
+# Template with malformed Jinja2 syntax
+---
+type: template
+name: bad-jinja-template
+content: |
+  ---
+  type: tag
+  name: {{ name }
+  # Missing closing brace in Jinja2 expression
