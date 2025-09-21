@@ -86,7 +86,9 @@ class Template(BaseObject, TemplateProtocol):
         if template_file:
             if not base_path:
                 # TODO: should this just become Path.cwd()?
-                raise TemplateValueError("Base path is required when template file is specified")
+                raise TemplateValueError(
+                    "Base path is required when template file is specified",
+                    self.filename, self.lineno)
 
             base_path = Path(base_path)
             if not base_path.exists():
@@ -96,10 +98,14 @@ class Template(BaseObject, TemplateProtocol):
                 raise NotADirectoryError(f"Base path is not a directory: {base_path}")
 
             if template_content:
-                raise TemplateValueError("Template content is not allowed when template file is specified")
+                raise TemplateValueError(
+                    "Template content is not allowed when template file is specified",
+                    self.filename, self.lineno)
 
         elif not template_content:
-            raise TemplateValueError("Template content is required when template file is not specified")
+            raise TemplateValueError(
+                "Template content is required when template file is not specified",
+                self.filename, self.lineno)
 
         # record these so we can tell if we got it from a file or inline later
         self.base_path = base_path
@@ -216,7 +222,16 @@ class TemplateValueError(ValueError):
     Exception raised for template validation errors.
     """
 
-    pass
+    def __init__(self, message, filename, lineno):
+        if filename:
+            if lineno:
+                message = f"{message} at {filename}:{lineno}"
+            else:
+                message = f"{message} at {filename}"
+
+        super().__init__(message)
+        self.filename = filename
+        self.lineno = lineno
 
 
 # The end.
