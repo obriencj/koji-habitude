@@ -14,10 +14,10 @@ License: GNU General Public License v3
 
 import logging
 from enum import Enum, auto
-from typing import Any, Dict, Iterator, Optional
+from typing import Any, Dict, Iterator, Optional, List, Type
 
-from .template import Template, TemplateCall
-from .models import CORE_MODELS
+from .templates import Template, TemplateCall, TemplateProtocol
+from .models import CORE_MODELS, Base
 
 
 default_logger = logging.getLogger(__name__)
@@ -57,7 +57,7 @@ class Redefine(Enum):
     """
 
 
-def _add_into(
+def add_into(
         into: Dict,
         key: Any,
         obj: Any,
@@ -88,13 +88,14 @@ def _add_into(
         raise NamespaceRedefine(f"Redefinition of {stmt}")
 
     elif redefine == Redefine.IGNORE_WARN:
-        logger.warn(f"Ignored redefinition of {stmt}")
+        logger.warning(f"Ignored redefinition of {stmt}")
 
     elif redefine == Redefine.ALLOW_WARN:
-        logger.warn(f"Redefined {stmt}")
-        info[key] = obj
+        logger.warning(f"Redefined {stmt}")
+        into[key] = obj
 
     else:
+        # should never be reached, but just in case...
         assert False, f"Unknown redefine setting {redefine!r}"
 
 
@@ -106,10 +107,10 @@ class Namespace:
 
     def __init__(
             self,
-            coretypes=CORE_MODELS,
-            enable_templates=True,
-            redefine=Redefine.ERROR,
-            logger=None):
+            coretypes: List[Type[Base]] = CORE_MODELS,
+            enable_templates: bool = True,
+            redefine: Redefine = Redefine.ERROR,
+            logger: Optional[logging.Logger] = None):
 
         self.redefine = redefine
         self.logger = logger or default_logger
@@ -159,7 +160,7 @@ class Namespace:
             raise TypeError(f"{type(obj).__name__} cannot be"
                             " directly added to a Namespace")
 
-        return _add_into(self._ns, obj.key(), obj,
+        return add_into(self._ns, obj.key(), obj,
                          self.redefine, self.logger)
 
 
@@ -167,7 +168,7 @@ class Namespace:
         if not isinstance(template, Template):
             raise TypeError("add_template requires a Template instance")
 
-        return _add_into(self._templates, template.name, template,
+        return add_into(self._templates, template.name, template,
                          self.redefine, self.logger)
 
 
@@ -275,9 +276,9 @@ class TemplateNamespace(Namespace):
 
     def __init__(
             self,
-            coretypes=CORE_MODELS,
-            redefine=Redefine.ERROR,
-            logger=None):
+            coretypes: List[Type[Base]] = CORE_MODELS,
+            redefine: Redefine = Redefine.ERROR,
+            logger: Optional[logging.Logger] = None):
 
         super().__init__(
             coretypes=coretypes,
@@ -290,19 +291,20 @@ class TemplateNamespace(Namespace):
         self.ignored_types = set(tp.typename for tp in coretypes)
 
 
-    def to_objects(self, dataseq):
+    def to_objects(self, dataseq) -> Iterator[Base]:
         # updated to chop out the None values that our to_object will
         # return for ignored_types
-        return filter(map(self.to_object, dataseq))
+        return filter(None, map(self.to_object, dataseq))
 
 
     def to_object(self, data):
-        if data['type'] in self.ignore_types:
+        if data['type'] in self.ignored_types:
             return None
         return super().to_object(data)
 
 
     def add(self, obj):
+        # We don't actually record any real objects in the TemplateNamespace
         pass
 
 

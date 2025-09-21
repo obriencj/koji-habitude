@@ -26,6 +26,12 @@ class Base(Protocol):
     def __init__(self, data: Dict[str, Any]) -> None:
         ...
 
+    def key(self) -> Tuple[str, str]:
+        ...
+
+    def filepos(self) -> Tuple[Optional[str], Optional[int]]:
+        ...
+
 
 class BaseObject(Base):
 
@@ -40,6 +46,12 @@ class BaseObject(Base):
         self.name = data['name']
         self.filename = data.get('__file__')
         self.lineno = data.get('__line__')
+
+    def key(self) -> Tuple[str, str]:
+        return (self.typename, self.name)
+
+    def filepos(self) -> Tuple[Optional[str], Optional[int]]:
+        return (self.filename, self.lineno)
 
 
 class BaseKojiObject(ABC, BaseObject):
