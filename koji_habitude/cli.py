@@ -9,14 +9,17 @@ License: GNU General Public License v3
 AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
+# Vibe-Coding State: AI Generated with Human Rework
+
+
 import sys
 from pathlib import Path
 from typing import Optional, List, Tuple
 
 import click
 
-from .loader import MultiLoader
-from .namespace import Namespace, TemplateNamespace
+from .loader import MultiLoader, YAMLLoader, pretty_yaml_all
+from .namespace import Namespace, TemplateNamespace, ExpanderNamespace
 
 
 def resplit(strs: List[str], sep=',') -> List[str]:
@@ -81,11 +84,12 @@ def list_templates(paths):
     """
 
     ns = TemplateNamespace()
-    ml = MultiLoader()
+    ml = MultiLoader([YAMLLoader])
     ns.feedall_raw(ml.load(paths))
+    ns.expand()
 
-    for name, templ in ns.templates.items():
-        print(f"{name} from {templ.source}")
+    for name, templ in ns._templates.items():
+        print(f"{name} from {templ.filename}:{templ.lineno}")
 
 
 @click.command()
@@ -101,6 +105,50 @@ def validate(templates, data):
     """
 
     pass
+
+
+@click.command()
+@click.option(
+    '--templates', 'templates', metavar='PATH', multiple=True,
+    help="Location to find templates that are not available in DATA")
+@click.option(
+    '--profile',
+    help="Koji profile to use for connection")
+@click.option(
+    '--offline', 'offline', is_flag=True,
+    help="Run in offline mode (no koji connection)")
+@click.argument('data', nargs=-1, required=True)
+def expand(templates, profile, offline, data):
+    """
+    Expand templates and data files into YAML output.
+
+    Loads templates from --templates locations, then processes DATA files
+    through template expansion and outputs the final YAML content.
+
+    DATA can be directories or files containing YAML object definitions.
+    """
+
+    import yaml
+
+    # Load templates into TemplateNamespace
+    template_ns = TemplateNamespace()
+    if templates:
+        ml = MultiLoader([YAMLLoader])
+        template_ns.feedall_raw(ml.load(templates))
+        template_ns.expand()
+
+    # Create ExpanderNamespace with the loaded templates
+    expander_ns = ExpanderNamespace()
+    expander_ns._templates.update(template_ns._templates)
+
+    # Load and process data files
+    ml = MultiLoader([YAMLLoader])
+    expander_ns.feedall_raw(ml.load(data))
+    expander_ns.expand()
+
+    # Output all objects as YAML
+    expanded = expander_ns._ns.values()
+    pretty_yaml_all(obj.data for obj in expanded)
 
 
 @click.group()
@@ -120,6 +168,8 @@ main.add_command(sync)
 main.add_command(diff)
 main.add_command(list_templates)
 main.add_command(validate)
+main.add_command(expand)
+
 
 
 if __name__ == '__main__':
