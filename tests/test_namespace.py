@@ -18,6 +18,7 @@ from koji_habitude.namespace import (
 )
 from koji_habitude.templates import Template, TemplateCall
 from koji_habitude.models import Tag, ExternalRepo, User, Target, Host, Group, CORE_MODELS
+import yaml
 
 
 class MockObject:
@@ -622,6 +623,278 @@ class TestNamespaceToObjectMethods(unittest.TestCase):
         self.assertEqual(obj.filename, 'test.yaml')
         self.assertEqual(obj.lineno, 42)
         self.assertEqual(obj.filepos(), ('test.yaml', 42))
+
+
+class TestNamespaceFeedMethods(unittest.TestCase):
+    """Test cases for Namespace feed_raw and feedall_raw methods."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+
+        self.ns = Namespace()
+        self.test_data_dir = Path(__file__).parent / 'data'
+
+    def load_yaml_file(self, relative_path):
+        """Helper to load YAML file and return documents."""
+
+        file_path = self.test_data_dir / relative_path
+        with open(file_path, 'r') as f:
+            # Load all documents from the file
+            documents = list(yaml.safe_load_all(f))
+        return documents
+
+    def test_feed_raw_single_document(self):
+        """Test feed_raw with a single YAML document."""
+
+        # Load single document file
+        documents = self.load_yaml_file('samples/sample.yaml')
+        self.assertEqual(len(documents), 1)
+
+        # Feed the document
+        doc = documents[0]
+        self.assertEqual(len(self.ns._feedline), 0)
+
+        self.ns.feed_raw(doc)
+
+        # Check feedline has one object
+        self.assertEqual(len(self.ns._feedline), 1)
+        obj = self.ns._feedline[0]
+        self.assertIsInstance(obj, User)
+        self.assertEqual(obj.name, 'sample-data')
+        self.assertEqual(obj.typename, 'user')
+
+    def test_feed_raw_multiple_calls(self):
+        """Test multiple feed_raw calls accumulate in feedline."""
+
+        # Create test documents
+        doc1 = {'type': 'tag', 'name': 'tag1'}
+        doc2 = {'type': 'user', 'name': 'user1'}
+        doc3 = {'type': 'external-repo', 'name': 'repo1'}
+
+        # Feed them one by one
+        self.ns.feed_raw(doc1)
+        self.ns.feed_raw(doc2)
+        self.ns.feed_raw(doc3)
+
+        # Check all are in feedline
+        self.assertEqual(len(self.ns._feedline), 3)
+        self.assertIsInstance(self.ns._feedline[0], Tag)
+        self.assertIsInstance(self.ns._feedline[1], User)
+        self.assertIsInstance(self.ns._feedline[2], ExternalRepo)
+
+        # Check names
+        self.assertEqual(self.ns._feedline[0].name, 'tag1')
+        self.assertEqual(self.ns._feedline[1].name, 'user1')
+        self.assertEqual(self.ns._feedline[2].name, 'repo1')
+
+    def test_feedall_raw_multiple_documents(self):
+        """Test feedall_raw with multiple documents from a multi-doc file."""
+
+        # Load multi-document file
+        documents = self.load_yaml_file('templates/multiple_documents.yml')
+        self.assertEqual(len(documents), 3)
+
+        # Feed all documents at once
+        self.assertEqual(len(self.ns._feedline), 0)
+
+        self.ns.feedall_raw(documents)
+
+        # Check all documents are in feedline
+        self.assertEqual(len(self.ns._feedline), 3)
+
+        # Check types and names
+        self.assertIsInstance(self.ns._feedline[0], Target)
+        self.assertEqual(self.ns._feedline[0].name, 'first-doc')
+
+        self.assertIsInstance(self.ns._feedline[1], Host)
+        self.assertEqual(self.ns._feedline[1].name, 'second-doc')
+
+        self.assertIsInstance(self.ns._feedline[2], User)
+        self.assertEqual(self.ns._feedline[2].name, 'third-doc')
+
+    def test_feedall_raw_mixed_types(self):
+        """Test feedall_raw with mixed core types, templates, and template calls."""
+
+        mixed_docs = [
+            {'type': 'tag', 'name': 'test-tag'},
+            {'type': 'template', 'name': 'test-template', 'content': 'test'},
+            {'type': 'user', 'name': 'test-user'},
+            {'type': 'custom-template', 'name': 'template-call'},
+            {'type': 'external-repo', 'name': 'test-repo'},
+        ]
+
+        self.ns.feedall_raw(mixed_docs)
+
+        # Check all objects are in feedline
+        self.assertEqual(len(self.ns._feedline), 5)
+
+        # Verify types
+        self.assertIsInstance(self.ns._feedline[0], Tag)
+        self.assertIsInstance(self.ns._feedline[1], Template)
+        self.assertIsInstance(self.ns._feedline[2], User)
+        self.assertIsInstance(self.ns._feedline[3], TemplateCall)
+        self.assertIsInstance(self.ns._feedline[4], ExternalRepo)
+
+    def test_feedall_raw_empty_sequence(self):
+        """Test feedall_raw with empty sequence."""
+
+        self.ns.feedall_raw([])
+
+        self.assertEqual(len(self.ns._feedline), 0)
+
+    def test_feedall_raw_single_document(self):
+        """Test feedall_raw with single document (should work like feed_raw)."""
+
+        doc = {'type': 'host', 'name': 'single-host'}
+
+        self.ns.feedall_raw([doc])
+
+        self.assertEqual(len(self.ns._feedline), 1)
+        self.assertIsInstance(self.ns._feedline[0], Host)
+        self.assertEqual(self.ns._feedline[0].name, 'single-host')
+
+    def test_feed_raw_with_templates_disabled(self):
+        """Test feed_raw behavior when templates are disabled."""
+
+        ns_no_templates = Namespace(enable_templates=False)
+
+        # Core type should work
+        core_doc = {'type': 'tag', 'name': 'test-tag'}
+        ns_no_templates.feed_raw(core_doc)
+        self.assertEqual(len(ns_no_templates._feedline), 1)
+        self.assertIsInstance(ns_no_templates._feedline[0], Tag)
+
+        # Template type should fail
+        template_doc = {'type': 'template', 'name': 'test-template', 'content': 'test'}
+        with self.assertRaises(ValueError):
+            ns_no_templates.feed_raw(template_doc)
+
+        # Unknown type should fail
+        unknown_doc = {'type': 'custom-type', 'name': 'test'}
+        with self.assertRaises(ValueError):
+            ns_no_templates.feed_raw(unknown_doc)
+
+    def test_feedall_raw_inline_template_file(self):
+        """Test feedall_raw with inline template file containing proper template content."""
+
+        # Load inline template file
+        documents = self.load_yaml_file('templates/inline_content.yaml')
+        self.assertEqual(len(documents), 1)
+
+        self.ns.feedall_raw(documents)
+
+        # Check template is in feedline
+        self.assertEqual(len(self.ns._feedline), 1)
+        self.assertIsInstance(self.ns._feedline[0], Template)
+
+        # Check name
+        self.assertEqual(self.ns._feedline[0].name, 'inline-tag-template')
+
+    def test_feed_raw_preserves_data_integrity(self):
+        """Test that feed_raw preserves all data from YAML documents."""
+
+        complex_doc = {
+            'type': 'tag',
+            'name': 'complex-tag',
+            'description': 'A complex tag with lots of data',
+            'parent': 'parent-tag',
+            'inheritance': [
+                {'parent': 'base-tag', 'priority': 10},
+                {'parent': 'extra-tag', 'priority': 20}
+            ],
+            'external-repos': ['repo1', 'repo2'],
+            'custom_field': 'custom_value'
+        }
+
+        self.ns.feed_raw(complex_doc)
+
+        obj = self.ns._feedline[0]
+        self.assertIsInstance(obj, Tag)
+        self.assertEqual(obj.name, 'complex-tag')
+
+        # Check that all data is preserved
+        self.assertEqual(obj.data['description'], 'A complex tag with lots of data')
+        self.assertEqual(obj.data['parent'], 'parent-tag')
+        self.assertEqual(obj.data['inheritance'], complex_doc['inheritance'])
+        self.assertEqual(obj.data['external-repos'], ['repo1', 'repo2'])
+        self.assertEqual(obj.data['custom_field'], 'custom_value')
+
+    def test_feedall_raw_from_nested_sample(self):
+        """Test feedall_raw with nested sample file."""
+
+        # Load nested sample file
+        documents = self.load_yaml_file('samples/nested/deep.yml')
+        self.assertEqual(len(documents), 1)
+
+        self.ns.feedall_raw(documents)
+
+        # Check the group object
+        self.assertEqual(len(self.ns._feedline), 1)
+        obj = self.ns._feedline[0]
+        self.assertIsInstance(obj, Group)
+        self.assertEqual(obj.name, 'deep-sample')
+        self.assertEqual(obj.data['description'], 'Deeply nested sample data')
+
+    def test_feed_methods_error_propagation(self):
+        """Test that feed methods properly propagate errors from to_object."""
+
+        # Invalid document (missing type)
+        invalid_doc = {'name': 'no-type'}
+
+        with self.assertRaises(ValueError) as context:
+            self.ns.feed_raw(invalid_doc)
+        self.assertIn("Object data has no type set", str(context.exception))
+
+        # Should not have added anything to feedline
+        self.assertEqual(len(self.ns._feedline), 0)
+
+        # Test with feedall_raw
+        docs_with_error = [
+            {'type': 'tag', 'name': 'good-tag'},
+            {'name': 'bad-doc'},  # Missing type
+            {'type': 'user', 'name': 'good-user'}
+        ]
+
+        with self.assertRaises(ValueError):
+            self.ns.feedall_raw(docs_with_error)
+
+    def test_feed_raw_accumulation_across_calls(self):
+        """Test that multiple feed operations accumulate correctly."""
+
+        # Load different files and feed them
+        sample_docs = self.load_yaml_file('samples/sample.yaml')
+        template_docs = self.load_yaml_file('templates/inline_content.yaml')
+        nested_docs = self.load_yaml_file('samples/nested/deep.yml')
+
+        # Feed them in different ways
+        self.ns.feed_raw(sample_docs[0])  # Single feed_raw
+        self.ns.feedall_raw(template_docs)  # feedall_raw with 1 template doc
+        self.ns.feedall_raw(nested_docs)  # feedall_raw with 1 doc
+
+        # Check total accumulation
+        self.assertEqual(len(self.ns._feedline), 3)
+
+        # Check types in order
+        self.assertIsInstance(self.ns._feedline[0], User)      # sample.yaml
+        self.assertIsInstance(self.ns._feedline[1], Template)  # inline_content.yaml
+        self.assertIsInstance(self.ns._feedline[2], Group)     # deep.yml
+
+    def test_feedall_raw_maintains_document_order(self):
+        """Test that feedall_raw maintains the order of documents."""
+
+        ordered_docs = [
+            {'type': 'tag', 'name': 'first'},
+            {'type': 'user', 'name': 'second'},
+            {'type': 'host', 'name': 'third'},
+            {'type': 'target', 'name': 'fourth'},
+            {'type': 'group', 'name': 'fifth'},
+        ]
+
+        self.ns.feedall_raw(ordered_docs)
+
+        # Check order is preserved
+        names = [obj.name for obj in self.ns._feedline]
+        self.assertEqual(names, ['first', 'second', 'third', 'fourth', 'fifth'])
 
 
 if __name__ == '__main__':
