@@ -11,7 +11,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: AI Generated with Human Rework
 
 
-from .base import Base, BaseObject, BaseKojiObject
+from .base import Base, BaseObject, BaseKojiObject, RawObject
 from .tag import Tag
 from .external_repo import ExternalRepo
 from .user import User
@@ -25,6 +25,7 @@ __all__ = (
 
     'Base',
     'BaseObject',
+    'RawObject',
 
     'BaseKojiObject',
     'ExternalRepo',

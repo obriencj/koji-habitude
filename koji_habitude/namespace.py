@@ -14,11 +14,12 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 import logging
+from collections import OrderedDict
 from enum import Enum, auto
-from typing import Any, Dict, Iterator, Optional, List, Type
+from typing import Any, Dict, Iterator, Optional, List, OrderedDict, Type
 
 from .templates import Template, TemplateCall
-from .models import CORE_MODELS, Base
+from .models import CORE_MODELS, Base, BaseObject
 
 
 default_logger = logging.getLogger(__name__)
@@ -312,6 +313,25 @@ class TemplateNamespace(Namespace):
     def add(self, obj):
         # We don't actually record any real objects in the TemplateNamespace
         pass
+
+
+class ExpanderNamespace(Namespace):
+
+    def __init__(
+        self,
+        coretypes: List[Type[Base]] = CORE_MODELS,
+        redefine: Redefine = Redefine.ERROR,
+        logger: Optional[logging.Logger] = None):
+
+        faketypes = {name: BaseObject for name in coretypes}
+        faketypes['template'] = Template
+        faketypes[None] = TemplateCall
+
+        super().__init__(
+            coretypes=faketypes,
+            enable_templates=True,
+            redefine=redefine,
+            logger=logger)
 
 
 # The end.

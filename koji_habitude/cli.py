@@ -13,57 +13,48 @@ import sys
 from pathlib import Path
 from typing import Optional, List, Tuple
 
-import clique
+import click
 
 from .loader import MultiLoader
 from .namespace import Namespace, TemplateNamespace
 
 
 def resplit(strs: List[str], sep=',') -> List[str]:
-    return list(filter(map(str.strip, sep.join(strs).split(sep))))
+    return list(filter(None, map(str.strip, sep.join(strs).split(sep))))
 
 
-@clique.command()
-@clique.option(
-    '--templates', metavar='PATH', nargs=-1,
+@click.command()
+@click.option(
+    '--templates', 'templates', metavar='PATH', multiple=True,
     help="Location to find templates that are not available in DATA")
-@clique.option(
+@click.option(
     '--profile',
     help="Koji profile to use for connection")
-@clique.option(
-    '--offline', is_flag=True,
+@click.option(
+    '--offline', 'offline', is_flag=True,
     help="Run in offline mode (no koji connection)")
-@clique.option(
-    '--dry-run', is_flag=True,
+@click.option(
+    '--dry-run', 'dry_run', is_flag=True,
     help="Show what would be done without making changes")
-@clique.argument('data', nargs=-1, required=True, metavar='DATA')
-def sync(
-        templates: List[str],
-        profile: Optional[str],
-        offline: bool,
-        dry_run: bool,
-        data: List[str]):
+@click.argument('data', nargs=-1, required=True)
+def sync(templates, profile, offline, dry_run, data):
 
     # TODO
     pass
 
 
-@clique.command()
-@clique.option(
-    '--templates', metavar='PATH',
+@click.command()
+@click.option(
+    '--templates', 'templates', metavar='PATH', multiple=True,
     help="Location to find templates that are not available in DATA")
-@clique.option(
+@click.option(
     '--profile',
     help="Koji profile to use for connection")
-@clique.option(
-    '--offline', is_flag=True,
+@click.option(
+    '--offline', 'offline', is_flag=True,
     help="Run in offline mode (no koji connection)")
-@clique.argument('data', nargs=-1, required=True, metavar='DATA')
-def diff(
-        templates: Optional[str],
-        profile: Optional[str],
-        offline: bool,
-        data: Tuple[str, ...]):
+@click.argument('data', nargs=-1, required=True)
+def diff(templates, profile, offline, data):
 
     """
     Show what changes would be made without applying them.
@@ -77,9 +68,9 @@ def diff(
     return sync(templates, profile, offline, True, data)
 
 
-@clique.command()
-@clique.argument('paths', nargs=-1, required=True, metavar='PATH')
-def list_templates(paths: Tuple[str, ...]):
+@click.command()
+@click.argument('paths', nargs=-1, required=True)
+def list_templates(paths):
     """
     List available templates.
 
@@ -94,13 +85,13 @@ def list_templates(paths: Tuple[str, ...]):
     ns.feedall_raw(ml.load(paths))
 
     for name, templ in ns.templates.items():
-        print(f"{name} from ")
+        print(f"{name} from {templ.source}")
 
 
-@clique.command()
-@clique.option('--templates', metavar='PATH', help="Location to find templates that are not available in DATA")
-@clique.argument('data', nargs=-1, required=True, metavar='DATA')
-def validate(templates: Optional[str], data: Tuple[str, ...]):
+@click.command()
+@click.option('--templates', 'templates', metavar='PATH', multiple=True, help="Location to find templates that are not available in DATA")
+@click.argument('data', nargs=-1, required=True)
+def validate(templates, data):
     """
     Validate data files and templates.
 
@@ -112,7 +103,7 @@ def validate(templates: Optional[str], data: Tuple[str, ...]):
     pass
 
 
-@clique.group()
+@click.group()
 def main():
     """
     koji-habitude - Synchronize local koji data expectations with hub instance.
