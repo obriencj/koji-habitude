@@ -49,13 +49,13 @@ def pretty_yaml(doc, out=sys.stdout, **opts):
 
     if filename:
         if line:
-            out.write(f"# From {filename}:{line}\n")
+            out.write(f"# From: {filename}:{line}\n")
         else:
-            out.write(f"# From {filename}\n")
+            out.write(f"# From: {filename}\n")
 
     trace = doc.pop('__trace__', None)
     if trace:
-        out.write('# Expanded from:\n')
+        out.write('# Trace:\n')
         for tr in trace:
             filename = tr.get('file')
             lineno = tr.get('line')
