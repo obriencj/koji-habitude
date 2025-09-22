@@ -222,7 +222,7 @@ class TemplateValueError(ValueError):
     Exception raised for template validation errors.
     """
 
-    def __init__(self, message, filename, lineno):
+    def __init__(self, message, filename=None, lineno=None):
         if filename:
             if lineno:
                 message = f"{message} at {filename}:{lineno}"
