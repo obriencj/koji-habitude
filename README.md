@@ -191,7 +191,7 @@ pip install -e .
 ## AI Assistance Disclaimer
 
 This project was developed with assistance from [Claude](https://claude.ai) (Claude 3.5 Sonnet)
-via [Cursor IDE](https://cursor.io). The AI assistant helped with bootstrapping, unit tests, and
+via [Cursor IDE](https://cursor.com). The AI assistant helped with bootstrapping, unit tests, and
 documentation while following the project's functional programming principles and coding standards.
 
 See [VIBE.md](VIBE.md) for a very human blurb about how much of an impact this has had on various
