@@ -79,13 +79,10 @@ class NumberedSafeLoader(yaml.SafeLoader):
     # Clever and simple trick borrowed from augurar
     # https://stackoverflow.com/questions/13319067/parsing-yaml-return-with-line-number
 
-    def construct_mapping(self, node, deep=False):
-        if deep:
-            mapping = super().construct_mapping(node, deep=deep)
-            mapping['__line__'] = node.start_mark.line + 1
-            return mapping
-        else:
-            return super().construct_mapping(node, deep=deep)
+    def construct_document(self, node):
+        mapping = super().construct_document(node)
+        mapping['__line__'] = node.start_mark.line + 1
+        return mapping
 
 
 class LoaderProtocol(Protocol):
