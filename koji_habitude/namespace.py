@@ -225,7 +225,7 @@ class Namespace:
                 raise ExpansionError(msg)
 
 
-    def _expand(self, sequence, deferals, depth=0):
+    def _expand(self, work, deferals, depth=0):
 
         # processes the sequence in order, either adding core objects
         # or templates to the namespace. If it hits a TemplateCall,
@@ -248,10 +248,12 @@ class Namespace:
 
         acted = False
 
+        sequence = iter(work)
         for obj in sequence:
             if isinstance(obj, Template):
                 self.add_template(obj)
                 acted = True
+                break
 
             elif isinstance(obj, TemplateCall):
 
@@ -268,6 +270,7 @@ class Namespace:
                     self._expand(self.to_objects(templ.render_call(obj)),
                                  deferals, depth=depth+1)
                     acted = True
+                    break
 
             else:
                 if deferals:
@@ -276,6 +279,7 @@ class Namespace:
                     self.add(obj)
                     acted = True
 
+        deferals.extend(sequence)
         return acted
 
 
