@@ -126,7 +126,8 @@ class Template(BaseObject, TemplateProtocol):
                 trim_blocks=True,
                 lstrip_blocks=True,
                 undefined=StrictUndefined)
-            ast = loader.get_source(jinja_env, template_file)[1]
+            src = loader.get_source(jinja_env, template_file)[0]
+            ast = jinja_env.parse(src)
             self.undeclared = find_undeclared_variables(ast)
             self.jinja2_template = jinja_env.from_string(ast)
         else:
@@ -244,6 +245,10 @@ class Template(BaseObject, TemplateProtocol):
             merge["__line__"] = lineno
 
         for obj in yaml.safe_load_all(self.render(data)):
+            if not isinstance(obj, dict):
+                raise TemplateValueError(
+                    f"Template {self.name!r} returned non-dict object",
+                    self.filename, self.lineno)
             obj.update(merge)
             yield obj
 
