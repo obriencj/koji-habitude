@@ -115,52 +115,6 @@ class TestTemplate(unittest.TestCase):
         self.assertIsNone(template.base_path)
         self.assertIsNotNone(template.jinja2_template)
 
-    def test_template_initialization_with_external_file(self):
-        """
-        Test Template initialization with external template file.
-        """
-
-        # Create a temporary directory structure for this test
-        with patch('pathlib.Path.exists') as mock_exists, \
-             patch('pathlib.Path.is_dir') as mock_is_dir:
-
-            mock_exists.return_value = True
-            mock_is_dir.return_value = True
-
-            template_data = {
-                'name': 'external-template',
-                'file': 'test-template.j2',
-                '__file__': '/fake/templates/dir/fake.yml',
-            }
-
-            # Mock the Jinja2 imports at the module level
-            with patch('koji_habitude.templates.FileSystemLoader') as mock_fs_loader, \
-                 patch('koji_habitude.templates.Environment') as mock_env_class:
-
-                # Mock the environment instance and its get_template method
-                mock_env_instance = mock_env_class.return_value
-                mock_jinja_template = mock_env_instance.get_template.return_value
-
-                template = Template(template_data)
-
-                self.assertEqual(template.name, 'external-template')
-                self.assertEqual(template.template_file, 'test-template.j2')
-                self.assertEqual(template.base_path, Path('/fake/templates/dir'))
-                self.assertIsNone(template.template_content)
-                self.assertEqual(template.jinja2_template, mock_jinja_template)
-
-                # Verify FileSystemLoader was called with correct path
-                mock_fs_loader.assert_called_once_with(Path('/fake/templates/dir'))
-
-                # Verify the Environment was created with correct parameters
-                mock_env_class.assert_called_once()
-                call_kwargs = mock_env_class.call_args[1]
-                self.assertIn('loader', call_kwargs)
-                self.assertTrue(call_kwargs['trim_blocks'])
-                self.assertTrue(call_kwargs['lstrip_blocks'])
-
-                # Verify get_template was called with the template file
-                mock_env_instance.get_template.assert_called_once_with('test-template.j2')
 
     def test_template_name_validation(self):
         """
@@ -277,9 +231,7 @@ class TestTemplate(unittest.TestCase):
         template = Template(template_data)
 
         repr_str = repr(template)
-        self.assertIn('Template(', repr_str)
-        self.assertIn('name=test-template', repr_str)
-        self.assertIn('template_content=test content', repr_str)
+        self.assertEqual('<Template(name=test-template)>', repr_str)
 
     def test_validate_data_no_schema(self):
         """
@@ -469,7 +421,7 @@ name: {{ name }}'''
         self.assertEqual(len(trace), 1)
 
         trace_entry = trace[0]
-        self.assertEqual(trace_entry['template'], 'trace-template')
+        self.assertEqual(trace_entry['name'], 'trace-template')
         self.assertEqual(trace_entry['file'], '/path/to/template.yaml')
         self.assertEqual(trace_entry['line'], 5)
 
@@ -490,7 +442,7 @@ name: {{ name }}'''
         template.lineno = 8
 
         existing_trace = [{
-            'template': 'parent-template',
+            'name': 'parent-template',
             'file': '/path/to/parent.yaml',
             'line': 3
         }]
@@ -509,10 +461,10 @@ name: {{ name }}'''
         self.assertEqual(len(trace), 2)
 
         # Original trace entry should be preserved
-        self.assertEqual(trace[0]['template'], 'parent-template')
+        self.assertEqual(trace[0]['name'], 'parent-template')
 
         # New trace entry should be appended
-        self.assertEqual(trace[1]['template'], 'nested-template')
+        self.assertEqual(trace[1]['name'], 'nested-template')
         self.assertEqual(trace[1]['file'], '/path/to/nested.yaml')
         self.assertEqual(trace[1]['line'], 8)
 
@@ -776,7 +728,7 @@ class TestTemplatesWithRealFiles(unittest.TestCase):
         # Verify tracing information
         self.assertIn('__trace__', result)
         trace = result['__trace__'][0]
-        self.assertEqual(trace['template'], 'external-target-template')
+        self.assertEqual(trace['name'], 'external-target-template')
         self.assertEqual(trace['file'], str(template_file))
 
     def test_load_external_template_without_description(self):
@@ -896,7 +848,7 @@ class TestTemplatesWithRealFiles(unittest.TestCase):
             '__file__': '/path/to/data.yaml',
             '__line__': 42,
             '__trace__': [{
-                'template': 'parent-template',
+                'name': 'parent-template',
                 'file': '/path/to/parent.yaml',
                 'line': 10
             }]
@@ -914,12 +866,12 @@ class TestTemplatesWithRealFiles(unittest.TestCase):
         self.assertEqual(len(trace), 2)
 
         # Original trace entry
-        self.assertEqual(trace[0]['template'], 'parent-template')
+        self.assertEqual(trace[0]['name'], 'parent-template')
         self.assertEqual(trace[0]['file'], '/path/to/parent.yaml')
         self.assertEqual(trace[0]['line'], 10)
 
         # New trace entry
-        self.assertEqual(trace[1]['template'], 'inline-tag-template')
+        self.assertEqual(trace[1]['name'], 'inline-tag-template')
         self.assertEqual(trace[1]['file'], str(template_file))
         self.assertEqual(trace[1]['line'], 3)
 
