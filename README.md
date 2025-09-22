@@ -170,8 +170,9 @@ Cross-dependencies within the same tier are resolved through automatic deferral 
 - [Python](https://python.org) 3.8+
 - [Koji](https://pagure.io/koji) client libraries
 - [Click](https://click.palletsprojects.com/) for CLI
-- PyYAML for configuration parsing
-- Jinja2 for template processing
+- [PyYAML](https://pyyaml.org/) for configuration parsing
+- [Jinja2](https://jinja.palletsprojects.com/) for template processing
+
 
 ## Installation
 
@@ -189,18 +190,15 @@ pip install -e .
 
 ## AI Assistance Disclaimer
 
-This project was developed with assistance from [Claude](https://claude.ai) (Claude 3.5 Sonnet) via Cursor IDE. The AI assistant helped with bootstrapping and documentation while following the project's functional programming principles and coding standards.
+This project was developed with assistance from [Claude](https://claude.ai) (Claude 3.5 Sonnet)
+via [Cursor IDE](https://cursor.io). The AI assistant helped with bootstrapping, unit tests, and
+documentation while following the project's functional programming principles and coding standards.
 
-See VIBE.md for a very human blurb about how much of an impact this has had on various files.
+See [VIBE.md](VIBE.md) for a very human blurb about how much of an impact this has had on various
+files.
 
 
 ## License
-
-This project is licensed under the GNU General Public License v3.0.
-
-
-koji-habitude - Synchronize local koji data expectations with hub instance
-Copyright (C) 2025 Christopher O'Brien
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
