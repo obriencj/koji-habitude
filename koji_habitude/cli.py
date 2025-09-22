@@ -72,8 +72,11 @@ def diff(templates, profile, offline, data):
 
 
 @click.command()
-@click.argument('paths', nargs=-1, required=True)
-def list_templates(paths):
+@click.option(
+    '--templates', 'templates', metavar='PATH', multiple=True,
+    help="Location to find templates that are not available in DATA")
+@click.argument('data', metavar='DATA', nargs=-1, required=False)
+def list_templates(data=[], templates=[]):
     """
     List available templates.
 
@@ -85,15 +88,20 @@ def list_templates(paths):
 
     ns = TemplateNamespace()
     ml = MultiLoader([YAMLLoader])
-    ns.feedall_raw(ml.load(paths))
+    if templates:
+        ns.feedall_raw(ml.load(templates))
+    if data:
+        ns.feedall_raw(ml.load(data))
     ns.expand()
 
-    for name, templ in ns._templates.items():
-        print(f"{name} from {templ.filename}:{templ.lineno}")
+    expanded = ns._templates.values()
+    pretty_yaml_all((obj.to_dict() for obj in expanded))
 
 
 @click.command()
-@click.option('--templates', 'templates', metavar='PATH', multiple=True, help="Location to find templates that are not available in DATA")
+@click.option(
+    '--templates', 'templates', metavar='PATH', multiple=True,
+    help="Location to find templates that are not available in DATA")
 @click.argument('data', nargs=-1, required=True)
 def validate(templates, data):
     """
@@ -111,13 +119,7 @@ def validate(templates, data):
 @click.option(
     '--templates', 'templates', metavar='PATH', multiple=True,
     help="Location to find templates that are not available in DATA")
-@click.option(
-    '--profile',
-    help="Koji profile to use for connection")
-@click.option(
-    '--offline', 'offline', is_flag=True,
-    help="Run in offline mode (no koji connection)")
-@click.argument('data', nargs=-1, required=True)
+@click.argument('data', metavar='DATA', nargs=-1, required=True)
 def expand(templates, profile, offline, data):
     """
     Expand templates and data files into YAML output.

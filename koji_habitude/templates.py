@@ -136,7 +136,28 @@ class Template(BaseObject, TemplateProtocol):
         """
         Return a string representation of the template.
         """
-        return f"Template(name={self.name}, template_file={self.template_file}, template_content={self.template_content})"
+
+        return f"<Template(name={self.name})>"
+
+
+    def to_dict(self):
+        data = {
+            'name': self.name,
+        }
+        if self.filename:
+            data['__file__'] = self.filename
+        if self.lineno:
+            data['__line__'] = self.lineno
+        if self.vars:
+            data['vars'] = self.vars
+        if self.template_file:
+            data['file'] = self.template_file
+        if self.template_content:
+            data['content'] = self.template_content
+        if self.schema:
+            data['schema'] = self.schema
+
+        return data
 
 
     def validate(self, data: Dict[str, Any]) -> bool:
@@ -166,8 +187,9 @@ class Template(BaseObject, TemplateProtocol):
             msg = f"Data validation failed for template {self.name!r}"
             raise TemplateValueError(msg)
 
+
         try:
-            return self.jinja2_template.render(**self.vars, **data)
+            return self.jinja2_template.render(**dict(self.vars, **data))
         except UndefinedError as e:
             msg = f"Undefined variable in template {self.name!r}: {e}"
             raise TemplateValueError(msg)

@@ -1,0 +1,29 @@
+---
+type: product
+name: gnutella
+
+---
+type: gnutella-version
+version: "1.0"
+platforms:
+  - fedora-40,
+  - almalinux-9
+
+---
+type: gnutella-version
+version: "1.1"
+platforms:
+  - fedora-40
+  - almalinux-9
+
+---
+type: gnutella-version
+version: "2.0"
+arches:
+  - x86_64
+  - aarch64
+platforms:
+  - fedora-42
+  - almalinux-10
+
+# The end.

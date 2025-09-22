@@ -22,17 +22,25 @@ from typing import Any, Dict, Iterator, List, Protocol, Sequence, Type
 class PrettyYAML(yaml.Dumper):
     # it's not as easy as making JSON pretty, but at least it's
     # possible.
+
     def increase_indent(self, flow=False, indentless=False):
         return super().increase_indent(flow, False)
 
+    def represent_scalar(self, tag, value, style=None):
+        if isinstance(value, str) and '\n' in value:
+            # For multi-line strings, use the literal block style ('|')
+            return super().represent_scalar(tag, value, style='|')
+        else:
+            return super().represent_scalar(tag, value, style='')
 
-def pretty_yaml_all(sequence, out=sys.stdout):
+
+def pretty_yaml_all(sequence, out=sys.stdout, **opts):
     for doc in sequence:
-        pretty_yaml(doc, out)
+        pretty_yaml(doc, out, **opts)
         out.write('\n')
 
 
-def pretty_yaml(doc, out=sys.stdout):
+def pretty_yaml(doc, out=sys.stdout, **opts):
     doc = doc.copy()
     out.write('---\n')
 
@@ -58,8 +66,13 @@ def pretty_yaml(doc, out=sys.stdout):
                 else:
                     out.write(f"#   {template} in {filename}\n")
 
-    return yaml.dump(doc, Dumper=PrettyYAML, stream=out,
-                     default_flow_style=False, explicit_start=False)
+    params = {
+        'default_flow_style': False,
+        'sort_keys': False,
+        'explicit_start': False,
+    }
+    params.update(opts)
+    return yaml.dump(doc, Dumper=PrettyYAML, stream=out, **params)
 
 
 class NumberedSafeLoader(yaml.SafeLoader):

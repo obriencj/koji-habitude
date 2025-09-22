@@ -1,0 +1,85 @@
+---
+type: template
+name: product
+vars:
+  name: sample-product
+  arches: [ x86_64 ]
+
+content: |
+  ---
+  type: group
+  name: {{ name }}-packagers
+  permissions:
+    - "{{ name }}-pkglist"
+    - "{{ name }}-taggers"
+
+  ---
+  type: template
+  name: {{ name }}-version
+  vars:
+    name: {{ name }}
+    version: "1.0"
+    platforms: [ "fedora-42" ]
+    arches: [ {{ ", ".join(arches) }} ]
+  content: |
+    {% raw %}
+    {% set g = namespace() %}
+    {% for platform in platforms %}
+    {% set g.basetag = "-".join((name, version, platform)) %}
+    ---
+    type: tag
+    name: {{ g.basetag }}-build
+    locked: True
+    permission: admin
+    arches: [ {{ ", ".join(arches) }} ]
+
+    inherits:
+      - tag: {{ g.basetag }}-overrides
+        priority: 0
+
+      - tag: {{ g.basetag }}-candidate
+        priority: 5
+
+      - tag: {{ g.basetag }}-released
+        priority: 10
+
+      - tag: {{ platform }}-build-base
+        priority: 100
+
+    ---
+    type: tag
+    name: {{ g.basetag }}-overrides
+    permission: {{ name }}-taggers
+    inherits:
+      {{ g.basetag }}
+
+    ---
+    type: tag
+    name: {{ g.basetag }}-candidate
+    permission: {{ name }}-taggers
+    inherits:
+      {{ g.basetag }}
+
+    ---
+    type: tag
+    name: {{ g.basetag }}-released
+    permission: trusted
+    inherits:
+      {{ g.basetag }}
+
+    ---
+    type: tag
+    name: {{ g.basetag }}
+    locked: True
+    permission: admin
+
+    ---
+    type: target
+    name: {{ g.basetag }}-candidate
+    build-tag: {{ g.basetag }}-build
+    dest-tag: {{ g.basetag }}-candidate
+
+    {% endfor %}
+    {% endraw %}
+
+# The end.
