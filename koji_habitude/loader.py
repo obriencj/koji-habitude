@@ -1,7 +1,7 @@
 """
 koji_habitude.loader
 
-YAML file loading
+YAML file loading, path discovery, and pretty-printing.
 
 Author: Christopher O'Brien <obriencj@gmail.com>
 License: GNU General Public License v3
@@ -11,16 +11,17 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: Pure Human
 
 
-import yaml
 import sys
+import yaml
 
 from itertools import chain
-from typing import Any, Dict, Iterator, List, Protocol, Sequence, Type
 from pathlib import Path
+from typing import Any, Dict, Iterator, List, Protocol, Sequence, Type
 
 
 class PrettyYAML(yaml.Dumper):
-    # it's not as easy as making JSON pretty, but at least it's possible.
+    # it's not as easy as making JSON pretty, but at least it's
+    # possible.
     def increase_indent(self, flow=False, indentless=False):
         return super().increase_indent(flow, False)
 
@@ -35,8 +36,8 @@ def pretty_yaml(doc, out=sys.stdout):
     doc = doc.copy()
     out.write('---\n')
 
-    filename = doc.pop('__file__')
-    line = doc.pop('__line__')
+    filename = doc.pop('__file__', None)
+    line = doc.pop('__line__', None)
 
     if filename:
         if line:
@@ -44,7 +45,7 @@ def pretty_yaml(doc, out=sys.stdout):
         else:
             out.write(f"# From {filename}\n")
 
-    trace = doc.pop('__trace__')
+    trace = doc.pop('__trace__', None)
     if trace:
         out.write('# Expanded from:\n')
         for tr in trace:
@@ -82,10 +83,11 @@ class LoaderProtocol(Protocol):
 class YAMLLoader:
 
     """
-    Wraps the invocation of `yaml.load_all` using a customized `SafeLoader`,
-    enabling the injection of a `'__file__'` and `'__line__'` key into each
-    doc on load, representing the file path it was loaded from, and the
-    line number in that file that the document started on.
+    Wraps the invocation of `yaml.load_all` using a customized
+    `SafeLoader`, enabling the injection of a `'__file__'` and
+    `'__line__'` key into each doc on load, representing the file path
+    it was loaded from, and the line number in that file that the
+    document started on.
 
     Can be added to a MultiLoader to enable handling of files with
     .yml and .yaml extensions
@@ -113,6 +115,12 @@ class YAMLLoader:
 
 class MultiLoader:
 
+    """
+    While a YAMLLoader can load one file, a MultiLoader can be
+    used to load a wide range of files and yield the resulting
+    documents in a predictable order
+    """
+
     def __init__(self, loader_types: List[Type[LoaderProtocol]]):
         self.extmap: Dict[str, Type[LoaderProtocol]] = {}
 
@@ -120,12 +128,18 @@ class MultiLoader:
             self.add_loader_type(loader)
 
 
-    def add_loader_type(self, loader_type: Type[LoaderProtocol]) -> None:
+    def add_loader_type(
+            self,
+            loader_type: Type[LoaderProtocol]) -> None:
+
         for ext in loader_type.extensions:
             self.extmap[ext] = loader_type
 
 
-    def lookup_loader_type(self, filename: str | Path) -> Type[LoaderProtocol]:
+    def lookup_loader_type(
+            self,
+            filename: str | Path) -> Type[LoaderProtocol]:
+
         filename = filename and Path(filename)
         if not filename:
             return None
@@ -141,14 +155,18 @@ class MultiLoader:
 
     def load(self, paths: List[str|Path]) -> Iterator[Dict[str, Any]]:
 
-        # the extmap is just going to be used to loop over, and to check whether a file
-        # suffix is 'in' it, both behaviours are suppoted by dict, so don't bother
-        # converting via .keys()
+        # the extmap is just going to be used to loop over, and to
+        # check whether a file suffix is 'in' it, both behaviours are
+        # suppoted by dict, so don't bother converting via .keys()
         filepaths = combine_find_files(paths, self.extmap)
         return chain(*(self.loader(f).load() for f in filepaths))
 
 
-def find_files(path, extensions: Sequence[str] = (".yml", ".yaml"), strict=True):
+def find_files(
+        path,
+        extensions: Sequence[str] = (".yml", ".yaml"),
+        strict: bool = True) -> List[Path]:
+
     path = path and Path(path)
 
     if strict and not path.exists():
@@ -164,7 +182,11 @@ def find_files(path, extensions: Sequence[str] = (".yml", ".yaml"), strict=True)
     return sorted(found)
 
 
-def combine_find_files(pathlist, extensions: Sequence[str] = (".yml", ".yaml"), strict=True):
+def combine_find_files(
+        pathlist,
+        extensions: Sequence[str] = (".yml", ".yaml"),
+        strict: bool = True) -> List[Path]:
+
     found = []
     for path in pathlist:
         found.extend(find_files(path, extensions, strict))
