@@ -7,14 +7,14 @@ content: |
   ---
   type: template
   name: gen-{{ product }}-product
-  vars:
+  defaults:
     product: {{ product }}
   content: |
     {% raw %}
     ---
     type: template
     name: create-{{ product }}-{{ component  }}
-    vars:
+    defaults:
       product: {{ product }}
       component: {{ component }}
     content: |

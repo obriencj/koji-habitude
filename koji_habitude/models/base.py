@@ -22,6 +22,7 @@ class Base(Protocol):
 
     filename: Optional[str]
     lineno: Optional[int]
+    trace: Optional[List[Dict[str, Any]]]
 
     def __init__(self, data: Dict[str, Any]) -> None:
         ...
@@ -46,6 +47,7 @@ class BaseObject(Base):
         self.name = data['name']
         self.filename = data.get('__file__')
         self.lineno = data.get('__line__')
+        self.trace = data.get('__trace__')
 
     def key(self) -> Tuple[str, str]:
         return (self.typename, self.name)

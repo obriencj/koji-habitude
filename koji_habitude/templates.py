@@ -17,6 +17,7 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple, Generator
 
 from jinja2 import Environment, FileSystemLoader, Undefined, StrictUndefined
 from jinja2.exceptions import UndefinedError
+from jinja2.meta import find_undeclared_variables
 import yaml
 
 from .models import Base, BaseObject
@@ -73,7 +74,7 @@ class Template(BaseObject, TemplateProtocol):
 
         super().__init__(data)
 
-        self.vars = data.get('vars', {})
+        self.defaults = data.get('defaults', {})
 
         template_content = data.get('content')
         template_file = data.get('file')
@@ -117,19 +118,25 @@ class Template(BaseObject, TemplateProtocol):
 
         # do not catch errors from the jinja2 environment, let them bubble up.
         # If there's a problem, we want to know about it.
+
         if template_file:
+            loader = FileSystemLoader(base_path)
             jinja_env = Environment(
-                loader=FileSystemLoader(base_path),
+                loader=loader,
                 trim_blocks=True,
                 lstrip_blocks=True,
                 undefined=StrictUndefined)
-            self.jinja2_template = jinja_env.get_template(template_file)
+            ast = loader.get_source(jinja_env, template_file)[1]
+            self.undeclared = find_undeclared_variables(ast)
+            self.jinja2_template = jinja_env.from_string(ast)
         else:
             jinja_env = Environment(
                 trim_blocks=True,
                 lstrip_blocks=True,
                 undefined=StrictUndefined)
-            self.jinja2_template = jinja_env.from_string(template_content)
+            ast = jinja_env.parse(template_content)
+            self.undeclared = find_undeclared_variables(ast)
+            self.jinja2_template = jinja_env.from_string(ast)
 
 
     def __repr__(self) -> str:
@@ -148,8 +155,10 @@ class Template(BaseObject, TemplateProtocol):
             data['__file__'] = self.filename
         if self.lineno:
             data['__line__'] = self.lineno
-        if self.vars:
-            data['vars'] = self.vars
+        if self.trace:
+            data['__trace__'] = self.trace
+        if self.defaults:
+            data['defaults'] = self.defaults
         if self.template_file:
             data['file'] = self.template_file
         if self.template_content:
@@ -178,6 +187,10 @@ class Template(BaseObject, TemplateProtocol):
         return True
 
 
+    def get_missing(self):
+        return self.undeclared.difference(self.defaults)
+
+
     def render(self, data: Dict[str, Any]) -> str:
         """
         Render the template with the given data into a str
@@ -189,7 +202,7 @@ class Template(BaseObject, TemplateProtocol):
 
 
         try:
-            return self.jinja2_template.render(**dict(self.vars, **data))
+            return self.jinja2_template.render(**dict(self.defaults, **data))
         except UndefinedError as e:
             msg = f"Undefined variable in template {self.name!r}: {e}"
             raise TemplateValueError(msg)
@@ -210,7 +223,7 @@ class Template(BaseObject, TemplateProtocol):
         # data so we can find the TemplateCall
 
         traceval = {
-            "template": self.name,
+            "name": self.name,
             "file": self.filename,
             "line": self.lineno,
         }

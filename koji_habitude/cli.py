@@ -73,29 +73,82 @@ def diff(templates, profile, offline, data):
 
 @click.command()
 @click.option(
-    '--templates', 'templates', metavar='PATH', multiple=True,
-    help="Location to find templates that are not available in DATA")
-@click.argument('data', metavar='DATA', nargs=-1, required=False)
-def list_templates(data=[], templates=[]):
+    '--templates', "-T", 'template_dirs', metavar='PATH', multiple=True,
+    help="Load only templates from the given paths")
+@click.option(
+    '--yaml', 'yaml', is_flag=True, default=False,
+    help="Show expanded templates as yaml")
+@click.option(
+    '--full', 'full', is_flag=True, default=False,
+    help="Show full template details")
+@click.option(
+    '--select', "-S", 'select', metavar='NAME', multiple=True,
+    help="Select templates by name")
+@click.argument('dirs', metavar='PATH', nargs=-1, required=False)
+def list_templates(dirs=[], template_dirs=[], yaml=False, full=False, select=[]):
     """
     List available templates.
 
     Shows all templates found in the given locations with their
     configuration details.
 
+    Accepts --templates to load only templates from the given paths. Positional
+    path arguments are treated the same way, but we support both styles to mimic
+    the invocation pattern of other commands in this tool.
+
     PATH can be directories containing template files.
     """
 
     ns = TemplateNamespace()
     ml = MultiLoader([YAMLLoader])
-    if templates:
-        ns.feedall_raw(ml.load(templates))
-    if data:
-        ns.feedall_raw(ml.load(data))
+    if template_dirs:
+        ns.feedall_raw(ml.load(template_dirs))
+    if dirs:
+        ns.feedall_raw(ml.load(dirs))
     ns.expand()
 
-    expanded = ns._templates.values()
-    pretty_yaml_all((obj.to_dict() for obj in expanded))
+    if select:
+        expanded = (tmpl for tmpl in ns._templates.values() if tmpl.name in select)
+    else:
+        expanded = ns._templates.values()
+
+    if yaml:
+        pretty_yaml_all((obj.to_dict() for obj in expanded))
+        return
+
+    for tmpl in expanded:
+        print(f"{tmpl.name}")
+        if full:
+            print(f"  declared at: {tmpl.filename}:{tmpl.lineno}")
+            if tmpl.trace:
+                print("  expanded from:")
+                for step in tmpl.trace:
+                    print(f"    {step['name']} at {step['file']}:{step['line']}")
+            print(f"  schema: {tmpl.schema}")
+            if tmpl.defaults:
+                print("  defaults:")
+                for var, value in tmpl.defaults.items():
+                    print(f"    {var}: {value!r}")
+            missing = tmpl.get_missing()
+            if missing:
+                print(f"  required:")
+                for var in missing:
+                    print(f"    {var}")
+            if tmpl.template_file:
+                print(f"  content: <file: {tmpl.template_file}>")
+            else:
+                print(f"  content: '''\n{tmpl.template_content}\n''' # end content for {tmpl.name}")
+        else:
+            if tmpl.defaults:
+                print("  defaults:")
+                for var, value in tmpl.defaults.items():
+                    print(f"    {var}: {value!r}")
+            missing = tmpl.get_missing()
+            if missing:
+                print(f"  required:")
+                for var in missing:
+                    print(f"    {var}")
+        print()
 
 
 @click.command()

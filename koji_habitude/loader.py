@@ -59,7 +59,7 @@ def pretty_yaml(doc, out=sys.stdout, **opts):
         for tr in trace:
             filename = tr.get('file')
             lineno = tr.get('line')
-            template = tr.get('template', '<unknown>')
+            template = tr.get('name', '<unknown>')
             if filename:
                 if lineno:
                     out.write(f"#   {template} in {filename}:{lineno}\n")
@@ -80,9 +80,12 @@ class NumberedSafeLoader(yaml.SafeLoader):
     # https://stackoverflow.com/questions/13319067/parsing-yaml-return-with-line-number
 
     def construct_mapping(self, node, deep=False):
-        mapping = super().construct_mapping(node, deep=deep)
-        mapping['__line__'] = node.start_mark.line + 1
-        return mapping
+        if deep:
+            mapping = super().construct_mapping(node, deep=deep)
+            mapping['__line__'] = node.start_mark.line + 1
+            return mapping
+        else:
+            return super().construct_mapping(node, deep=deep)
 
 
 class LoaderProtocol(Protocol):

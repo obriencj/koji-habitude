@@ -1,8 +1,7 @@
 ---
 type: template
 name: product
-vars:
-  name: sample-product
+defaults:
   arches: [ x86_64 ]
 
 content: |
@@ -16,7 +15,7 @@ content: |
   ---
   type: template
   name: {{ name }}-version
-  vars:
+  defaults:
     name: {{ name }}
     version: "1.0"
     platforms: [ "fedora-42" ]
