@@ -225,7 +225,7 @@ class Namespace:
                 raise ExpansionError(msg)
 
 
-    def _expand(self, work, deferals, depth=0):
+    def _expand(self, sequence, deferals, depth=0):
 
         # processes the sequence in order, either adding core objects
         # or templates to the namespace. If it hits a TemplateCall,
@@ -248,12 +248,10 @@ class Namespace:
 
         acted = False
 
-        sequence = iter(work)
         for obj in sequence:
             if isinstance(obj, Template):
                 self.add_template(obj)
                 acted = True
-                break
 
             elif isinstance(obj, TemplateCall):
 
@@ -267,10 +265,23 @@ class Namespace:
                     # deferals, then the expansion will just be inlined
                     # into the deferals. If not, then the expansion will
                     # be added
-                    self._expand(self.to_objects(templ.render_call(obj)),
-                                 deferals, depth=depth+1)
+
+                    expanded = self.to_objects(templ.render_call(obj))
+
+                    if deferals:
+                        # We're not allowing templates that might have
+                        # been expanded in here to be added, nor are
+                        # we re-expanding any nested calls. We want to
+                        # give any earlier deferred calls a change to
+                        # expand and potentially add their templates
+                        # first. This ensures a more consistend
+                        # ordering, where we prefer to add templates
+                        # from earlier on, even when they are expanded
+                        # from other templates.
+                        deferals.extend(expanded)
+                    else:
+                        self._expand(expanded, deferals, depth=depth+1)
                     acted = True
-                    break
 
             else:
                 if deferals:
@@ -279,7 +290,6 @@ class Namespace:
                     self.add(obj)
                     acted = True
 
-        deferals.extend(sequence)
         return acted
 
 
