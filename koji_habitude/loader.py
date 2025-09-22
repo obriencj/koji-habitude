@@ -79,6 +79,7 @@ class NumberedSafeLoader(yaml.SafeLoader):
     # Clever and simple trick borrowed from augurar
     # https://stackoverflow.com/questions/13319067/parsing-yaml-return-with-line-number
 
+    # tweaked to only decorate the documents, not every mapping
     def construct_document(self, node):
         mapping = super().construct_document(node)
         mapping['__line__'] = node.start_mark.line + 1
