@@ -19,6 +19,8 @@ class Tag(BaseKojiObject):
 
     typename = "tag"
 
+    _can_split = True
+
 
     def dependent_keys(self) -> List[Tuple[str, str]]:
         """

@@ -11,8 +11,8 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: AI Generated with Human Rework
 
 
-from typing import Dict, List, Tuple, Optional, Any, TYPE_CHECKING, Protocol
-from abc import ABC, abstractmethod
+from abc import ABC
+from typing import Any, Dict, List, Optional, Protocol, Sequence, TYPE_CHECKING, Tuple
 
 
 class Base(Protocol):
@@ -31,6 +31,15 @@ class Base(Protocol):
         ...
 
     def filepos(self) -> Tuple[Optional[str], Optional[int]]:
+        ...
+
+    def can_split(self) -> bool:
+        ...
+
+    def split(self) -> Optional['Base']:
+        ...
+
+    def dependency_keys(self) -> Sequence[Tuple[str, str]]:
         ...
 
 
@@ -55,6 +64,15 @@ class BaseObject(Base):
     def filepos(self) -> Tuple[Optional[str], Optional[int]]:
         return (self.filename, self.lineno)
 
+    def can_split(self):
+        return False
+
+    def split(self):
+        raise TypeError(f"Cannot split {self.typename}")
+
+    def dependency_keys(self):
+        return ()
+
 
 class RawObject(BaseObject):
 
@@ -74,6 +92,9 @@ class BaseKojiObject(ABC, BaseObject):
     # override in subclasses
     typename = 'koji-object'
 
+    # override in subclasses to support splitting
+    _can_split = False
+
 
     def __init__(self, data: Dict[str, Any]) -> None:
         """
@@ -86,15 +107,12 @@ class BaseKojiObject(ABC, BaseObject):
         super().__init__(data)
         self.data = data
 
-        # filled by the resolver or by defer_deps
-        self.dependants = []
+
+    def can_split(self):
+        return self._can_split
 
 
-    def dependency_keys(self):
-        return ()
-
-
-    def defer_deps(self) -> 'BaseKojiObject':
+    def split(self) -> 'BaseKojiObject':
         """
         Create a minimal copy of this object specifying only that it needs
         to exist, with a dependant link on the original object.
@@ -104,13 +122,10 @@ class BaseKojiObject(ABC, BaseObject):
         add the links.
         """
 
-        deferal = type(self)({
+        return type(self)({
             "type": self.typename,
             "name": self.name
         })
-
-        deferal.dependants = [self]
-        return deferal
 
 
     def koji_diff(

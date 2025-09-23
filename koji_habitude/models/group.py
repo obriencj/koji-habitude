@@ -19,6 +19,8 @@ class Group(BaseKojiObject):
 
     typename = "group"
 
+    _can_split = True
+
 
     def dependent_keys(self) -> List[Tuple[str, str]]:
         """

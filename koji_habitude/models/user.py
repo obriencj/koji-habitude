@@ -19,6 +19,8 @@ class User(BaseKojiObject):
 
     typename = "user"
 
+    _can_split = True
+
 
     def dependent_keys(self) -> List[Tuple[str, str]]:
         """
