@@ -158,7 +158,7 @@ class Namespace:
         if cls is None:
             raise ValueError(f"No type handler for {objtype}")
 
-        return cls(**objdict)
+        return cls(objdict)
 
 
     def to_objects(self, objseq):

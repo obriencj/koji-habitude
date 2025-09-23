@@ -35,7 +35,7 @@ class TemplateCall:
     new docs via a Template.
     """
 
-    def __init__(self, **data):
+    def __init__(self, data):
         self.typename = data['type']
         self.data = data
 

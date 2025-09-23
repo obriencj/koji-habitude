@@ -37,7 +37,7 @@ class Tag(BaseKojiObject):
 
 
     def split(self) -> Optional['Tag']:
-        return Tag(name=self.name, arches=self.arches)
+        return Tag({'name': self.name, 'arches': self.arches})
 
 
     def dependent_keys(self) -> List[Tuple[str, str]]:

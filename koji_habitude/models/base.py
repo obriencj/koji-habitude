@@ -11,7 +11,10 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: AI Generated with Human Rework
 
 
-from pydantic import BaseModel, Field
+from typing import Annotated
+
+from pydantic import BaseModel, Field, StringConstraints
+
 from typing import (
     Any, ClassVar, Dict, List, Optional, Protocol,
     Sequence, Tuple,
@@ -43,6 +46,9 @@ class Base(Protocol):
         ...
 
 
+String = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+
+
 class BaseObject(BaseModel):
     """
     Adapter between the Base protocol and dataclasses. Works with the redefined
@@ -52,12 +58,21 @@ class BaseObject(BaseModel):
 
     typename: ClassVar[str] = 'object'
 
-    yaml_type: str = Field(alias='type')
-    name: str = Field(alias='name')
+    yaml_type: String = Field(alias='type')
+    name: String = Field(alias='name')
     filename: Optional[str] = Field(alias='__file__', default=None)
     lineno: Optional[int] = Field(alias='__line__', default=None)
     trace: Optional[List[Dict[str, Any]]] = Field(alias='__trace__', default_factory=list)
 
+    _data: Dict[str, Any]
+
+    def __init__(self, data: Dict[str, Any]):
+        super().__init__(**data)
+        self._data = data
+
+    @property
+    def data(self) -> Dict[str, Any]:
+        return self._data
 
     def key(self) -> Tuple[str, str]:
         return (self.typename, self.name)
@@ -78,16 +93,7 @@ class BaseObject(BaseModel):
         return f"<{self.__class__.__name__}({self.typename}, {self.name})>"
 
 
-class RawObject(BaseObject):
-
-    typename = 'raw'
-    data: Dict[str, Any] = Field(default_factory=dict)
-
-    def __init__(self, **data) -> None:
-        # Store the original data for backward compatibility
-        raw_data = data.copy()
-        super().__init__(**data)
-        self.data = raw_data
+RawObject = BaseObject
 
 
 class BaseKojiObject(BaseObject):
@@ -101,14 +107,6 @@ class BaseKojiObject(BaseObject):
     # override in subclasses to support splitting
     _can_split: ClassVar[bool] = False
 
-    # Store additional data that doesn't match the schema
-    data: Dict[str, Any] = Field(default_factory=dict)
-
-    def __init__(self, **data) -> None:
-        # Store the original data for backward compatibility
-        raw_data = data.copy()
-        super().__init__(**data)
-        self.data = raw_data
 
     def can_split(self):
         return self._can_split
@@ -124,7 +122,7 @@ class BaseKojiObject(BaseObject):
         add the links.
         """
 
-        return type(self)(type=self.typename, name=self.name)
+        return type(self)({'type': self.typename, 'name': self.name})
 
 
     def diff(
