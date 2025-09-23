@@ -8,45 +8,42 @@ License: GNU General Public License v3
 AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
-from typing import Dict, List, Tuple, Any
-from .base import BaseKojiObject
+from typing import ClassVar, List, Tuple
 
+from pydantic import Field
+
+from .base import BaseKojiObject
 
 class Group(BaseKojiObject):
     """
     Koji group object model.
     """
 
-    typename = "group"
+    typename: ClassVar[str] = "group"
+    _can_split: ClassVar[bool] = True
 
-    _can_split = True
+    members: List[str] = Field(alias='members', default_factory=list)
+    permissions: List[str] = Field(alias='permissions', default_factory=list)
 
 
-    def dependent_keys(self) -> List[Tuple[str, str]]:
+    def dependency_keys(self) -> List[Tuple[str, str]]:
         """
         Return dependencies for this group.
 
         Groups may depend on:
-        - Tags (for tag-specific group configurations)
-        - Users (for group membership)
+        - Users
+        - Permissions
         """
 
         deps = []
 
-        # Tag dependency if this is a tag-specific group
-        tag = self.data.get('tag')
-        if tag:
-            deps.append(('tag', tag))
+        for member in self.members:
+            deps.append(('user', member))
 
-        # User dependencies for group members
-        members = self.data.get('members', [])
-        if isinstance(members, list):
-            for member in members:
-                if isinstance(member, dict) and 'name' in member:
-                    deps.append(('user', member['name']))
-                elif isinstance(member, str):
-                    deps.append(('user', member))
+        for permission in self.permissions:
+            deps.append(('permission', permission))
 
         return deps
+
 
 # The end.

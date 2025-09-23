@@ -12,10 +12,12 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 import logging
-from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Generator
 
-from jinja2 import Environment, FileSystemLoader, Undefined, StrictUndefined
+from pydantic import Field, PrivateAttr
+from pathlib import Path
+from typing import Any, ClassVar, Dict, Iterator, Optional, Set
+
+from jinja2 import Environment, FileSystemLoader, StrictUndefined, Template as Jinja2Template
 from jinja2.exceptions import UndefinedError
 from jinja2.meta import find_undeclared_variables
 import yaml
@@ -33,7 +35,7 @@ class TemplateCall:
     new docs via a Template.
     """
 
-    def __init__(self, data):
+    def __init__(self, **data):
         self.typename = data['type']
         self.data = data
 
@@ -50,41 +52,32 @@ class TemplateProtocol(Base):
         ...
 
 
-class Template(BaseObject, TemplateProtocol):
+class Template(BaseObject):
 
     """
     A Template allows for the expansion of some YAML data into zero or
     more YAML docs, via Jinja2
     """
 
-    typename = "template"
+    typename: ClassVar[str] = "template"
+
+    defaults: Dict[str, Any] = Field(alias='defaults', default_factory=dict)
+    template_file: Optional[str] = Field(alias='file', default=None)
+    template_content: Optional[str] = Field(alias='content', default=None)
+    template_schema: Optional[Dict[str, Any]] = Field(alias='schema', default=None)
+
+    _undeclared: Set[str]
+    _jinja2_template: Jinja2Template
 
 
-    def __init__(
-        self,
-        data: Dict[str, Any]):
-
-        """
-        Initialize template.
-
-        Args:
-            name: Name of the template
-            template_data: Template configuration data
-        """
-
-        super().__init__(data)
-
-        self.defaults = data.get('defaults', {})
-
-        template_content = data.get('content')
-        template_file = data.get('file')
+    def model_post_init(self, __context: Any):
 
         if self.filename:
             base_path = Path(self.filename).parent
         else:
             base_path = None
 
-        if template_file:
+        if self.template_file:
             if not base_path:
                 # TODO: should this just become Path.cwd()?
                 raise TemplateValueError(
@@ -98,46 +91,38 @@ class Template(BaseObject, TemplateProtocol):
             if not base_path.is_dir():
                 raise NotADirectoryError(f"Base path is not a directory: {base_path}")
 
-            if template_content:
+            if self.template_content:
                 raise TemplateValueError(
                     "Template content is not allowed when template file is specified",
                     self.filename, self.lineno)
 
-        elif not template_content:
+        elif not self.template_content:
             raise TemplateValueError(
                 "Template content is required when template file is not specified",
                 self.filename, self.lineno)
 
-        # record these so we can tell if we got it from a file or inline later
-        self.base_path = base_path
-        self.template_file = template_file
-        self.template_content = template_content
-
-        # TODO: load the schema into a JSON schema validator if present
-        self.schema = data.get('schema')
-
         # do not catch errors from the jinja2 environment, let them bubble up.
         # If there's a problem, we want to know about it.
 
-        if template_file:
+        if self.template_file:
             loader = FileSystemLoader(base_path)
             jinja_env = Environment(
                 loader=loader,
                 trim_blocks=True,
                 lstrip_blocks=True,
                 undefined=StrictUndefined)
-            src = loader.get_source(jinja_env, template_file)[0]
+            src = loader.get_source(jinja_env, self.template_file)[0]
             ast = jinja_env.parse(src)
-            self.undeclared = find_undeclared_variables(ast)
-            self.jinja2_template = jinja_env.from_string(ast)
+            self._undeclared = find_undeclared_variables(ast)
+            self._jinja2_template = jinja_env.from_string(ast)
         else:
             jinja_env = Environment(
                 trim_blocks=True,
                 lstrip_blocks=True,
                 undefined=StrictUndefined)
-            ast = jinja_env.parse(template_content)
-            self.undeclared = find_undeclared_variables(ast)
-            self.jinja2_template = jinja_env.from_string(ast)
+            ast = jinja_env.parse(self.template_content)
+            self._undeclared = find_undeclared_variables(ast)
+            self._jinja2_template = jinja_env.from_string(ast)
 
 
     def __repr__(self) -> str:
@@ -181,7 +166,7 @@ class Template(BaseObject, TemplateProtocol):
             True if validation passes or no schema configured
         """
 
-        if not self.schema:
+        if not self.template_schema:
             return True
 
         # TODO: Implement schema validation
@@ -189,7 +174,7 @@ class Template(BaseObject, TemplateProtocol):
 
 
     def get_missing(self):
-        return self.undeclared.difference(self.defaults)
+        return self._undeclared.difference(self.defaults)
 
 
     def render(self, data: Dict[str, Any]) -> str:
@@ -203,7 +188,7 @@ class Template(BaseObject, TemplateProtocol):
 
 
         try:
-            return self.jinja2_template.render(**dict(self.defaults, **data))
+            return self._jinja2_template.render(**dict(self.defaults, **data))
         except UndefinedError as e:
             msg = f"Undefined variable in template {self.name!r}: {e}"
             raise TemplateValueError(msg)
@@ -251,6 +236,11 @@ class Template(BaseObject, TemplateProtocol):
                     self.filename, self.lineno)
             obj.update(merge)
             yield obj
+
+
+    @property
+    def undeclared(self):
+        return self._undeclared
 
 
     def render_call(self, call: TemplateCall):

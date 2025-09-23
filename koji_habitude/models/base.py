@@ -11,8 +11,11 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: AI Generated with Human Rework
 
 
-from abc import ABC
-from typing import Any, Dict, List, Optional, Protocol, Sequence, TYPE_CHECKING, Tuple
+from pydantic import BaseModel, Field
+from typing import (
+    Any, ClassVar, Dict, List, Optional, Protocol,
+    Sequence, Tuple,
+)
 
 
 class Base(Protocol):
@@ -23,9 +26,6 @@ class Base(Protocol):
     filename: Optional[str]
     lineno: Optional[int]
     trace: Optional[List[Dict[str, Any]]]
-
-    def __init__(self, data: Dict[str, Any]) -> None:
-        ...
 
     def key(self) -> Tuple[str, str]:
         ...
@@ -43,20 +43,21 @@ class Base(Protocol):
         ...
 
 
-class BaseObject(Base):
+class BaseObject(BaseModel):
+    """
+    Adapter between the Base protocol and dataclasses. Works with the redefined
+    `field` decorator to allow for automatic population of dataclass fields from
+    data.
+    """
 
-    typename = 'object'
+    typename: ClassVar[str] = 'object'
 
-    def __init__(self, data: Dict[str, Any]) -> None:
-        name = data.get('name')
-        name = name and name.strip()
-        if not name:
-            raise ValueError("Non-empty name is required")
+    yaml_type: str = Field(alias='type')
+    name: str = Field(alias='name')
+    filename: Optional[str] = Field(alias='__file__', default=None)
+    lineno: Optional[int] = Field(alias='__line__', default=None)
+    trace: Optional[List[Dict[str, Any]]] = Field(alias='__trace__', default_factory=list)
 
-        self.name = data['name']
-        self.filename = data.get('__file__')
-        self.lineno = data.get('__line__')
-        self.trace = data.get('__trace__')
 
     def key(self) -> Tuple[str, str]:
         return (self.typename, self.name)
@@ -73,39 +74,29 @@ class BaseObject(Base):
     def dependency_keys(self):
         return ()
 
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}({self.typename}, {self.name})>"
+
 
 class RawObject(BaseObject):
 
     typename = 'raw'
 
-    def __init__(self, data: Dict[str, Any]) -> None:
-        super().__init__(data)
+    def __init__(self, **data) -> None:
+        super().__init__(**data)
         self.data = data
-        self.typename = data.get('type', 'raw')
 
 
-class BaseKojiObject(ABC, BaseObject):
+class BaseKojiObject(BaseObject):
     """
     Base class for all koji object models.
     """
 
     # override in subclasses
-    typename = 'koji-object'
+    typename: ClassVar[str] = 'koji-object'
 
     # override in subclasses to support splitting
-    _can_split = False
-
-
-    def __init__(self, data: Dict[str, Any]) -> None:
-        """
-        Initialize koji object from data dictionary.
-
-        Args:
-            data: Dictionary containing object configuration
-        """
-
-        super().__init__(data)
-        self.data = data
+    _can_split: ClassVar[bool] = False
 
 
     def can_split(self):
@@ -122,13 +113,10 @@ class BaseKojiObject(ABC, BaseObject):
         add the links.
         """
 
-        return type(self)({
-            "type": self.typename,
-            "name": self.name
-        })
+        return type(self)(type=self.typename, name=self.name)
 
 
-    def koji_diff(
+    def diff(
             self,
             koji_data: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
@@ -146,14 +134,6 @@ class BaseKojiObject(ABC, BaseObject):
 
         # TODO: Implement object diffing logic
         return ()
-
-
-    def __repr__(self) -> str:
-        """
-        String representation of the object.
-        """
-
-        return f"<{self.__class__.__name__}({self.typename}, {self.name})>"
 
 
 # The end.
