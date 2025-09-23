@@ -6,12 +6,11 @@ content: |
   ---
   type: tag
   name: {{ name }}
-  description: "{{ description | default('Generated tag') }}"
   arches:
   {% for arch in arches %}
     - {{ arch }}
   {% endfor %}
-  {% if parents %}
+  {% if parents is defined and parents %}
   inheritance:
   {% for parent in parents %}
     - name: {{ parent }}

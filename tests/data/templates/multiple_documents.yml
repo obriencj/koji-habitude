@@ -2,6 +2,7 @@
 type: target
 name: first-doc
 description: "First document in multi-doc file"
+build-tag: first-doc-build
 ---
 # Second document starts at line 6
 type: host

@@ -267,7 +267,7 @@ class TestNamespaceInitAndGuards(unittest.TestCase):
 
         ns = Namespace()
         tag_data = {'type': 'tag', 'name': 'test-tag'}
-        tag_obj = Tag(**tag_data)
+        tag_obj = Tag(tag_data)
 
         # Should not raise any exception
         ns.add(tag_obj)
@@ -282,7 +282,7 @@ class TestNamespaceInitAndGuards(unittest.TestCase):
 
         ns = Namespace()
         template_data = {'type': 'template', 'name': 'test-template', 'content': 'test'}
-        template_obj = Template(**template_data)
+        template_obj = Template(template_data)
 
         with self.assertRaises(TypeError) as context:
             ns.add(template_obj)
@@ -294,7 +294,7 @@ class TestNamespaceInitAndGuards(unittest.TestCase):
 
         ns = Namespace()
         call_data = {'type': 'custom-template', 'name': 'test-call'}
-        call_obj = TemplateCall(**call_data)
+        call_obj = TemplateCall(call_data)
 
         with self.assertRaises(TypeError) as context:
             ns.add(call_obj)
@@ -306,7 +306,7 @@ class TestNamespaceInitAndGuards(unittest.TestCase):
 
         ns = Namespace()
         template_data = {'type': 'template', 'name': 'test-template', 'content': 'test'}
-        template_obj = Template(**template_data)
+        template_obj = Template(template_data)
 
         # Should not raise any exception
         ns.add_template(template_obj)
@@ -320,7 +320,7 @@ class TestNamespaceInitAndGuards(unittest.TestCase):
 
         ns = Namespace()
         tag_data = {'type': 'tag', 'name': 'test-tag'}
-        tag_obj = Tag(**tag_data)
+        tag_obj = Tag(tag_data)
 
         with self.assertRaises(TypeError) as context:
             ns.add_template(tag_obj)
@@ -332,7 +332,7 @@ class TestNamespaceInitAndGuards(unittest.TestCase):
 
         ns = Namespace()
         call_data = {'type': 'custom-template', 'name': 'test-call'}
-        call_obj = TemplateCall(**call_data)
+        call_obj = TemplateCall(call_data)
 
         with self.assertRaises(TypeError) as context:
             ns.add_template(call_obj)
@@ -375,7 +375,7 @@ class TestNamespaceInitAndGuards(unittest.TestCase):
 
         ns = Namespace(redefine=Redefine.ERROR)
         tag_data = {'type': 'tag', 'name': 'test-tag'}
-        tag_obj = Tag(**tag_data)
+        tag_obj = Tag(tag_data)
 
         # Both adds should succeed (same instance)
         ns.add(tag_obj)
@@ -391,7 +391,7 @@ class TestNamespaceInitAndGuards(unittest.TestCase):
 
         ns = Namespace(redefine=Redefine.ERROR)
         template_data = {'type': 'template', 'name': 'test-template', 'content': 'test'}
-        template_obj = Template(**template_data)
+        template_obj = Template(template_data)
 
         # Both adds should succeed (same instance)
         ns.add_template(template_obj)
@@ -418,7 +418,7 @@ class TestNamespaceToObjectMethods(unittest.TestCase):
             ({'type': 'tag', 'name': 'test-tag'}, Tag),
             ({'type': 'external-repo', 'name': 'test-repo', 'url': 'https://example.com/repo'}, ExternalRepo),
             ({'type': 'user', 'name': 'test-user'}, User),
-            ({'type': 'target', 'name': 'test-target'}, Target),
+            ({'type': 'target', 'name': 'test-target', 'build-tag': 'test-build-tag'}, Target),
             ({'type': 'host', 'name': 'test-host'}, Host),
             ({'type': 'group', 'name': 'test-group'}, Group),
         ]
@@ -797,10 +797,9 @@ class TestNamespaceFeedMethods(unittest.TestCase):
             'type': 'tag',
             'name': 'complex-tag',
             'description': 'A complex tag with lots of data',
-            'parent': 'parent-tag',
             'inheritance': [
-                {'parent': 'base-tag', 'priority': 10},
-                {'parent': 'extra-tag', 'priority': 20}
+                {'name': 'base-tag', 'priority': 10},
+                {'name': 'extra-tag', 'priority': 20}
             ],
             'external-repos': [{'name': 'repo1'}, {'name': 'repo2'}],
             'custom_field': 'custom_value'
@@ -814,8 +813,7 @@ class TestNamespaceFeedMethods(unittest.TestCase):
 
         # Check that all data is preserved
         self.assertEqual(obj.data['description'], 'A complex tag with lots of data')
-        self.assertEqual(obj.data['parent'], 'parent-tag')
-        self.assertEqual(obj.data['inheritance'], complex_doc['inheritance'])
+        self.assertEqual(obj.data['inheritance'], [{'name': 'base-tag', 'priority': 10}, {'name': 'extra-tag', 'priority': 20}])
         self.assertEqual(obj.data['external-repos'], [{'name': 'repo1'}, {'name': 'repo2'}])
         self.assertEqual(obj.data['custom_field'], 'custom_value')
 
@@ -886,7 +884,7 @@ class TestNamespaceFeedMethods(unittest.TestCase):
             {'type': 'tag', 'name': 'first'},
             {'type': 'user', 'name': 'second'},
             {'type': 'host', 'name': 'third'},
-            {'type': 'target', 'name': 'fourth'},
+            {'type': 'target', 'name': 'fourth', 'build-tag': 'fourth-build'},
             {'type': 'group', 'name': 'fifth'},
         ]
 

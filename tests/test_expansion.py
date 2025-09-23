@@ -227,7 +227,7 @@ class TestMetaTemplateGeneration(TestCase):
         # Verify build tag uses override in inheritance
         build_tag = self.ns._ns[('tag', 'webapp-2.0-build')]
         inheritance = build_tag.data.get('inheritance', [])
-        parent_names = [p['parent'] for p in inheritance if isinstance(p, dict)]
+        parent_names = [p['name'] for p in inheritance if isinstance(p, dict)]
         self.assertIn('webapp-2.0-override', parent_names)
 
     def test_nested_meta_template_generation(self):
