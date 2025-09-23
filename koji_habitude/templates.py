@@ -165,9 +165,9 @@ class Template(BaseObject):
         return data
 
 
-    def validate(self, data: Dict[str, Any]) -> bool:
+    def validate_call(self, data: Dict[str, Any]) -> bool:
         """
-        Validate data against template schema if configured.
+        Validate call data against template schema if configured.
 
         Args:
             data: Data to validate

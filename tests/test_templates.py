@@ -333,7 +333,7 @@ arches:
         template = Template(template_data)
 
         # Mock validate to return False
-        with patch.object(template, 'validate', return_value=False):
+        with patch.object(template, 'validate_call', return_value=False):
             with self.assertRaises(TemplateValueError) as context:
                 template.render({'test': 'data'})
             self.assertIn("Data validation failed", str(context.exception))
