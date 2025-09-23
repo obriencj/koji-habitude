@@ -68,28 +68,38 @@ class Template(BaseObject):
 
     _undeclared: Set[str]
     _jinja2_template: Jinja2Template
+    _base_path: Optional[Path]
+
+    @property
+    def base_path(self) -> Optional[Path]:
+        """Access the base path."""
+        return self._base_path
+
+    @property
+    def jinja2_template(self) -> Jinja2Template:
+        """Access the Jinja2 template object."""
+        return self._jinja2_template
 
 
     def model_post_init(self, __context: Any):
 
         if self.filename:
-            base_path = Path(self.filename).parent
+            self._base_path = Path(self.filename).parent
         else:
-            base_path = None
+            self._base_path = None
 
         if self.template_file:
-            if not base_path:
+            if not self._base_path:
                 # TODO: should this just become Path.cwd()?
                 raise TemplateValueError(
                     "Base path is required when template file is specified",
                     self.filename, self.lineno)
 
-            base_path = Path(base_path)
-            if not base_path.exists():
-                raise FileNotFoundError(f"Base path not found: {base_path}")
+            if not self._base_path.exists():
+                raise FileNotFoundError(f"Base path not found: {self._base_path}")
 
-            if not base_path.is_dir():
-                raise NotADirectoryError(f"Base path is not a directory: {base_path}")
+            if not self._base_path.is_dir():
+                raise NotADirectoryError(f"Base path is not a directory: {self._base_path}")
 
             if self.template_content:
                 raise TemplateValueError(
@@ -105,7 +115,7 @@ class Template(BaseObject):
         # If there's a problem, we want to know about it.
 
         if self.template_file:
-            loader = FileSystemLoader(base_path)
+            loader = FileSystemLoader(self._base_path)
             jinja_env = Environment(
                 loader=loader,
                 trim_blocks=True,

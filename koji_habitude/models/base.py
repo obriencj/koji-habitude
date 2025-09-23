@@ -81,10 +81,13 @@ class BaseObject(BaseModel):
 class RawObject(BaseObject):
 
     typename = 'raw'
+    data: Dict[str, Any] = Field(default_factory=dict)
 
     def __init__(self, **data) -> None:
+        # Store the original data for backward compatibility
+        raw_data = data.copy()
         super().__init__(**data)
-        self.data = data
+        self.data = raw_data
 
 
 class BaseKojiObject(BaseObject):
@@ -98,6 +101,14 @@ class BaseKojiObject(BaseObject):
     # override in subclasses to support splitting
     _can_split: ClassVar[bool] = False
 
+    # Store additional data that doesn't match the schema
+    data: Dict[str, Any] = Field(default_factory=dict)
+
+    def __init__(self, **data) -> None:
+        # Store the original data for backward compatibility
+        raw_data = data.copy()
+        super().__init__(**data)
+        self.data = raw_data
 
     def can_split(self):
         return self._can_split
