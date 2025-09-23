@@ -14,7 +14,7 @@ content: |
   {% if parents %}
   inheritance:
   {% for parent in parents %}
-    - parent: {{ parent }}
+    - name: {{ parent }}
       priority: {{ loop.index * 10 }}
   {% endfor %}
   {% endif %}

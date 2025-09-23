@@ -14,10 +14,10 @@ content: |
   description: "Destination tag for {{ name }}"
   arches: {{ arches | list }}
   inheritance:
-    - parent: {{ name }}-build
+    - name: {{ name }}-build
       priority: 10
   ---
   type: target
   name: {{ name }}
-  build_tag: {{ name }}-build
-  dest_tag: {{ name }}-dest
+  build-tag: {{ name }}-build
+  dest-tag: {{ name }}-dest

@@ -267,7 +267,7 @@ class TestNamespaceInitAndGuards(unittest.TestCase):
 
         ns = Namespace()
         tag_data = {'type': 'tag', 'name': 'test-tag'}
-        tag_obj = Tag(tag_data)
+        tag_obj = Tag(**tag_data)
 
         # Should not raise any exception
         ns.add(tag_obj)
@@ -282,7 +282,7 @@ class TestNamespaceInitAndGuards(unittest.TestCase):
 
         ns = Namespace()
         template_data = {'type': 'template', 'name': 'test-template', 'content': 'test'}
-        template_obj = Template(template_data)
+        template_obj = Template(**template_data)
 
         with self.assertRaises(TypeError) as context:
             ns.add(template_obj)
@@ -294,7 +294,7 @@ class TestNamespaceInitAndGuards(unittest.TestCase):
 
         ns = Namespace()
         call_data = {'type': 'custom-template', 'name': 'test-call'}
-        call_obj = TemplateCall(call_data)
+        call_obj = TemplateCall(**call_data)
 
         with self.assertRaises(TypeError) as context:
             ns.add(call_obj)
@@ -306,7 +306,7 @@ class TestNamespaceInitAndGuards(unittest.TestCase):
 
         ns = Namespace()
         template_data = {'type': 'template', 'name': 'test-template', 'content': 'test'}
-        template_obj = Template(template_data)
+        template_obj = Template(**template_data)
 
         # Should not raise any exception
         ns.add_template(template_obj)
@@ -320,7 +320,7 @@ class TestNamespaceInitAndGuards(unittest.TestCase):
 
         ns = Namespace()
         tag_data = {'type': 'tag', 'name': 'test-tag'}
-        tag_obj = Tag(tag_data)
+        tag_obj = Tag(**tag_data)
 
         with self.assertRaises(TypeError) as context:
             ns.add_template(tag_obj)
@@ -332,7 +332,7 @@ class TestNamespaceInitAndGuards(unittest.TestCase):
 
         ns = Namespace()
         call_data = {'type': 'custom-template', 'name': 'test-call'}
-        call_obj = TemplateCall(call_data)
+        call_obj = TemplateCall(**call_data)
 
         with self.assertRaises(TypeError) as context:
             ns.add_template(call_obj)
@@ -375,7 +375,7 @@ class TestNamespaceInitAndGuards(unittest.TestCase):
 
         ns = Namespace(redefine=Redefine.ERROR)
         tag_data = {'type': 'tag', 'name': 'test-tag'}
-        tag_obj = Tag(tag_data)
+        tag_obj = Tag(**tag_data)
 
         # Both adds should succeed (same instance)
         ns.add(tag_obj)
@@ -391,7 +391,7 @@ class TestNamespaceInitAndGuards(unittest.TestCase):
 
         ns = Namespace(redefine=Redefine.ERROR)
         template_data = {'type': 'template', 'name': 'test-template', 'content': 'test'}
-        template_obj = Template(template_data)
+        template_obj = Template(**template_data)
 
         # Both adds should succeed (same instance)
         ns.add_template(template_obj)
@@ -416,7 +416,7 @@ class TestNamespaceToObjectMethods(unittest.TestCase):
         # Test each core type
         test_cases = [
             ({'type': 'tag', 'name': 'test-tag'}, Tag),
-            ({'type': 'external-repo', 'name': 'test-repo'}, ExternalRepo),
+            ({'type': 'external-repo', 'name': 'test-repo', 'url': 'https://example.com/repo'}, ExternalRepo),
             ({'type': 'user', 'name': 'test-user'}, User),
             ({'type': 'target', 'name': 'test-target'}, Target),
             ({'type': 'host', 'name': 'test-host'}, Host),
@@ -531,7 +531,7 @@ class TestNamespaceToObjectMethods(unittest.TestCase):
             {'type': 'user', 'name': 'user1'},
             {'type': 'template', 'name': 'tmpl1', 'content': 'test'},
             {'type': 'custom-type', 'name': 'custom1'},
-            {'type': 'external-repo', 'name': 'repo1'},
+            {'type': 'external-repo', 'name': 'repo1', 'url': 'https://example.com/repo1'},
         ]
 
         objects = list(self.ns.to_objects(objseq))
@@ -594,7 +594,7 @@ class TestNamespaceToObjectMethods(unittest.TestCase):
             'type': 'tag',
             'name': 'test-tag',
             'parent': 'parent-tag',
-            'external-repos': ['repo1', 'repo2'],
+            'external-repos': [{'name': 'repo1'}, {'name': 'repo2'}],
             'custom_field': 'custom_value'
         }
 
@@ -604,7 +604,7 @@ class TestNamespaceToObjectMethods(unittest.TestCase):
         self.assertEqual(obj.name, 'test-tag')
         # Additional data should be preserved in the data dict
         self.assertEqual(obj.data['parent'], 'parent-tag')
-        self.assertEqual(obj.data['external-repos'], ['repo1', 'repo2'])
+        self.assertEqual(obj.data['external-repos'], [{'name': 'repo1'}, {'name': 'repo2'}])
         self.assertEqual(obj.data['custom_field'], 'custom_value')
 
     def test_to_object_with_file_metadata(self):
@@ -669,7 +669,7 @@ class TestNamespaceFeedMethods(unittest.TestCase):
         # Create test documents
         doc1 = {'type': 'tag', 'name': 'tag1'}
         doc2 = {'type': 'user', 'name': 'user1'}
-        doc3 = {'type': 'external-repo', 'name': 'repo1'}
+        doc3 = {'type': 'external-repo', 'name': 'repo1', 'url': 'https://example.com/repo1'}
 
         # Feed them one by one
         self.ns.feed_raw(doc1)
@@ -720,7 +720,7 @@ class TestNamespaceFeedMethods(unittest.TestCase):
             {'type': 'template', 'name': 'test-template', 'content': 'test'},
             {'type': 'user', 'name': 'test-user'},
             {'type': 'custom-template', 'name': 'template-call'},
-            {'type': 'external-repo', 'name': 'test-repo'},
+            {'type': 'external-repo', 'name': 'test-repo', 'url': 'https://example.com/repo'},
         ]
 
         self.ns.feedall_raw(mixed_docs)
@@ -802,7 +802,7 @@ class TestNamespaceFeedMethods(unittest.TestCase):
                 {'parent': 'base-tag', 'priority': 10},
                 {'parent': 'extra-tag', 'priority': 20}
             ],
-            'external-repos': ['repo1', 'repo2'],
+            'external-repos': [{'name': 'repo1'}, {'name': 'repo2'}],
             'custom_field': 'custom_value'
         }
 
@@ -816,7 +816,7 @@ class TestNamespaceFeedMethods(unittest.TestCase):
         self.assertEqual(obj.data['description'], 'A complex tag with lots of data')
         self.assertEqual(obj.data['parent'], 'parent-tag')
         self.assertEqual(obj.data['inheritance'], complex_doc['inheritance'])
-        self.assertEqual(obj.data['external-repos'], ['repo1', 'repo2'])
+        self.assertEqual(obj.data['external-repos'], [{'name': 'repo1'}, {'name': 'repo2'}])
         self.assertEqual(obj.data['custom_field'], 'custom_value')
 
     def test_feedall_raw_from_nested_sample(self):

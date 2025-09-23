@@ -28,10 +28,10 @@ content: |
     - x86_64
     - aarch64
   inheritance:
-    - parent: {{ product }}-dest
+    - name: {{ product }}-dest
       priority: 10
   {% if use_override %}
-    - parent: {{ product }}-override
+    - name: {{ product }}-override
       priority: 5
   {% endif %}
 ---

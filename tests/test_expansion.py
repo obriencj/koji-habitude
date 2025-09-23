@@ -96,10 +96,10 @@ class TestBasicTemplateExpansion(TestCase):
 
         # Verify build tag has proper inheritance including override
         build_tag = self.ns._ns[('tag', 'webapp-build')]
-        inheritance = build_tag.data.get('inheritance', [])
+        inheritance = build_tag.parents
 
         # Should have inheritance from both base and override
-        parent_names = [p['parent'] for p in inheritance if isinstance(p, dict)]
+        parent_names = [p.name for p in inheritance]
         self.assertIn('webapp-dest', parent_names)
         self.assertIn('webapp-override', parent_names)
 

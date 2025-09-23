@@ -32,12 +32,12 @@ content: |
       - x86_64
       - aarch64
     inheritance:
-      - parent: {{ "{{" }} product {{ "}}" }}-{{ "{{" }} version {{ "}}" }}-dest
+      - name: {{ "{{" }} product {{ "}}" }}-{{ "{{" }} version {{ "}}" }}-dest
         priority: 10
-    {% if use_override %}
-      - parent: {{ "{{" }} product {{ "}}" }}-{{ "{{" }} version {{ "}}" }}-override
+      {% if use_override %}
+      - name: {{ "{{" }} product {{ "}}" }}-{{ "{{" }} version {{ "}}" }}-override
         priority: 5
-    {% endif %}
+      {% endif %}
 ---
 # Call meta-template with conditional override
 type: gen-conditional-product

@@ -8,11 +8,11 @@ schema:
   properties:
     name:
       type: string
-    build_tag:
+    build-tag:
       type: string
-    dest_tag:
+    dest-tag:
       type: string
   required:
     - name
-    - build_tag
-    - dest_tag
+    - build-tag
+    - dest-tag

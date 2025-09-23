@@ -26,8 +26,8 @@ content: |
     type: target
     name: {{ "{{" }} product {{ "}}" }}-{{ "{{" }} version {{ "}}" }}-target
     description: "Build target for {{ "{{" }} product {{ "}}" }} version {{ "{{" }} version {{ "}}" }}"
-    build_tag: {{ "{{" }} product {{ "}}" }}-{{ "{{" }} version {{ "}}" }}-build
-    dest_tag: {{ "{{" }} product {{ "}}" }}-{{ "{{" }} version {{ "}}" }}-dest
+    build-tag: {{ "{{" }} product {{ "}}" }}-{{ "{{" }} version {{ "}}" }}-build
+    dest-tag: {{ "{{" }} product {{ "}}" }}-{{ "{{" }} version {{ "}}" }}-dest
     ---
     type: group
     name: {{ "{{" }} product {{ "}}" }}-{{ "{{" }} version {{ "}}" }}-users
