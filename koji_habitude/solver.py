@@ -142,10 +142,10 @@ class Solver:
         acted = False
 
         while work:
-            print(f"Work: {work}")
+            #print(f"Work: {work}")
             # get an iterator over the work list
             for node in work:
-                print(f"Node: {node.key}, Score: {node.score}, Can Split: {node.can_split}")
+                # print(f"Node: {node.key}, Score: {node.score}, Can Split: {node.can_split}")
                 if node.score == 0:
                     yield self._unlink(node)
                     acted = True
