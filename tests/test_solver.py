@@ -454,18 +454,225 @@ class TestSolverDependencyTypes(unittest.TestCase):
 
     def test_user_group_dependencies(self):
         """Test solver with user -> group dependencies."""
-        # TODO: Implement test using user_group_dependencies.yaml
-        pass
+        solver = create_solver_with_files(['user_group_dependencies.yaml'])
+        solver.prepare()
+
+        # Resolve all objects
+        resolved_objects = list(solver)
+
+        # Should contain all objects from the file
+        expected_keys = [
+            ('group', 'packagers'),
+            ('group', 'release-team'),
+            ('permission', 'admin'),
+            ('user', 'packager1'),
+            ('user', 'packager2'),
+            ('user', 'release-manager'),
+            # Implicit missing permissions
+            ('permission', 'pkglist'),
+            ('permission', 'taggers'),
+            ('permission', 'release'),
+            ('permission', 'sign')
+        ]
+        assert_contains_objects(self, resolved_objects, expected_keys)
+
+        # Groups and permissions should be resolved before users
+        resolved_keys = [obj.key() for obj in resolved_objects]
+        group_positions = [resolved_keys.index(key) for key in [('group', 'packagers'), ('group', 'release-team')] if key in resolved_keys]
+        user_positions = [resolved_keys.index(key) for key in [('user', 'packager1'), ('user', 'packager2'), ('user', 'release-manager')] if key in resolved_keys]
+
+        if group_positions and user_positions:
+            max_group_pos = max(group_positions)
+            min_user_pos = min(user_positions)
+            self.assertLess(max_group_pos, min_user_pos,
+                           "Groups should be resolved before users")
+
+    def test_user_group_dependencies_partial_work(self):
+        """Test solver with partial work list on user-group dependencies."""
+        # Only include users in work list
+        work_keys = [('user', 'packager1'), ('user', 'release-manager')]
+        solver = create_solver_with_files(['user_group_dependencies.yaml'], work_keys=work_keys)
+        solver.prepare()
+
+        # Resolve objects
+        resolved_objects = list(solver)
+
+        # Should resolve dependencies (groups, permissions) and requested users
+        expected_keys = [
+            ('group', 'packagers'),
+            ('group', 'release-team'),
+            ('permission', 'admin'),
+            ('user', 'packager1'),
+            ('user', 'release-manager'),
+            # Implicit missing permissions
+            ('permission', 'pkglist'),
+            ('permission', 'taggers'),
+            ('permission', 'release'),
+            ('permission', 'sign')
+        ]
+        assert_contains_objects(self, resolved_objects, expected_keys)
 
     def test_tag_external_repo_dependencies(self):
         """Test solver with tag -> external-repo dependencies."""
-        # TODO: Implement test using tag_external_repo.yaml
-        pass
+        solver = create_solver_with_files(['tag_external_repo.yaml'])
+        solver.prepare()
+
+        # Resolve all objects
+        resolved_objects = list(solver)
+
+        # Should contain all objects from the file
+        expected_keys = [
+            ('external-repo', 'epel-9'),
+            ('external-repo', 'rpmfusion-free'),
+            ('tag', 'myproject-base'),
+            ('tag', 'myproject-build')
+        ]
+        assert_contains_objects(self, resolved_objects, expected_keys)
+
+        # External repos should be resolved before tags that depend on them
+        resolved_keys = [obj.key() for obj in resolved_objects]
+        repo_positions = [resolved_keys.index(key) for key in [('external-repo', 'epel-9'), ('external-repo', 'rpmfusion-free')] if key in resolved_keys]
+        tag_positions = [resolved_keys.index(key) for key in [('tag', 'myproject-base'), ('tag', 'myproject-build')] if key in resolved_keys]
+
+        if repo_positions and tag_positions:
+            max_repo_pos = max(repo_positions)
+            min_tag_pos = min(tag_positions)
+            self.assertLess(max_repo_pos, min_tag_pos,
+                           "External repos should be resolved before tags")
+
+    def test_tag_external_repo_dependencies_partial_work(self):
+        """Test solver with partial work list on tag-external-repo dependencies."""
+        # Only include tags in work list
+        work_keys = [('tag', 'myproject-build')]
+        solver = create_solver_with_files(['tag_external_repo.yaml'], work_keys=work_keys)
+        solver.prepare()
+
+        # Resolve objects
+        resolved_objects = list(solver)
+
+        # Should resolve all dependencies and the requested tag
+        expected_keys = [
+            ('external-repo', 'epel-9'),
+            ('external-repo', 'rpmfusion-free'),
+            ('tag', 'myproject-base'),
+            ('tag', 'myproject-build')
+        ]
+        assert_contains_objects(self, resolved_objects, expected_keys)
 
     def test_cross_dependencies(self):
         """Test solver with cross-dependencies between object types."""
-        # TODO: Implement test using cross_dependencies.yaml
-        pass
+        solver = create_solver_with_files(['cross_dependencies.yaml'])
+        solver.prepare()
+
+        # Resolve all objects
+        resolved_objects = list(solver)
+
+        # Should contain all objects from the file
+        expected_keys = [
+            ('group', 'packagers'),
+            ('user', 'packager1'),
+            ('tag', 'base-tag'),
+            ('tag', 'build-tag'),
+            ('target', 'myproject-build'),
+            ('external-repo', 'epel-9'),
+            ('tag', 'myproject-with-repo'),
+            # Implicit missing permissions
+            ('permission', 'pkglist'),
+            ('permission', 'taggers')
+        ]
+        assert_contains_objects(self, resolved_objects, expected_keys)
+
+        # Verify dependency order across different object types
+        resolved_keys = [obj.key() for obj in resolved_objects]
+
+        # Groups should come before users
+        group_pos = resolved_keys.index(('group', 'packagers'))
+        user_pos = resolved_keys.index(('user', 'packager1'))
+        self.assertLess(group_pos, user_pos, "Groups should come before users")
+
+        # Base tag should come before build tag
+        base_tag_pos = resolved_keys.index(('tag', 'base-tag'))
+        build_tag_pos = resolved_keys.index(('tag', 'build-tag'))
+        self.assertLess(base_tag_pos, build_tag_pos, "Base tag should come before build tag")
+
+        # Tags should come before targets
+        tag_positions = [resolved_keys.index(key) for key in [('tag', 'base-tag'), ('tag', 'build-tag')]]
+        target_positions = [resolved_keys.index(key) for key in [('target', 'myproject-build')]]
+        max_tag_pos = max(tag_positions)
+        min_target_pos = min(target_positions)
+        self.assertLess(max_tag_pos, min_target_pos, "Tags should come before targets")
+
+        # External repo should come before tag that uses it
+        repo_pos = resolved_keys.index(('external-repo', 'epel-9'))
+        tag_with_repo_pos = resolved_keys.index(('tag', 'myproject-with-repo'))
+        self.assertLess(repo_pos, tag_with_repo_pos, "External repo should come before tag that uses it")
+
+    def test_cross_dependencies_partial_work(self):
+        """Test solver with partial work list on cross-dependencies."""
+        # Only include targets and the tag with external repo
+        work_keys = [('target', 'myproject-build'), ('tag', 'myproject-with-repo')]
+        solver = create_solver_with_files(['cross_dependencies.yaml'], work_keys=work_keys)
+        solver.prepare()
+
+        # Resolve objects
+        resolved_objects = list(solver)
+
+        # Should resolve all dependencies and the requested objects
+        expected_keys = [
+            ('tag', 'base-tag'),
+            ('tag', 'build-tag'),
+            ('target', 'myproject-build'),
+            ('external-repo', 'epel-9'),
+            ('tag', 'myproject-with-repo')
+        ]
+        assert_contains_objects(self, resolved_objects, expected_keys)
+
+    def test_mixed_dependency_types(self):
+        """Test solver with multiple different dependency types in one scenario."""
+        # Use multiple files to create a complex scenario
+        solver = create_solver_with_files([
+            'user_group_dependencies.yaml',
+            'tag_external_repo.yaml'
+        ])
+        solver.prepare()
+
+        # Resolve all objects
+        resolved_objects = list(solver)
+
+        # Should contain objects from both files
+        expected_keys = [
+            # From user_group_dependencies.yaml
+            ('group', 'packagers'),
+            ('group', 'release-team'),
+            ('permission', 'admin'),
+            ('user', 'packager1'),
+            ('user', 'packager2'),
+            ('user', 'release-manager'),
+            # From tag_external_repo.yaml
+            ('external-repo', 'epel-9'),
+            ('external-repo', 'rpmfusion-free'),
+            ('tag', 'myproject-base'),
+            ('tag', 'myproject-build'),
+            # Implicit missing permissions
+            ('permission', 'pkglist'),
+            ('permission', 'taggers'),
+            ('permission', 'release'),
+            ('permission', 'sign')
+        ]
+        assert_contains_objects(self, resolved_objects, expected_keys)
+
+        # Verify that dependency order is maintained across different types
+        resolved_keys = [obj.key() for obj in resolved_objects]
+
+        # Groups should come before users
+        group_pos = resolved_keys.index(('group', 'packagers'))
+        user_pos = resolved_keys.index(('user', 'packager1'))
+        self.assertLess(group_pos, user_pos)
+
+        # External repos should come before tags
+        repo_pos = resolved_keys.index(('external-repo', 'epel-9'))
+        tag_pos = resolved_keys.index(('tag', 'myproject-base'))
+        self.assertLess(repo_pos, tag_pos)
 
 
 class TestSolverMissingDependencies(unittest.TestCase):
