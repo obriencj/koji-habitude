@@ -1,0 +1,31 @@
+# Independent objects with no dependencies
+# Tests basic object creation without dependency resolution
+
+---
+type: user
+name: build-user
+enabled: true
+
+---
+type: user
+name: release-user
+enabled: true
+
+---
+type: group
+name: packagers
+permissions:
+  - pkglist
+  - taggers
+
+---
+type: permission
+name: admin
+description: "Full administrative access"
+
+---
+type: external-repo
+name: epel-9
+url: "https://dl.fedoraproject.org/pub/epel/9/"
+
+# The end.

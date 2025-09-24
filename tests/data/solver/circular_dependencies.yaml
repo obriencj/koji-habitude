@@ -1,0 +1,28 @@
+# Circular dependencies that should trigger splitting
+# Tests the solver's ability to break circular dependencies
+
+---
+type: tag
+name: tag-a
+arches: [x86_64]
+inheritance:
+  - name: tag-b
+
+---
+type: tag
+name: tag-b
+arches: [x86_64]
+inheritance:
+  - name: tag-c
+
+---
+type: tag
+name: tag-c
+arches: [x86_64]
+inheritance:
+  - name: tag-a
+
+# This creates a circular dependency: tag-a -> tag-b -> tag-c -> tag-a
+# The solver should be able to split one of these tags to break the cycle
+
+# The end.

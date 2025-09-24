@@ -1,0 +1,50 @@
+# Cross-dependencies between different object types
+# Tests complex dependency resolution scenarios
+
+---
+type: group
+name: packagers
+permissions:
+  - pkglist
+  - taggers
+
+---
+type: user
+name: packager1
+groups:
+  - packagers
+
+---
+type: tag
+name: base-tag
+arches: [x86_64]
+locked: true
+
+---
+type: tag
+name: build-tag
+arches: [x86_64]
+inheritance:
+  - name: base-tag
+
+---
+type: target
+name: myproject-build
+build-tag: build-tag
+dest_tag: base-tag
+
+---
+type: external-repo
+name: epel-9
+url: "https://dl.fedoraproject.org/pub/epel/9/"
+
+---
+type: tag
+name: myproject-with-repo
+arches: [x86_64]
+inheritance:
+  - name: build-tag
+external-repos:
+  - name: epel-9
+
+# The end.

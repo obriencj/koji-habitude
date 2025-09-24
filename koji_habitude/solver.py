@@ -16,8 +16,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # emitted code.
 
 
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Set, Tuple
+from typing import List, Tuple, Optional
 
 from .resolver import Resolver
 
@@ -56,16 +55,16 @@ class Node:
 class Solver:
 
     """
-    A Solver is a container for a set of nodes that have been resolved to a
-    particular tier. It is used to iterate over the nodes in the tier, and to
-    create a new tier by resolving the dependents of the nodes.
+    A Solver is a container for a set of nodes, iterated over in a dependency
+    solved order. It can optionally accept a list of work keys to use as a
+    limited starting point for depsolving from the namespace, in which case it
+    will only solve for those keys and their dependencies.
     """
-
 
     def __init__(
         self,
         resolver: Resolver,
-        work: List[Tuple[str, str]]):
+        work: Optional[List[Tuple[str, str]]] = None):
 
         self.resolver = resolver
         self.work = work
@@ -82,15 +81,20 @@ class Solver:
         if self.remaining is not None:
             raise ValueError("Solver already prepared")
 
-        # create Node for every key in work, wrapping the resolver.resolve()
-        self.remaining = {key: Node(self.resolver.resolve(key)) for key in self.work}
+        into = {}
 
+        if self.work is None:
+            for key in self.resolver.namespace._ns:
+                self.resolver.chain_resolve(key, into)
+        else:
+            for key in self.work:
+                self.resolver.chain_resolve(key, into)
+
+        self.remaining = {key: Node(obj) for key, obj in into.items()}
         for node in self.remaining.values():
             for depkey in node.obj.dependency_keys():
                 depnode = self.remaining.get(depkey)
-                if depnode is None:
-                    depnode = Node(self.resolver.resolve(depkey))
-                    self.remaining[depkey] = depnode
+                assert depnode is not None
                 node.add_dependency(depnode)
 
         # allows resolver to process any items it needed to create
@@ -98,6 +102,8 @@ class Solver:
 
 
     def report(self):
+        if self.remaining is None:
+            raise ValueError("Solver not prepared")
         return self.resolver.report()
 
 

@@ -22,6 +22,7 @@ License v3 AI-Assistant: Claude 3.5 Sonnet via Cursor
 from pydantic import BaseModel, Field
 from typing import Any, ClassVar, Dict, List, Set, Tuple
 
+from .models import Base
 from .namespace import Namespace
 
 
@@ -74,7 +75,7 @@ class Resolver:
         self.created = {}
 
 
-    def resolve(self, key):
+    def resolve(self, key) -> Base:
         if self.namespace is None:
             obj = self.created.get(key)
         else:
@@ -82,6 +83,19 @@ class Resolver:
         if obj is None:
             obj = self.created[key] = MissingObject(key)
         return obj
+
+
+    def chain_resolve(self, key, into=None) -> Dict[Tuple[str, str], Base]:
+        into = into if into is not None else {}
+
+        obj = self.resolve(key)
+        into[key] = obj
+
+        for depkey in obj.dependency_keys():
+            if depkey not in into:
+                self.chain_resolve(depkey, into)
+
+        return into
 
 
     def clear(self):

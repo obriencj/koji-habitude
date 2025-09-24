@@ -1,0 +1,32 @@
+# Objects with dependencies that don't exist in the namespace
+# Tests MissingObject creation and resolution
+
+---
+type: tag
+name: child-tag
+arches: [x86_64]
+inheritance:
+  - name: missing-parent-tag
+
+---
+type: target
+name: missing-target
+build-tag: missing-build-tag
+dest-tag: missing-dest-tag
+
+---
+type: user
+name: user-with-missing-group
+groups:
+  - missing-group
+permissions:
+  - missing-permission
+
+---
+type: tag
+name: tag-with-missing-repo
+arches: [x86_64]
+external-repos:
+  - name: missing-external-repo
+
+# The end.
