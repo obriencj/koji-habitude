@@ -20,9 +20,9 @@ def load_setup():
 
     glbls['project'] = metadata['name']
     glbls['release'] = metadata['version']
-    glbls['version'] = '.'.join(release.split('.')[:2])
+    glbls['version'] = '.'.join(glbls['release'].split('.')[:2])
     glbls['author'] = metadata['author']
-    glbls['copyright'] = f"{metadata['copyright_years']}, {author}"
+    glbls['copyright'] = f"{metadata['copyright_years']}, {glbls['author']}"
 
 load_setup()
 
@@ -174,7 +174,7 @@ html_use_index = True
 # html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = f'{project-}doc'
+htmlhelp_basename = f'{project}-doc'
 
 
 # --- Numpydoc Settings
