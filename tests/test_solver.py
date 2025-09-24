@@ -680,13 +680,204 @@ class TestSolverMissingDependencies(unittest.TestCase):
 
     def test_missing_dependencies(self):
         """Test solver with objects that have missing dependencies."""
-        # TODO: Implement test using missing_dependencies.yaml
-        pass
+        solver = create_solver_with_files(['missing_dependencies.yaml'])
+        solver.prepare()
+
+        # Resolve all objects
+        resolved_objects = list(solver)
+
+        # Should contain all objects from the file plus MissingObjects
+        expected_keys = [
+            # Objects from the YAML file
+            ('tag', 'child-tag'),
+            ('target', 'missing-target'),
+            ('user', 'user-with-missing-group'),
+            ('tag', 'tag-with-missing-repo'),
+            # Missing dependencies that should be created as MissingObjects
+            ('tag', 'missing-parent-tag'),
+            ('tag', 'missing-build-tag'),
+            ('tag', 'missing-dest-tag'),
+            ('group', 'missing-group'),
+            ('permission', 'missing-permission'),
+            ('external-repo', 'missing-external-repo')
+        ]
+        assert_contains_objects(self, resolved_objects, expected_keys)
+
+        # MissingObjects should be resolved before objects that depend on them
+        resolved_keys = [obj.key() for obj in resolved_objects]
+
+        # Find positions of missing objects and their dependents
+        missing_parent_pos = resolved_keys.index(('tag', 'missing-parent-tag'))
+        child_tag_pos = resolved_keys.index(('tag', 'child-tag'))
+        self.assertLess(missing_parent_pos, child_tag_pos,
+                       "Missing parent should be resolved before child tag")
+
+        # Missing build/dest tags should come before target
+        missing_build_pos = resolved_keys.index(('tag', 'missing-build-tag'))
+        missing_dest_pos = resolved_keys.index(('tag', 'missing-dest-tag'))
+        target_pos = resolved_keys.index(('target', 'missing-target'))
+        self.assertLess(missing_build_pos, target_pos,
+                       "Missing build tag should come before target")
+        self.assertLess(missing_dest_pos, target_pos,
+                       "Missing dest tag should come before target")
+
+        # Missing group should come before user
+        missing_group_pos = resolved_keys.index(('group', 'missing-group'))
+        user_pos = resolved_keys.index(('user', 'user-with-missing-group'))
+        self.assertLess(missing_group_pos, user_pos,
+                       "Missing group should come before user")
+
+    def test_missing_dependencies_partial_work(self):
+        """Test solver with partial work list on missing dependencies."""
+        # Only include some objects in work list
+        work_keys = [('tag', 'child-tag'), ('user', 'user-with-missing-group')]
+        solver = create_solver_with_files(['missing_dependencies.yaml'], work_keys=work_keys)
+        solver.prepare()
+
+        # Resolve objects
+        resolved_objects = list(solver)
+
+        # Should resolve the work items and their missing dependencies
+        expected_keys = [
+            # Work items
+            ('tag', 'child-tag'),
+            ('user', 'user-with-missing-group'),
+            # Missing dependencies for the work items
+            ('tag', 'missing-parent-tag'),
+            ('group', 'missing-group'),
+            ('permission', 'missing-permission')
+        ]
+        assert_contains_objects(self, resolved_objects, expected_keys)
+
+        # Should not resolve objects not in work list
+        resolved_keys = [obj.key() for obj in resolved_objects]
+        self.assertNotIn(('target', 'missing-target'), resolved_keys)
+        self.assertNotIn(('tag', 'tag-with-missing-repo'), resolved_keys)
 
     def test_missing_dependency_reporting(self):
         """Test that missing dependencies are properly reported."""
-        # TODO: Implement test
-        pass
+        solver = create_solver_with_files(['missing_dependencies.yaml'])
+        solver.prepare()
+
+        # Get the report before resolving
+        report = solver.report()
+
+        # Should report all missing dependencies
+        expected_missing = {
+            ('tag', 'missing-parent-tag'),
+            ('tag', 'missing-build-tag'),
+            ('tag', 'missing-dest-tag'),
+            ('group', 'missing-group'),
+            ('permission', 'missing-permission'),
+            ('external-repo', 'missing-external-repo')
+        }
+
+        missing_set = set(report.missing)
+        self.assertEqual(missing_set, expected_missing)
+
+        # After resolving, the report should still show the same missing dependencies
+        resolved_objects = list(solver)
+        report_after = solver.report()
+
+        self.assertEqual(set(report_after.missing), expected_missing)
+
+    def test_missing_dependencies_no_failure(self):
+        """Test that missing dependencies don't cause solver to fail."""
+        solver = create_solver_with_files(['missing_dependencies.yaml'])
+        solver.prepare()
+
+        # Should be able to iterate through all objects without failure
+        resolved_objects = list(solver)
+
+        # Should have resolved all objects (including MissingObjects)
+        self.assertGreater(len(resolved_objects), 0)
+
+        # Should have no remaining items
+        self.assertEqual(len(solver.remaining_keys()), 0)
+
+    def test_missing_dependencies_ordering(self):
+        """Test that missing dependencies are resolved in correct order."""
+        solver = create_solver_with_files(['missing_dependencies.yaml'])
+        solver.prepare()
+
+        # Resolve objects
+        resolved_objects = list(solver)
+        resolved_keys = [obj.key() for obj in resolved_objects]
+
+        # All missing dependencies should be resolved before their dependents
+        missing_deps = [
+            ('tag', 'missing-parent-tag'),
+            ('tag', 'missing-build-tag'),
+            ('tag', 'missing-dest-tag'),
+            ('group', 'missing-group'),
+            ('permission', 'missing-permission'),
+            ('external-repo', 'missing-external-repo')
+        ]
+
+        dependents = [
+            ('tag', 'child-tag'),
+            ('target', 'missing-target'),
+            ('user', 'user-with-missing-group'),
+            ('tag', 'tag-with-missing-repo')
+        ]
+
+        # Find positions
+        missing_positions = [resolved_keys.index(key) for key in missing_deps]
+        dependent_positions = [resolved_keys.index(key) for key in dependents]
+
+        # All missing dependencies should come before all dependents
+        max_missing_pos = max(missing_positions)
+        min_dependent_pos = min(dependent_positions)
+        self.assertLess(max_missing_pos, min_dependent_pos,
+                       "All missing dependencies should be resolved before their dependents")
+
+    def test_missing_dependencies_with_existing_objects(self):
+        """Test missing dependencies mixed with existing objects."""
+        # Use multiple files to create a scenario with both existing and missing dependencies
+        solver = create_solver_with_files([
+            'simple_chain.yaml',
+            'missing_dependencies.yaml'
+        ])
+        solver.prepare()
+
+        # Resolve objects
+        resolved_objects = list(solver)
+
+        # Should contain objects from both files
+        expected_keys = [
+            # From simple_chain.yaml
+            ('tag', 'tag1'),
+            ('tag', 'tag2'),
+            ('tag', 'tag3'),
+            # From missing_dependencies.yaml
+            ('tag', 'child-tag'),
+            ('target', 'missing-target'),
+            ('user', 'user-with-missing-group'),
+            ('tag', 'tag-with-missing-repo'),
+            # Missing dependencies
+            ('tag', 'missing-parent-tag'),
+            ('tag', 'missing-build-tag'),
+            ('tag', 'missing-dest-tag'),
+            ('group', 'missing-group'),
+            ('permission', 'missing-permission'),
+            ('external-repo', 'missing-external-repo')
+        ]
+        assert_contains_objects(self, resolved_objects, expected_keys)
+
+        # Verify that dependency order is maintained across existing and missing objects
+        resolved_keys = [obj.key() for obj in resolved_objects]
+
+        # Simple chain should maintain its order
+        tag3_pos = resolved_keys.index(('tag', 'tag3'))
+        tag2_pos = resolved_keys.index(('tag', 'tag2'))
+        tag1_pos = resolved_keys.index(('tag', 'tag1'))
+        self.assertLess(tag3_pos, tag2_pos)
+        self.assertLess(tag2_pos, tag1_pos)
+
+        # Missing dependencies should come before their dependents
+        missing_parent_pos = resolved_keys.index(('tag', 'missing-parent-tag'))
+        child_tag_pos = resolved_keys.index(('tag', 'child-tag'))
+        self.assertLess(missing_parent_pos, child_tag_pos)
 
 
 class TestSolverCircularDependencies(unittest.TestCase):
