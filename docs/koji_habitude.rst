@@ -12,7 +12,6 @@ Sub Packages
 
 .. toctree::
    :maxdepth: 1
-   koji_habitude/cli
    koji_habitude/loader
    koji_habitude/models
    koji_habitude/namespace
