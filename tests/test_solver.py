@@ -885,18 +885,222 @@ class TestSolverCircularDependencies(unittest.TestCase):
 
     def test_simple_circular_dependency(self):
         """Test solver with simple circular dependency."""
-        # TODO: Implement test using circular_dependencies.yaml
-        pass
+        solver = create_solver_with_files(['circular_dependencies.yaml'])
+        solver.prepare()
+
+        # Resolve all objects
+        resolved_objects = list(solver)
+
+        # Should contain all objects from the file
+        expected_keys = [
+            ('tag', 'tag-a'),
+            ('tag', 'tag-b'),
+            ('tag', 'tag-c')
+        ]
+        assert_contains_objects(self, resolved_objects, expected_keys)
+
+        # Should have resolved all objects without getting stuck
+        self.assertEqual(len(resolved_objects), 3)
+
+        # Should have no remaining items
+        self.assertEqual(len(solver.remaining_keys()), 0)
+
+        # The circular dependency should have been broken by splitting
+        # At least one of the tags should have been split
+        # We can't predict which one, but the solver should have handled it
+
+    def test_simple_circular_dependency_partial_work(self):
+        """Test solver with partial work list on circular dependency."""
+        # Only include one tag in work list
+        work_keys = [('tag', 'tag-a')]
+        solver = create_solver_with_files(['circular_dependencies.yaml'], work_keys=work_keys)
+        solver.prepare()
+
+        # Resolve objects
+        resolved_objects = list(solver)
+
+        # Should resolve all tags in the circular dependency
+        expected_keys = [
+            ('tag', 'tag-a'),
+            ('tag', 'tag-b'),
+            ('tag', 'tag-c')
+        ]
+        assert_contains_objects(self, resolved_objects, expected_keys)
+
+        # Should have resolved all objects
+        self.assertEqual(len(resolved_objects), 3)
 
     def test_complex_circular_dependencies(self):
         """Test solver with complex overlapping circular dependencies."""
-        # TODO: Implement test using complex_circular.yaml
-        pass
+        solver = create_solver_with_files(['complex_circular.yaml'])
+        solver.prepare()
+
+        # Resolve all objects
+        resolved_objects = list(solver)
+
+        # Should contain all objects from the file
+        expected_keys = [
+            ('tag', 'base-tag'),
+            ('tag', 'tag-1'),
+            ('tag', 'tag-2'),
+            ('tag', 'tag-3'),
+            ('tag', 'tag-4'),
+            ('tag', 'tag-5')
+        ]
+        assert_contains_objects(self, resolved_objects, expected_keys)
+
+        # Should have resolved all objects without getting stuck
+        self.assertEqual(len(resolved_objects), 6)
+
+        # Should have no remaining items
+        self.assertEqual(len(solver.remaining_keys()), 0)
+
+        # Verify that base-tag was resolved first (it has no dependencies)
+        resolved_keys = [obj.key() for obj in resolved_objects]
+        base_tag_pos = resolved_keys.index(('tag', 'base-tag'))
+
+        # Base tag should be resolved early (it has no dependencies)
+        self.assertLess(base_tag_pos, 3, "Base tag should be resolved early")
+
+    def test_complex_circular_dependencies_partial_work(self):
+        """Test solver with partial work list on complex circular dependencies."""
+        # Only include some tags in work list
+        work_keys = [('tag', 'tag-1'), ('tag', 'tag-4')]
+        solver = create_solver_with_files(['complex_circular.yaml'], work_keys=work_keys)
+        solver.prepare()
+
+        # Resolve objects
+        resolved_objects = list(solver)
+
+        # Should resolve all tags in the circular dependencies
+        expected_keys = [
+            ('tag', 'base-tag'),
+            ('tag', 'tag-1'),
+            ('tag', 'tag-2'),
+            ('tag', 'tag-3'),
+            ('tag', 'tag-4'),
+            ('tag', 'tag-5')
+        ]
+        assert_contains_objects(self, resolved_objects, expected_keys)
+
+        # Should have resolved all objects
+        self.assertEqual(len(resolved_objects), 6)
 
     def test_circular_dependency_splitting(self):
         """Test that circular dependencies trigger splitting."""
-        # TODO: Implement test
-        pass
+        solver = create_solver_with_files(['circular_dependencies.yaml'])
+        solver.prepare()
+
+        # Before resolving, check that tags can be split
+        tag_a_key = ('tag', 'tag-a')
+        tag_b_key = ('tag', 'tag-b')
+        tag_c_key = ('tag', 'tag-c')
+
+        # All tags should be splittable
+        self.assertTrue(solver.resolver.can_split_key(tag_a_key))
+        self.assertTrue(solver.resolver.can_split_key(tag_b_key))
+        self.assertTrue(solver.resolver.can_split_key(tag_c_key))
+
+        # Resolve objects
+        resolved_objects = list(solver)
+
+        # Should have resolved all objects
+        self.assertEqual(len(resolved_objects), 3)
+
+        # The solver should have successfully broken the circular dependency
+        # by splitting one of the tags
+
+    def test_circular_dependency_no_splittable_objects(self):
+        """Test solver behavior when circular dependency has no splittable objects."""
+        # Create a custom scenario with non-splittable objects in a cycle
+        # This should cause the solver to fail or get stuck
+        solver = create_solver_with_files(['circular_dependencies.yaml'])
+        solver.prepare()
+
+        # Mock the tags to be non-splittable
+        for key in [('tag', 'tag-a'), ('tag', 'tag-b'), ('tag', 'tag-c')]:
+            if key in solver.remaining:
+                solver.remaining[key].can_split = False
+
+        # This should raise an error when trying to resolve
+        with self.assertRaises(ValueError) as context:
+            list(solver)
+
+        self.assertIn("Stuck in a loop", str(context.exception))
+
+    def test_circular_dependency_with_missing_dependencies(self):
+        """Test circular dependencies mixed with missing dependencies."""
+        # Use multiple files to create a complex scenario
+        solver = create_solver_with_files([
+            'circular_dependencies.yaml',
+            'missing_dependencies.yaml'
+        ])
+        solver.prepare()
+
+        # Resolve objects
+        resolved_objects = list(solver)
+
+        # Should contain objects from both files
+        expected_keys = [
+            # From circular_dependencies.yaml
+            ('tag', 'tag-a'),
+            ('tag', 'tag-b'),
+            ('tag', 'tag-c'),
+            # From missing_dependencies.yaml
+            ('tag', 'child-tag'),
+            ('target', 'missing-target'),
+            ('user', 'user-with-missing-group'),
+            ('tag', 'tag-with-missing-repo'),
+            # Missing dependencies
+            ('tag', 'missing-parent-tag'),
+            ('tag', 'missing-build-tag'),
+            ('tag', 'missing-dest-tag'),
+            ('group', 'missing-group'),
+            ('permission', 'missing-permission'),
+            ('external-repo', 'missing-external-repo')
+        ]
+        assert_contains_objects(self, resolved_objects, expected_keys)
+
+        # Should have resolved all objects
+        self.assertEqual(len(resolved_objects), 13)
+
+        # Missing dependencies should be resolved before their dependents
+        resolved_keys = [obj.key() for obj in resolved_objects]
+        missing_parent_pos = resolved_keys.index(('tag', 'missing-parent-tag'))
+        child_tag_pos = resolved_keys.index(('tag', 'child-tag'))
+        self.assertLess(missing_parent_pos, child_tag_pos)
+
+    def test_circular_dependency_ordering(self):
+        """Test that circular dependencies are resolved in some valid order."""
+        solver = create_solver_with_files(['circular_dependencies.yaml'])
+        solver.prepare()
+
+        # Resolve objects
+        resolved_objects = list(solver)
+        resolved_keys = [obj.key() for obj in resolved_objects]
+
+        # All three tags should be resolved
+        self.assertIn(('tag', 'tag-a'), resolved_keys)
+        self.assertIn(('tag', 'tag-b'), resolved_keys)
+        self.assertIn(('tag', 'tag-c'), resolved_keys)
+
+        # The exact order doesn't matter for circular dependencies,
+        # but the solver should have successfully broken the cycle
+        # and resolved all objects
+
+    def test_circular_dependency_reporting(self):
+        """Test that circular dependencies don't affect missing dependency reporting."""
+        solver = create_solver_with_files(['circular_dependencies.yaml'])
+        solver.prepare()
+
+        # Should have no missing dependencies in this file
+        report = solver.report()
+        self.assertEqual(len(report.missing), 0)
+
+        # After resolving, should still have no missing dependencies
+        resolved_objects = list(solver)
+        report_after = solver.report()
+        self.assertEqual(len(report_after.missing), 0)
 
 
 class TestSolverTemplates(unittest.TestCase):
