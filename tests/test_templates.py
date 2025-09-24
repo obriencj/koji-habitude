@@ -256,8 +256,8 @@ class TestTemplate(unittest.TestCase):
         template = Template(template_data)
 
         # Should always return True when no schema
-        self.assertTrue(template.validate({}))
-        self.assertTrue(template.validate({'any': 'data'}))
+        self.assertTrue(template.validate_call({}))
+        self.assertTrue(template.validate_call({'any': 'data'}))
 
     def test_validate_data_with_schema_todo(self):
         """
@@ -274,7 +274,7 @@ class TestTemplate(unittest.TestCase):
         template = Template(template_data)
 
         # Currently always returns True (TODO implementation)
-        self.assertTrue(template.validate({'test': 'data'}))
+        self.assertTrue(template.validate_call({'test': 'data'}))
 
     def test_render_simple_template(self):
         """

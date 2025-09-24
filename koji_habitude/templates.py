@@ -42,7 +42,7 @@ class TemplateCall:
 
 class TemplateProtocol(Base):
 
-    def validate(self, data: Dict[str, Any]) -> bool:
+    def validate_call(self, data: Dict[str, Any]) -> bool:
         ...
     def render(self, data: Dict[str, Any]) -> str:
         ...
@@ -159,8 +159,8 @@ class Template(BaseObject):
             data['file'] = self.template_file
         if self.template_content:
             data['content'] = self.template_content
-        if self.schema:
-            data['schema'] = self.schema
+        if self.template_schema:
+            data['schema'] = self.template_schema
 
         return data
 
@@ -192,7 +192,7 @@ class Template(BaseObject):
         Render the template with the given data into a str
         """
 
-        if not self.validate(data):
+        if not self.validate_call(data):
             msg = f"Data validation failed for template {self.name!r}"
             raise TemplateValueError(msg)
 
