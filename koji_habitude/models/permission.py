@@ -9,7 +9,10 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
 
-from typing import ClassVar
+from typing import ClassVar, Optional
+
+from pydantic import Field
+
 from .base import BaseKojiObject
 
 
@@ -20,7 +23,7 @@ class Permission(BaseKojiObject):
 
     typename: ClassVar[str] = "permission"
 
-    # no fields, it's just a name.
+    description: Optional[str] = Field(alias='description', default=None)
 
 
 # The end.
