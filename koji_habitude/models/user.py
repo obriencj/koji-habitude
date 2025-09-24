@@ -8,11 +8,11 @@ License: GNU General Public License v3
 AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
-from typing import ClassVar, List, Tuple, Optional
+from typing import ClassVar, List, Optional
 
 from pydantic import Field
 
-from .base import BaseKojiObject
+from .base import BaseKojiObject, BaseKey
 
 
 class User(BaseKojiObject):
@@ -32,15 +32,14 @@ class User(BaseKojiObject):
         return User(name=self.name, enabled=self.enabled)
 
 
-    def dependency_keys(self) -> List[Tuple[str, str]]:
+    def dependency_keys(self) -> List[BaseKey]:
         """
-        Return dependencies for this user.
-
-        Users typically have no dependencies on other koji objects.
-        They are usually leaf nodes in the dependency tree.
+        Users can depend on:
+        - Groups
+        - Permissions
         """
 
-        deps = []
+        deps: List[BaseKey] = []
 
         for group in self.groups:
             deps.append(('group', group))

@@ -12,7 +12,7 @@ from typing import ClassVar, List, Tuple
 
 from pydantic import Field
 
-from .base import BaseKojiObject
+from .base import BaseKojiObject, BaseKey
 
 class Group(BaseKojiObject):
     """
@@ -26,7 +26,7 @@ class Group(BaseKojiObject):
     permissions: List[str] = Field(alias='permissions', default_factory=list)
 
 
-    def dependency_keys(self) -> List[Tuple[str, str]]:
+    def dependency_keys(self) -> List[BaseKey]:
         """
         Return dependencies for this group.
 
@@ -35,7 +35,7 @@ class Group(BaseKojiObject):
         - Permissions
         """
 
-        deps = []
+        deps: List[BaseKey] = []
 
         for member in self.members:
             deps.append(('user', member))

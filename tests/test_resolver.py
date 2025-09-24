@@ -45,7 +45,8 @@ class TestMissingObject(unittest.TestCase):
         missing = MissingObject(key)
 
         self.assertFalse(missing.can_split())
-        self.assertEqual(missing.split(), missing)
+        with self.assertRaises(TypeError):
+            missing.split()
 
     def test_missing_object_no_dependencies(self):
         """Test that MissingObject has no dependencies."""
@@ -189,11 +190,8 @@ class TestResolver(unittest.TestCase):
     def test_split_key_missing_object(self):
         """Test split_key with a missing object."""
         key = ('tag', 'missing-tag')
-        split_obj = self.resolver.split_key(key)
-
-        # MissingObject.split() returns itself
-        self.assertIsInstance(split_obj, MissingObject)
-        self.assertEqual(split_obj.key(), key)
+        with self.assertRaises(TypeError):
+            self.resolver.split_key(key)
 
     def test_split_object(self):
         """Test split with an object directly."""

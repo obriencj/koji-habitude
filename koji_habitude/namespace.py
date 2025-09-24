@@ -15,10 +15,10 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 import logging
 from enum import Enum, auto
-from typing import Any, Dict, Iterator, Optional, Sequence, Type, Mapping
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Type, Mapping
 
 from .templates import Template, TemplateCall
-from .models import CORE_MODELS, Base, BaseObject
+from .models import CORE_MODELS, Base, BaseObject, BaseKey
 
 
 __all__ = (
@@ -157,11 +157,11 @@ class Namespace:
         # mapping of type names to classes. The special mapping of None
         # indicates the class to be used when nothing else matches. This
         # is normally a TemplateCall
-        self.typemap: Dict[str | None, Type[Base]]
-        if not isinstance(coretypes, Mapping):
-            self.typemap = {tp.typename: tp for tp in coretypes}
+        if isinstance(coretypes, Mapping):
+            coretypes = dict(coretypes)
         else:
-            self.typemap = dict(coretypes)
+            coretypes = {tp.typename: tp for tp in coretypes}
+        self.typemap: Dict[str | None, Type[Base]] = coretypes
 
         if enable_templates:
             self.typemap["template"] = Template
@@ -169,18 +169,18 @@ class Namespace:
 
         # a sequence of un-processed objects to be added into this
         # namespace
-        self._feedline = []
+        self._feedline: List[Base] = []
 
         # the actual namespace storage, mapping
         #  `(obj.typename, obj.name): obj`
-        self._ns = {}
+        self._ns: Dict[BaseKey, Base] = {}
 
         # templates, mapping simply as `tmpl.name: tmpl`
-        self._templates = {}
+        self._templates: Dict[str, Template] = {}
 
         # if we're finding templates recursively expanding to templates,
         # only allow that nonsense 100 deep then error
-        self.max_depth = 100
+        self.max_depth: int = 100
 
 
     def to_object(self, objdict: Dict[str, Any]) -> Base:
@@ -400,7 +400,7 @@ class TemplateNamespace(Namespace):
 
     def __init__(
             self,
-            coretypes: Dict[str, Type[Base]] = CORE_MODELS,
+            coretypes: Dict[str, Type[Base]] | Sequence[Type[Base]] = CORE_MODELS,
             redefine: Redefine = Redefine.ERROR,
             logger: Optional[logging.Logger] = None):
 
@@ -412,16 +412,20 @@ class TemplateNamespace(Namespace):
 
         # we need to know what to skip, because the default is to
         # assume it's a TemplateCall
-        self.ignored_types = set(coretypes)
+        if isinstance(coretypes, Mapping):
+            ignores = set(coretypes)
+        else:
+            ignores = {tp.typename for tp in coretypes}
+        self.ignored_types: Set[str] = ignores
 
 
-    def to_objects(self, dataseq) -> Iterator[Base]:
+    def to_objects(self, dataseq: Sequence[Dict[str, Any]]) -> Iterator[Base]:
         # updated to chop out the None values that our to_object will
         # return for ignored_types
         return filter(None, map(self.to_object, dataseq))
 
 
-    def to_object(self, data):
+    def to_object(self, data: Dict[str, Any]) -> Base | None:
         if data['type'] in self.ignored_types:
             return None
         return super().to_object(data)
@@ -444,20 +448,20 @@ class ExpanderNamespace(Namespace):
 
     def __init__(
         self,
-        coretypes: Dict[str, Type[Base]] = CORE_MODELS,
+        coretypes: Dict[str, Type[Base]] | Sequence[Type[Base]] = CORE_MODELS,
         redefine: Redefine = Redefine.ERROR,
         logger: Optional[logging.Logger] = None):
 
+        if isinstance(coretypes, Mapping):
+            faketypes = {tn: BaseObject for tn in coretypes}
+        else:
+            faketypes = {tp.typename: BaseObject for tp in coretypes}
+
         super().__init__(
-            coretypes=(),
+            coretypes=faketypes,
             enable_templates=True,
             redefine=redefine,
             logger=logger)
-
-        faketypes = {tp.typename: BaseObject for tp in coretypes}
-        faketypes['template'] = Template
-        faketypes[None] = TemplateCall
-        self.typemap = faketypes
 
 
 # The end.

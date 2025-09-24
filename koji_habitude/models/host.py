@@ -13,7 +13,7 @@ from typing import ClassVar, List, Tuple, Optional
 
 from pydantic import Field
 
-from .base import BaseKojiObject
+from .base import BaseKojiObject, BaseKey
 
 
 class Host(BaseKojiObject):
@@ -40,7 +40,7 @@ class Host(BaseKojiObject):
             description=self.description)
 
 
-    def dependency_keys(self) -> List[Tuple[str, str]]:
+    def dependency_keys(self) -> List[BaseKey]:
         """
         Return dependencies for this host.
         """

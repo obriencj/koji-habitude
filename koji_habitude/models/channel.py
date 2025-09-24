@@ -9,11 +9,11 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
 
-from typing import ClassVar, List, Tuple
+from typing import ClassVar, List
 
 from pydantic import Field
 
-from .base import BaseKojiObject
+from .base import BaseKojiObject, BaseKey
 
 
 class Channel(BaseKojiObject):
@@ -24,12 +24,13 @@ class Channel(BaseKojiObject):
     typename: ClassVar[str] = "channel"
     _can_split: ClassVar[bool] = True
 
-    hosts: List[str] = Field(alias='hosts', default_factory=list)
+    hosts: List[str] = [] # = Field(alias='hosts', default_factory=list)
 
 
-    def dependency_keys(self) -> List[Tuple[str, str]]:
+    def dependency_keys(self) -> List[BaseKey]:
         """
-        Return dependencies for this channel.
+        Channels can depend on:
+        - Hosts
         """
 
         return [('host', host) for host in self.hosts]

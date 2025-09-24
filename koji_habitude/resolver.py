@@ -20,9 +20,9 @@ License v3 AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from pydantic import BaseModel, Field
-from typing import Any, ClassVar, Dict, List, Set, Tuple
+from typing import ClassVar, Dict, List, Tuple, Optional, Sequence
 
-from .models import Base
+from .models import Base, BaseKey
 from .namespace import Namespace
 
 
@@ -33,23 +33,23 @@ class MissingObject:
 
     typename: ClassVar[str] = 'missing'
 
-    def __init__(self, key: Tuple[str, str]):
+    def __init__(self, key: BaseKey):
         self.yaml_type, self.name = key
         self._key = key
 
-    def key(self):
+    def key(self) -> BaseKey:
         return self._key
 
-    def filepos(self):
+    def filepos(self) -> Tuple[Optional[str], Optional[int]]:
         return None, None
 
-    def can_split(self):
+    def can_split(self) -> bool:
         return False
 
-    def split(self):
-        return self
+    def split(self) -> Base:
+        raise TypeError("Cannot split a MissingObject")
 
-    def dependency_keys(self):
+    def dependency_keys(self) -> Sequence[BaseKey]:
         return ()
 
 
@@ -58,7 +58,7 @@ class Report(BaseModel):
     A Report is a container for a set of missing dependencies.
     """
 
-    missing: List[Tuple[str, str]] = Field(default_factory=list)
+    missing: List[BaseKey] = Field(default_factory=list)
 
 
 class Resolver:
@@ -71,11 +71,11 @@ class Resolver:
             self,
             namespace: Namespace):
 
-        self.namespace = namespace
-        self.created = {}
+        self.namespace: Namespace = namespace
+        self.created: Dict[BaseKey, Base] = {}
 
 
-    def resolve(self, key) -> Base:
+    def resolve(self, key: BaseKey) -> Base:
         if self.namespace is None:
             obj = self.created.get(key)
         else:
@@ -85,7 +85,7 @@ class Resolver:
         return obj
 
 
-    def chain_resolve(self, key, into=None) -> Dict[Tuple[str, str], Base]:
+    def chain_resolve(self, key, into=None) -> Dict[BaseKey, Base]:
         into = into if into is not None else {}
 
         obj = self.resolve(key)
@@ -98,33 +98,33 @@ class Resolver:
         return into
 
 
-    def clear(self):
+    def clear(self) -> None:
         self.created.clear()
 
 
-    def can_split_key(self, key):
+    def can_split_key(self, key: BaseKey) -> bool:
         return self.can_split(self.resolve(key))
 
 
-    def can_split(self, obj):
+    def can_split(self, obj: Base) -> bool:
         return obj.can_split()
 
 
-    def split_key(self, key):
+    def split_key(self, key: BaseKey) -> Base:
         return self.split(self.resolve(key))
 
 
-    def split(self, obj):
+    def split(self, obj: Base) -> Base:
         # split the dependency into multiple tiers
         return obj.split()
 
 
-    def prepare(self):
+    def prepare(self) -> None:
         # The default Offline implementation does nothing
         pass
 
 
-    def report(self):
+    def report(self) -> Report:
         # The default Offline implementation does nothing
         return Report(missing=list(self.created.keys()))
 

@@ -506,8 +506,8 @@ class TestTagModel(unittest.TestCase):
         self.assertFalse(tag.maven_include_all)
         self.assertEqual(tag.extras, {})
         self.assertEqual(tag.groups, {})
-        self.assertEqual(tag.parents, [])
-        self.assertEqual(tag.ext_repos, [])
+        self.assertEqual(tag.inheritance, [])
+        self.assertEqual(tag.external_repos, [])
         self.assertTrue(tag.can_split())
 
     def test_tag_creation_with_all_fields(self):
@@ -541,18 +541,18 @@ class TestTagModel(unittest.TestCase):
         self.assertEqual(tag.groups, {'group1': ['pkg1', 'pkg2']})
 
         # Check inheritance links
-        self.assertEqual(len(tag.parents), 2)
-        self.assertEqual(tag.parents[0].name, 'parent1')
-        self.assertEqual(tag.parents[0].priority, 10)
-        self.assertEqual(tag.parents[1].name, 'parent2')
-        self.assertIsNone(tag.parents[1].priority)
+        self.assertEqual(len(tag.inheritance), 2)
+        self.assertEqual(tag.inheritance[0].name, 'parent1')
+        self.assertEqual(tag.inheritance[0].priority, 10)
+        self.assertEqual(tag.inheritance[1].name, 'parent2')
+        self.assertIsNone(tag.inheritance[1].priority)
 
         # Check external repo links
-        self.assertEqual(len(tag.ext_repos), 2)
-        self.assertEqual(tag.ext_repos[0].name, 'repo1')
-        self.assertEqual(tag.ext_repos[0].priority, 5)
-        self.assertEqual(tag.ext_repos[1].name, 'repo2')
-        self.assertIsNone(tag.ext_repos[1].priority)
+        self.assertEqual(len(tag.external_repos), 2)
+        self.assertEqual(tag.external_repos[0].name, 'repo1')
+        self.assertEqual(tag.external_repos[0].priority, 5)
+        self.assertEqual(tag.external_repos[1].name, 'repo2')
+        self.assertIsNone(tag.external_repos[1].priority)
 
     def test_tag_split(self):
         """
@@ -574,8 +574,8 @@ class TestTagModel(unittest.TestCase):
         self.assertEqual(split_tag.name, 'test-tag')
         self.assertEqual(split_tag.arches, ['x86_64'])
         # Inheritance and external repos should not be included in split (dependency data)
-        self.assertEqual(split_tag.parents, [])
-        self.assertEqual(split_tag.ext_repos, [])
+        self.assertEqual(split_tag.inheritance, [])
+        self.assertEqual(split_tag.external_repos, [])
 
     def test_tag_dependency_keys(self):
         """

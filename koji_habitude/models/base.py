@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 
 from typing import (
     Any, ClassVar, Dict, List, Optional, Protocol,
-    Sequence, Tuple,
+    Sequence, Tuple, TypeAlias,
 )
 
 
@@ -24,6 +24,12 @@ __all__ = (
     'BaseObject',
     'BaseKojiObject',
 )
+
+
+BaseKey: TypeAlias = Tuple[str, str]
+"""
+A tuple of (typename, name), used as the key for objects across this package
+"""
 
 
 class Base(Protocol):
@@ -35,7 +41,7 @@ class Base(Protocol):
     lineno: Optional[int]
     trace: Optional[List[Dict[str, Any]]]
 
-    def key(self) -> Tuple[str, str]:
+    def key(self) -> BaseKey:
         ...
 
     def filepos(self) -> Tuple[Optional[str], Optional[int]]:
@@ -47,7 +53,7 @@ class Base(Protocol):
     def split(self) -> Optional['Base']:
         ...
 
-    def dependency_keys(self) -> Sequence[Tuple[str, str]]:
+    def dependency_keys(self) -> Sequence[BaseKey]:
         ...
 
     @classmethod
@@ -95,7 +101,7 @@ class BaseObject(BaseModel):
         """
         return self._data
 
-    def key(self) -> Tuple[str, str]:
+    def key(self) -> BaseKey:
         """
         Return the key of this object as a tuple of (typename, name)
         """
@@ -131,7 +137,7 @@ class BaseObject(BaseModel):
         """
         raise TypeError(f"Cannot split {self.typename}")
 
-    def dependency_keys(self) -> Sequence[Tuple[str, str]]:
+    def dependency_keys(self) -> Sequence[BaseKey]:
         """
         Return the keys of the dependencies of this object as a sequence of (typename, name) tuples
         """
