@@ -14,13 +14,15 @@ from typing import List, Optional
 
 from koji_habitude.solver import Solver, Node
 from koji_habitude.resolver import Resolver
-from koji_habitude.namespace import Namespace
+from koji_habitude.namespace import Namespace, Redefine
 from koji_habitude.loader import MultiLoader, YAMLLoader
 
 test_data_path = Path(__file__).parent / 'data' / 'solver'
 
 
-def load_namespace_from_files(filenames: List[str]) -> Namespace:
+def load_namespace_from_files(
+    filenames: List[str],
+    redefine: Redefine = Redefine.ERROR) -> Namespace:
     """
     Load YAML files and populate a namespace with the results.
 
@@ -30,7 +32,7 @@ def load_namespace_from_files(filenames: List[str]) -> Namespace:
     Returns:
         Namespace populated with objects from the files
     """
-    namespace = Namespace()
+    namespace = Namespace(redefine=redefine)
     loader = MultiLoader([YAMLLoader])
 
     # Convert filenames to full file paths
@@ -48,7 +50,10 @@ def load_namespace_from_files(filenames: List[str]) -> Namespace:
 
     return namespace
 
-def create_solver_with_files(filenames: List[str], work_keys: Optional[List[tuple]] = None) -> Solver:
+def create_solver_with_files(
+    filenames: List[str],
+    work_keys: Optional[List[tuple]] = None,
+    redefine: Redefine = Redefine.ERROR) -> Solver:
     """
     Create a solver with a namespace populated from the specified files.
 
@@ -60,7 +65,7 @@ def create_solver_with_files(filenames: List[str], work_keys: Optional[List[tupl
     Returns:
         Solver instance ready for testing
     """
-    namespace = load_namespace_from_files(filenames)
+    namespace = load_namespace_from_files(filenames, redefine=redefine)
     resolver = Resolver(namespace)
 
     if work_keys is None:
@@ -900,7 +905,7 @@ class TestSolverCircularDependencies(unittest.TestCase):
         assert_contains_objects(self, resolved_objects, expected_keys)
 
         # Should have resolved all objects without getting stuck
-        self.assertEqual(len(resolved_objects), 3)
+        self.assertEqual(len(resolved_objects), 4)
 
         # Should have no remaining items
         self.assertEqual(len(solver.remaining_keys()), 0)
@@ -928,7 +933,7 @@ class TestSolverCircularDependencies(unittest.TestCase):
         assert_contains_objects(self, resolved_objects, expected_keys)
 
         # Should have resolved all objects
-        self.assertEqual(len(resolved_objects), 3)
+        self.assertEqual(len(resolved_objects), 4)
 
     def test_complex_circular_dependencies(self):
         """Test solver with complex overlapping circular dependencies."""
@@ -950,7 +955,10 @@ class TestSolverCircularDependencies(unittest.TestCase):
         assert_contains_objects(self, resolved_objects, expected_keys)
 
         # Should have resolved all objects without getting stuck
-        self.assertEqual(len(resolved_objects), 6)
+        # 1 for the base tag, score 0
+        # 3 from the first loop, plus 1 to break it with a split
+        # 2 from the second loop, plus 1 to break it with a split
+        self.assertEqual(len(resolved_objects), 8)
 
         # Should have no remaining items
         self.assertEqual(len(solver.remaining_keys()), 0)
@@ -983,8 +991,11 @@ class TestSolverCircularDependencies(unittest.TestCase):
         ]
         assert_contains_objects(self, resolved_objects, expected_keys)
 
-        # Should have resolved all objects
-        self.assertEqual(len(resolved_objects), 6)
+        # Should have resolved all objects without getting stuck
+        # 1 for the base tag, score 0
+        # 3 from the first loop, plus 1 to break it with a split
+        # 2 from the second loop, plus 1 to break it with a split
+        self.assertEqual(len(resolved_objects), 8)
 
     def test_circular_dependency_splitting(self):
         """Test that circular dependencies trigger splitting."""
@@ -1004,8 +1015,8 @@ class TestSolverCircularDependencies(unittest.TestCase):
         # Resolve objects
         resolved_objects = list(solver)
 
-        # Should have resolved all objects
-        self.assertEqual(len(resolved_objects), 3)
+        # Should have resolved all objects plus one split object
+        self.assertEqual(len(resolved_objects), 4)
 
         # The solver should have successfully broken the circular dependency
         # by splitting one of the tags
@@ -1061,8 +1072,11 @@ class TestSolverCircularDependencies(unittest.TestCase):
         ]
         assert_contains_objects(self, resolved_objects, expected_keys)
 
-        # Should have resolved all objects
-        self.assertEqual(len(resolved_objects), 13)
+        # 3 from circular_dependencies.yaml
+        # + 1 split object from circular_dependencies.yaml
+        # + 4 from missing_dependencies.yaml
+        # + 6 implicit missing items
+        self.assertEqual(len(resolved_objects), 14)
 
         # Missing dependencies should be resolved before their dependents
         resolved_keys = [obj.key() for obj in resolved_objects]
@@ -1304,17 +1318,306 @@ class TestSolverTemplates(unittest.TestCase):
 
 
 class TestSolverIntegration(unittest.TestCase):
-    """Test solver integration scenarios."""
+    """
+    Integration tests for Resolver + Solver working together.
 
-    def test_mixed_scenario(self):
-        """Test solver with mixed dependency scenarios."""
-        # TODO: Implement test using multiple files
-        pass
+    These tests combine multiple files and complex scenarios to validate
+    the complete dependency resolution workflow.
+    """
 
-    def test_large_dependency_graph(self):
-        """Test solver with large, complex dependency graph."""
-        # TODO: Implement test
-        pass
+    def test_complete_workflow_simple_chain(self):
+        """Test complete workflow with simple dependency chain."""
+        solver = create_solver_with_files(['simple_chain.yaml'])
+        solver.prepare()
+
+        # Resolve all objects
+        resolved_objects = list(solver)
+
+        # Should resolve in correct order: tag3 -> tag2 -> tag1
+        expected_order = [
+            ('tag', 'tag3'),
+            ('tag', 'tag2'),
+            ('tag', 'tag1')
+        ]
+        assert_dependency_order(self, resolved_objects, expected_order)
+
+        # Should have no remaining items
+        self.assertEqual(len(solver.remaining_keys()), 0)
+
+        # Should have no missing dependencies
+        report = solver.report()
+        self.assertEqual(len(report.missing), 0)
+
+    def test_complete_workflow_mixed_dependencies(self):
+        """Test complete workflow with mixed dependency types."""
+        solver = create_solver_with_files([
+            'independent_objects.yaml',
+            'target_dependencies.yaml',
+            'user_group_dependencies.yaml'
+        ], redefine=Redefine.IGNORE)
+        solver.prepare()
+
+        # Resolve all objects
+        resolved_objects = list(solver)
+        resolved_keys = [obj.key() for obj in resolved_objects]
+
+        # Should contain objects from all files
+        # Note: admin permission is defined in both files, causing a namespace conflict
+        expected_keys = [
+            # From independent_objects.yaml
+            ('user', 'build-user'),
+            ('user', 'release-user'),
+            ('group', 'packager'),
+            ('permission', 'admin'),  # Will be from user_group_dependencies.yaml due to conflict
+            ('external-repo', 'epel-9'),
+            # From target_dependencies.yaml
+            ('tag', 'build-tag'),
+            ('tag', 'dest-tag'),
+            ('target', 'myproject-build'),
+            ('target', 'myproject-release'),
+            # From user_group_dependencies.yaml
+            ('group', 'packagers'),
+            ('group', 'release-team'),
+            ('user', 'packager1'),
+            ('user', 'packager2'),
+            ('user', 'release-manager'),
+            # Missing permissions referenced by groups but not defined
+            ('permission', 'pkglist'),
+            ('permission', 'taggers'),
+            ('permission', 'release'),
+            ('permission', 'sign')
+        ]
+        assert_contains_objects(self, resolved_objects, expected_keys)
+
+        # Should have resolved all objects (14 defined + 4 missing permissions = 18 total)
+        self.assertEqual(len(resolved_objects), 18)
+
+        # Should have no remaining items
+        self.assertEqual(len(solver.remaining_keys()), 0)
+
+    def test_complete_workflow_with_missing_dependencies(self):
+        """Test complete workflow with missing dependencies."""
+        solver = create_solver_with_files(['missing_dependencies.yaml'])
+        solver.prepare()
+
+        # Should have missing dependencies before resolution
+        report_before = solver.report()
+        self.assertEqual(len(report_before.missing), 6)
+        self.assertIn(('tag', 'missing-parent-tag'), report_before.missing)
+        self.assertIn(('tag', 'missing-build-tag'), report_before.missing)
+        self.assertIn(('tag', 'missing-dest-tag'), report_before.missing)
+        self.assertIn(('group', 'missing-group'), report_before.missing)
+        self.assertIn(('permission', 'missing-permission'), report_before.missing)
+        self.assertIn(('external-repo', 'missing-external-repo'), report_before.missing)
+
+        # Resolve all objects
+        resolved_objects = list(solver)
+
+        # Should contain the objects that could be resolved
+        expected_keys = [
+            # From missing_dependencies.yaml
+            ('tag', 'child-tag'),
+            ('target', 'missing-target'),
+            ('user', 'user-with-missing-group'),
+            ('tag', 'tag-with-missing-repo'),
+            # all the implicit missing items
+            ('tag', 'missing-parent-tag'),
+            ('tag', 'missing-build-tag'),
+            ('tag', 'missing-dest-tag'),
+            ('group', 'missing-group'),
+            ('permission', 'missing-permission'),
+            ('external-repo', 'missing-external-repo'),
+        ]
+        assert_contains_objects(self, resolved_objects, expected_keys)
+
+        # Should have resolved 3 objects
+        self.assertEqual(len(resolved_objects), 10)
+
+        # Should have no remaining items (missing objects are handled gracefully)
+        self.assertEqual(len(solver.remaining_keys()), 0)
+
+        # Should still have missing dependencies after resolution
+        report_after = solver.report()
+        self.assertEqual(len(report_after.missing), 6)
+
+    def test_complete_workflow_circular_dependencies(self):
+        """Test complete workflow with circular dependencies."""
+        solver = create_solver_with_files(['circular_dependencies.yaml'])
+        solver.prepare()
+
+        # Resolve all objects
+        resolved_objects = list(solver)
+        resolved_keys = [obj.key() for obj in resolved_objects]
+        print(resolved_keys)
+
+        # Should contain all objects from the circular dependency
+        expected_keys = [
+            ('tag', 'tag-a'),
+            ('tag', 'tag-b'),
+            ('tag', 'tag-c')
+        ]
+        assert_contains_objects(self, resolved_objects, expected_keys)
+
+        self.assertEqual(len(resolved_objects), 4)
+
+        # Should have no remaining items
+        self.assertEqual(len(solver.remaining_keys()), 0)
+
+        # Should have no missing dependencies
+        report = solver.report()
+        self.assertEqual(len(report.missing), 0)
+
+    def test_partial_workflow_complex_scenario(self):
+        """Test partial workflow with specific work items from complex scenario."""
+        work_keys = [
+            ('target', 'myproject-build'),
+            ('target', 'testproduct-1.0-candidate')
+        ]
+        solver = create_solver_with_files([
+            'cross_dependencies.yaml',
+            'product_template.yaml',
+            'testproduct.yaml'
+        ], work_keys=work_keys)
+        solver.prepare()
+
+        # Resolve objects
+        resolved_objects = list(solver)
+        resolved_keys = [obj.key() for obj in resolved_objects]
+
+        # Should have resolved the requested targets and their dependencies
+        expected_keys = [
+            # Dependencies for myproject-target
+            ('tag', 'build-tag'),
+            ('tag', 'base-tag'),
+            ('target', 'myproject-build'),
+            # Dependencies for testproduct-1.0-candidate
+            ('tag', 'testproduct-1.0'),
+            ('tag', 'testproduct-1.0-released'),
+            ('tag', 'testproduct-1.0-build'),
+            ('tag', 'testproduct-1.0-candidate'),
+            ('target', 'testproduct-1.0-candidate')
+        ]
+        assert_contains_objects(self, resolved_objects, expected_keys)
+
+        # Should not have resolved unnecessary objects
+        self.assertNotIn(('user', 'myproject-user'), resolved_keys)
+        self.assertNotIn(('group', 'myproject-group'), resolved_keys)
+        self.assertNotIn(('permission', 'myproject-perm'), resolved_keys)
+        self.assertNotIn(('external-repo', 'myproject-repo'), resolved_keys)
+        self.assertNotIn(('tag', 'testproduct-2.0'), resolved_keys)
+        self.assertNotIn(('target', 'testproduct-2.0-candidate'), resolved_keys)
+
+    def test_workflow_with_mixed_missing_and_circular(self):
+        """Test workflow combining missing dependencies and circular dependencies."""
+        solver = create_solver_with_files([
+            'missing_dependencies.yaml',
+            'circular_dependencies.yaml'
+        ])
+        solver.prepare()
+
+        # Should have missing dependencies before resolution
+        report_before = solver.report()
+        self.assertEqual(len(report_before.missing), 6)
+
+        # Resolve all objects
+        resolved_objects = list(solver)
+        resolved_keys = [obj.key() for obj in resolved_objects]
+
+        # Should contain objects from both files
+        expected_keys = [
+            # From missing_dependencies.yaml
+            ('tag', 'child-tag'),
+            ('target', 'missing-target'),
+            ('user', 'user-with-missing-group'),
+            ('tag', 'tag-with-missing-repo'),
+            # From circular_dependencies.yaml
+            ('tag', 'tag-a'),
+            ('tag', 'tag-b'),
+            ('tag', 'tag-c'),
+            # all the implicit missing items
+            ('tag', 'missing-parent-tag'),
+            ('tag', 'missing-build-tag'),
+            ('tag', 'missing-dest-tag'),
+            ('group', 'missing-group'),
+            ('permission', 'missing-permission'),
+            ('external-repo', 'missing-external-repo'),
+        ]
+        assert_contains_objects(self, resolved_objects, expected_keys)
+
+        # 4 objects from missing_dependencies.yaml
+        #  + 6 implicit missing items
+        #  + 3 from circular_dependencies.yaml
+        #  + 1 split object from circular_dependencies.yaml
+        self.assertEqual(len(resolved_objects), 14)
+
+        # Should have no remaining items
+        self.assertEqual(len(solver.remaining_keys()), 0)
+
+        # Should still have missing dependencies after resolution
+        report_after = solver.report()
+        self.assertEqual(len(report_after.missing), 6)
+
+    def test_workflow_error_handling(self):
+        """Test workflow error handling and edge cases."""
+        # Test with empty work list
+        solver = create_solver_with_files(['simple_chain.yaml'], work_keys=[])
+        solver.prepare()
+
+        resolved_objects = list(solver)
+        self.assertEqual(len(resolved_objects), 0)
+        self.assertEqual(len(solver.remaining_keys()), 0)
+
+        # Test with non-existent work items
+        solver = create_solver_with_files(['simple_chain.yaml'], work_keys=[('tag', 'nonexistent')])
+        solver.prepare()
+
+        resolved_objects = list(solver)
+        self.assertEqual(len(resolved_objects), 1)
+        self.assertEqual(len(solver.remaining_keys()), 0)
+
+        # Should have missing dependency
+        report = solver.report()
+        self.assertEqual(len(report.missing), 1)
+        self.assertIn(('tag', 'nonexistent'), report.missing)
+
+    def test_workflow_consistency_across_runs(self):
+        """Test that workflow produces consistent results across multiple runs."""
+        # Run the same scenario multiple times
+        results = []
+        for _ in range(3):
+            solver = create_solver_with_files(['cross_dependencies.yaml'])
+            solver.prepare()
+            resolved_objects = list(solver)
+            resolved_keys = [obj.key() for obj in resolved_objects]
+            results.append(resolved_keys)
+
+        # All runs should produce the same results
+        for i in range(1, len(results)):
+            self.assertEqual(results[0], results[i],
+                           f"Run {i} produced different results than run 0")
+
+    def test_workflow_reporting_consistency(self):
+        """Test that reporting is consistent before and after resolution."""
+        solver = create_solver_with_files(['missing_dependencies.yaml'])
+        solver.prepare()
+
+        # Get report before resolution
+        report_before = solver.report()
+        missing_before = set(report_before.missing)
+
+        # Resolve objects
+        resolved_objects = list(solver)
+
+        # Get report after resolution
+        report_after = solver.report()
+        missing_after = set(report_after.missing)
+
+        # Missing dependencies should be the same
+        self.assertEqual(missing_before, missing_after,
+                        "Missing dependencies should not change after resolution")
+
+        # Should have resolved some objects
+        self.assertGreater(len(resolved_objects), 0)
 
 
 # The end.
