@@ -32,7 +32,7 @@ class User(BaseKojiObject):
         return User({'name': self.name, 'enabled': self.enabled})
 
 
-    def dependent_keys(self) -> List[Tuple[str, str]]:
+    def dependency_keys(self) -> List[Tuple[str, str]]:
         """
         Return dependencies for this user.
 

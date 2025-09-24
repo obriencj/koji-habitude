@@ -40,7 +40,7 @@ class Tag(BaseKojiObject):
         return Tag({'name': self.name, 'arches': self.arches})
 
 
-    def dependent_keys(self) -> List[Tuple[str, str]]:
+    def dependency_keys(self) -> List[Tuple[str, str]]:
         """
         Return dependencies for this tag.
 

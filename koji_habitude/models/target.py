@@ -31,7 +31,7 @@ class Target(BaseKojiObject):
             self.dest_tag = self.name
 
 
-    def dependent_keys(self) -> List[Tuple[str, str]]:
+    def dependency_keys(self) -> List[Tuple[str, str]]:
         """
         Return dependencies for this target.
 
