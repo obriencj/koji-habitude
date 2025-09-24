@@ -117,22 +117,12 @@ class Solver:
 
 
     def _split(self, node):
-        splitnode = Node(self.resolver.split(node.obj), splitable=False)
-
-        # steal the dependents from the original node and put them on the split
-        # node
-        splitnode.dependents = node.dependents
-        node.dependents = {}
-
         key = node.key
-        for dependent in splitnode.dependents.values():
+        for dependent in node.dependents.values():
             dependent.dependencies.pop(key)
+        node.dependents.clear()
 
-            # this isn't really necessary, since we'll be unlinking it shortly
-            # after being created, but may as well.
-            dependent.add_dependency(splitnode)
-
-        return splitnode
+        return self.resolver.split(node.obj)
 
 
     def __iter__(self):
@@ -142,7 +132,7 @@ class Solver:
         acted = False
 
         while work:
-            #print(f"Work: {work}")
+            # print(f"Work: {work}")
             # get an iterator over the work list
             for node in work:
                 # print(f"Node: {node.key}, Score: {node.score}, Can Split: {node.can_split}")
@@ -150,20 +140,16 @@ class Solver:
                     yield self._unlink(node)
                     acted = True
 
-                elif node.can_split:
-                    if acted:
-                        break
+                elif acted:
+                    break
 
-                    yield self._unlink(self._split(node))
+                elif node.can_split:
+                    yield self._split(node)
                     acted = True
-                    if node.score == 0:
-                        yield self._unlink(node)
                     break
 
                 else:
-                    if not acted:
-                        raise ValueError("Stuck in a loop")
-                    break
+                    raise ValueError("Stuck in a loop")
 
             work = sorted(self.remaining.values(), key=Node.get_priority)
             acted = False

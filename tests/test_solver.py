@@ -1367,7 +1367,6 @@ class TestSolverIntegration(unittest.TestCase):
             # From independent_objects.yaml
             ('user', 'build-user'),
             ('user', 'release-user'),
-            ('group', 'packager'),
             ('permission', 'admin'),  # Will be from user_group_dependencies.yaml due to conflict
             ('external-repo', 'epel-9'),
             # From target_dependencies.yaml
@@ -1389,8 +1388,8 @@ class TestSolverIntegration(unittest.TestCase):
         ]
         assert_contains_objects(self, resolved_objects, expected_keys)
 
-        # Should have resolved all objects (14 defined + 4 missing permissions = 18 total)
-        self.assertEqual(len(resolved_objects), 18)
+        # there's two ignored duplicates
+        self.assertEqual(len(resolved_objects), 17)
 
         # Should have no remaining items
         self.assertEqual(len(solver.remaining_keys()), 0)

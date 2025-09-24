@@ -1,6 +1,9 @@
 # Objects with dependencies that don't exist in the namespace
 # Tests MissingObject creation and resolution
 
+# This file has 4 declared objects, 6 more implicit missing items
+# for a total of 10 requested keys
+
 ---
 type: tag
 name: child-tag
