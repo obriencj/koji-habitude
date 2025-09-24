@@ -3,8 +3,23 @@
 # Author: Christopher O'Brien <obriencj@gmail.com>
 # License: GNU General Public License v3
 # AI-Assistant: Claude 3.5 Sonnet via Cursor
+# for hosting local docs preview
 
-.PHONY: build flake8 mypy twine test clean help tidy purge quicktest
+
+PYTHON ?= python3
+TOX ?= tox
+PORT ?= 8900
+
+
+define checkfor
+	@if ! which $(1) >/dev/null 2>&1 ; then \
+		echo $(1) "is required, but not available" 1>&2 ; \
+		exit 1 ; \
+	fi
+endef
+
+
+.PHONY: build flake8 mypy twine test clean help tidy purge quicktest docs overview clean-docs preview-docs
 
 # Default target
 help:
@@ -18,30 +33,34 @@ help:
 	@echo "  tidy    - Tidy up stray python cache files"
 	@echo "  clean   - Tidy up, then clean build artifacts"
 	@echo "  purge   - Clean up, then purge tox environments"
+	@echo "  docs    - Build sphinx docs"
+	@echo "  overview - Rebuild the overview from README.md"
+	@echo "  clean-docs - Remove built docs"
+	@echo "  preview-docs - Build and hosts docs locally"
 	@echo "  help    - Show this help message"
 
 # Build wheel distribution
 build:
-	tox -qe build
+	$(TOX) -qe build
 
 # Run flake8 linting
 flake8:
-	tox -qe flake8
+	$(TOX) -qe flake8
 
 # Run mypy type checking
 mypy:
-	tox -qe mypy
+	$(TOX) -qe mypy
 
 # Check package with twine
 twine:  build
-	tox -qe twine
+	$(TOX) -qe twine
 
 # Run tests
 test:
-	tox -q
+	$(TOX) -q
 
 quicktest:
-	tox -qe quicktest
+	$(TOX) -qe quicktest
 
 tidy:
 	@rm -rf *.egg-info/
@@ -55,5 +74,34 @@ clean:  tidy
 
 purge:  clean
 	@rm -rf .tox/
+
+
+docs: clean-docs docs/overview.rst	## Build sphinx docs
+	$(TOX) -qe sphinx
+
+
+overview: docs/overview.rst  ## rebuilds the overview from README.md
+
+
+docs/overview.rst: README.md
+	@if which pandoc >/dev/null 2>&1 ; then \
+		echo "Using system pandoc..." ; \
+		pandoc --from=markdown --to=rst -o $@ $< ; \
+	else \
+		echo "pandoc not found, using containerized version..." ; \
+		podman run --rm -v "$(PWD):/workspace":Z -w /workspace \
+			docker.io/pandoc/core:latest \
+			--from=markdown --to=rst -o /workspace/$@ /workspace/$< ; \
+	fi
+
+
+clean-docs:	## Remove built docs
+	@rm -rf build/sphinx
+
+
+preview-docs: docs	## Build and hosts docs locally
+	@$(PYTHON) -B -m http.server -d build/sphinx \
+	  -b 127.0.0.1 $(PORT)
+
 
 # The end.

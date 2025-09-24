@@ -47,9 +47,9 @@ class Node:
     def score(self) -> int:
         return len(self.dependencies)
 
-    def get_priority(self) -> Tuple[int, int, int]:
-        return (len(self.dependencies),
-                0 if self.can_split else 1,
+    def get_priority(self) -> Tuple[bool, bool, int]:
+        return (bool(self.dependencies),
+                not self.can_split,
                 0 - len(self.dependents))
 
     def __repr__(self):
