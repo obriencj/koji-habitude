@@ -238,6 +238,7 @@ This document may be extended with additional rules as the project evolves. Comm
 
 ### Test Runner
 - A simple test entrypoint is via `make quicktest`
+- When you want to run pytest, invoke it via `tox -qe quicktest -- `
 - More detailed test data is runnable via `tox -qe quicktest -- -v`
 - Individual test files should be runnable directly via `tox -qe quicktest -- [testfile] -v`
 - Follow the project's existing test execution patterns
