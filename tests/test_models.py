@@ -444,10 +444,15 @@ class TestHostModel(unittest.TestCase):
         }
         host = Host(data)
 
-        # The current implementation has a bug - it doesn't include 'type' field
-        # This test documents the current behavior until the implementation is fixed
-        with self.assertRaises(Exception):
-            split_host = host.split()
+        split_host = host.split()
+        self.assertIsInstance(split_host, Host)
+        self.assertEqual(split_host.name, 'test-host')
+        self.assertEqual(split_host.arches, ['x86_64'])
+        self.assertEqual(split_host.capacity, 2.0)
+        self.assertTrue(split_host.enabled)
+        self.assertEqual(split_host.description, 'Test host')
+        # Channels should not be included in split (dependency data)
+        self.assertEqual(split_host.channels, [])
 
     def test_host_dependency_keys(self):
         """
@@ -589,10 +594,13 @@ class TestTagModel(unittest.TestCase):
         }
         tag = Tag(data)
 
-        # The current implementation has a bug - it doesn't include 'type' field
-        # This test documents the current behavior until the implementation is fixed
-        with self.assertRaises(Exception):
-            split_tag = tag.split()
+        split_tag = tag.split()
+        self.assertIsInstance(split_tag, Tag)
+        self.assertEqual(split_tag.name, 'test-tag')
+        self.assertEqual(split_tag.arches, ['x86_64'])
+        # Inheritance and external repos should not be included in split (dependency data)
+        self.assertEqual(split_tag.parents, [])
+        self.assertEqual(split_tag.ext_repos, [])
 
     def test_tag_dependency_keys(self):
         """
@@ -757,11 +765,12 @@ class TestUserModel(unittest.TestCase):
             'enabled': False
         }
         user = User(data)
-
-        # The current implementation has a bug - it doesn't include 'type' field
-        # This test documents the current behavior until the implementation is fixed
-        with self.assertRaises(Exception):
-            split_user = user.split()
+        split_user = user.split()
+        self.assertIsInstance(split_user, User)
+        self.assertEqual(split_user.name, 'test-user')
+        self.assertEqual(split_user.groups, [])
+        self.assertEqual(split_user.permissions, [])
+        self.assertFalse(split_user.enabled)
 
     def test_user_dependency_keys(self):
         """

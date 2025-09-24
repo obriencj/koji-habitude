@@ -141,6 +141,53 @@ self.assertIn("missing required field", str(context.exception))
   - `self.assertIsInstance(loaded_object, TargetModel)`
   - `self.assertIn('tag-name', resolved_dependencies)`
 
+## Anti-Patterns and Forbidden Practices
+
+### Never Write Tests That Pass Due to Bugs
+**CRITICAL**: Unit tests must NEVER be written to pass by depending on bugs or exceptions from broken code.
+
+#### Forbidden Patterns
+- **DO NOT** write tests that expect exceptions from what you think are bugs
+- **DO NOT** use `with self.assertRaises(Exception):` to make tests pass when you suspect implementation problems
+- **DO NOT** write comments like "This test documents the current behavior until the implementation is fixed"
+- **DO NOT** hide bugs by making tests pass through exception expectations
+
+#### Correct Approach
+- **DO** write tests that validate the intended behavior of your code
+- **DO** write tests that will fail if there are actual bugs
+- **DO** fix bugs in the implementation, not in the tests
+- **DO** write tests that document the correct expected behavior
+
+#### Example of Bad Test (DO NOT DO THIS)
+```python
+def test_some_functionality(self):
+    # The current implementation has a bug - it doesn't include 'type' field
+    # This test documents the current behavior until the implementation is fixed
+    with self.assertRaises(Exception):
+        result = some_function()
+```
+
+#### Example of Good Test (DO THIS)
+```python
+def test_some_functionality(self):
+    result = some_function()
+    self.assertIsInstance(result, ExpectedType)
+    self.assertEqual(result.field1, expected_value)
+    self.assertEqual(result.field2, expected_value)
+```
+
+### Test Philosophy
+- **Tests should fail when code is broken**
+- **Tests should pass when code works correctly**
+- **Tests should document intended behavior, not current bugs**
+- **If you find a bug, fix the implementation, not the test**
+
+### When You Suspect a Bug
+1. **Investigate the implementation** to understand what it should do
+2. **Write a test that validates the correct behavior**
+3. **Fix the implementation** to make the test pass
+4. **Never write a test that passes by expecting the bug to raise an exception**
+
 ## Test Coverage Requirements
 
 ### Functional Coverage
