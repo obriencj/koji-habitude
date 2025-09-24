@@ -8,9 +8,11 @@ License: GNU General Public License v3
 AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
+from typing import Any, ClassVar, Dict, List, Optional, Sequence
+
 from pydantic import BaseModel, Field
-from typing import ClassVar, Dict, List, Tuple, Any, Optional
-from .base import BaseKojiObject, BaseKey
+
+from .base import BaseKey, BaseKojiObject
 
 
 class InheritanceLink(BaseModel):
@@ -36,11 +38,11 @@ class Tag(BaseKojiObject):
     external_repos: List[InheritanceLink] = Field(alias='external-repos', default_factory=list)
 
 
-    def split(self) -> Optional['Tag']:
+    def split(self) -> 'Tag':
         return Tag(name=self.name, arches=self.arches)
 
 
-    def dependency_keys(self) -> List[BaseKey]:
+    def dependency_keys(self) -> Sequence[BaseKey]:
         """
         Return dependencies for this tag.
 
@@ -49,7 +51,7 @@ class Tag(BaseKojiObject):
         - External repositories
         """
 
-        deps = []
+        deps: List[BaseKey] = []
 
         # Check for inheritance dependencies
         for parent in self.inheritance:

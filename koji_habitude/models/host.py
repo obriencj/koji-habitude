@@ -9,7 +9,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
 
-from typing import ClassVar, List, Tuple, Optional
+from typing import ClassVar, List, Sequence
 
 from pydantic import Field
 
@@ -31,7 +31,7 @@ class Host(BaseKojiObject):
     channels: List[str] = Field(alias='channels', default_factory=list)
 
 
-    def split(self) -> Optional['Host']:
+    def split(self) -> 'Host':
         return Host(
             name=self.name,
             arches=self.arches,
@@ -40,7 +40,7 @@ class Host(BaseKojiObject):
             description=self.description)
 
 
-    def dependency_keys(self) -> List[BaseKey]:
+    def dependency_keys(self) -> Sequence[BaseKey]:
         """
         Return dependencies for this host.
         """

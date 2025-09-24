@@ -8,7 +8,7 @@ License: GNU General Public License v3
 AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
-from typing import Any, ClassVar, List
+from typing import Any, ClassVar, Optional, Sequence
 
 from pydantic import Field
 
@@ -23,7 +23,7 @@ class Target(BaseKojiObject):
     typename: ClassVar[str] = "target"
 
     build_tag: str = Field(alias='build-tag')
-    dest_tag: str = Field(alias='dest-tag', default=None)
+    dest_tag: Optional[str] = Field(alias='dest-tag', default=None)
 
 
     def model_post_init(self, __context: Any):
@@ -31,7 +31,7 @@ class Target(BaseKojiObject):
             self.dest_tag = self.name
 
 
-    def dependency_keys(self) -> List[BaseKey]:
+    def dependency_keys(self) -> Sequence[BaseKey]:
         """
         Return dependencies for this target.
 
@@ -42,7 +42,7 @@ class Target(BaseKojiObject):
 
         return [
             ('tag', self.build_tag),
-            ('tag', self.dest_tag),
+            ('tag', self.dest_tag or self.name),
         ]
 
 

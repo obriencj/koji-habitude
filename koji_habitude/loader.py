@@ -16,7 +16,7 @@ import yaml
 
 from itertools import chain
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Protocol, Sequence, Type
+from typing import Any, Dict, Iterable, Iterator, List, Protocol, Sequence, Type, TypeGuard
 
 
 class PrettyYAML(yaml.Dumper):
@@ -152,7 +152,7 @@ class MultiLoader:
 
     def lookup_loader_type(
             self,
-            filename: str | Path) -> Type[LoaderProtocol]:
+            filename: str | Path) -> Type[LoaderProtocol] | None:
 
         filename = filename and Path(filename)
         if not filename:
@@ -161,13 +161,26 @@ class MultiLoader:
 
 
     def loader(self, filename: str | Path) -> LoaderProtocol:
+        """
+        Lookup the loader type for the given filename and create an instance of it
+
+        Args:
+            filename: The filename to lookup the loader type for
+
+        Returns:
+            The loader type for the given filename
+
+        Raises:
+            ValueError: If no loader type is found for the given filename
+        """
+
         cls = self.lookup_loader_type(filename)
         if not cls:
             raise ValueError(f"No loader accepting filename {filename}")
         return cls(filename)
 
 
-    def load(self, paths: List[str|Path]) -> Iterator[Dict[str, Any]]:
+    def load(self, paths: List[str | Path]) -> Iterator[Dict[str, Any]]:
 
         # the extmap is just going to be used to loop over, and to
         # check whether a file suffix is 'in' it, both behaviours are
@@ -177,19 +190,22 @@ class MultiLoader:
 
 
 def find_files(
-        path,
-        extensions: Sequence[str] = (".yml", ".yaml"),
+        pathname: str | Path,
+        extensions: Iterable[str] = (".yml", ".yaml"),
         strict: bool = True) -> List[Path]:
 
-    path = path and Path(path)
+    if not pathname:
+        raise ValueError("pathname is required")
 
-    if strict and not path.exists():
+    path = pathname if isinstance(pathname, Path) else Path(pathname)
+
+    if strict and not (path and path.exists()):
         raise FileNotFoundError(f"Path not found: {path}")
 
-    if path.is_file() and path.suffix in extensions:
+    if path and path.is_file() and path.suffix in extensions:
         return [path]
 
-    found = []
+    found: List[Path] = []
     for ext in extensions:
         found.extend(path.rglob(f"*{ext}"))
 
@@ -197,11 +213,11 @@ def find_files(
 
 
 def combine_find_files(
-        pathlist,
-        extensions: Sequence[str] = (".yml", ".yaml"),
+        pathlist: Iterable[str | Path],
+        extensions: Iterable[str] = (".yml", ".yaml"),
         strict: bool = True) -> List[Path]:
 
-    found = []
+    found: List[Path] = []
     for path in pathlist:
         found.extend(find_files(path, extensions, strict))
     return found

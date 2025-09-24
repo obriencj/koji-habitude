@@ -28,7 +28,7 @@ class User(BaseKojiObject):
     enabled: bool = Field(alias='enabled', default=True)
 
 
-    def split(self) -> Optional['User']:
+    def split(self) -> 'User':
         return User(name=self.name, enabled=self.enabled)
 
 

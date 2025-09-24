@@ -9,13 +9,20 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
 
-import unittest
 from pathlib import Path
-from unittest.mock import patch, mock_open
+import unittest
+from unittest.mock import mock_open, patch
 
-from koji_habitude.templates import Template, TemplateCall, TemplateValueError
 from pydantic import ValidationError
+
 from koji_habitude.loader import MultiLoader, YAMLLoader
+from koji_habitude.templates import (
+    Template,
+    TemplateCall,
+    TemplateException,
+    TemplateNotFound,
+    TemplateValueError,
+)
 
 
 def load_documents_from_paths(paths):
@@ -167,36 +174,36 @@ class TestTemplate(unittest.TestCase):
         """
 
         # Test missing base path when file is specified
-        with self.assertRaises(ValidationError) as context:
+        with self.assertRaises(TemplateNotFound) as context:
             Template(
                 type='template',
                 name='test-template',
                 file='template.j2'
             )
-        self.assertIn("Base path is required when template file is specified", str(context.exception))
+        self.assertIn("'template.j2' not found in search path:", str(context.exception))
 
         # Test non-existent base path
         with patch('pathlib.Path.exists', return_value=False):
-            with self.assertRaises(FileNotFoundError) as context:
+            with self.assertRaises(TemplateNotFound) as context:
                 Template(
                     type='template',
                     name='test-template',
                     file='template.j2',
                     __file__='/nonexistent/path'
                 )
-            self.assertIn("Base path not found", str(context.exception))
+            self.assertIn("'template.j2' not found in search path:", str(context.exception))
 
         # Test base path is not a directory
         with patch('pathlib.Path.exists', return_value=True), \
              patch('pathlib.Path.is_dir', return_value=False):
-            with self.assertRaises(NotADirectoryError) as context:
+            with self.assertRaises(TemplateNotFound) as context:
                 Template(
                     type='template',
                     name='test-template',
                     file='template.j2',
                     __file__='/path/to/file.txt'
                 )
-            self.assertIn("Base path is not a directory", str(context.exception))
+            self.assertIn("'template.j2' not found in search path:", str(context.exception))
 
     def test_template_schema_handling(self):
         """

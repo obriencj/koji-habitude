@@ -19,8 +19,9 @@ License v3 AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: AI Assisted, Mostly Human
 
 
+from typing import ClassVar, Dict, List, Optional, Sequence, Tuple
+
 from pydantic import BaseModel, Field
-from typing import ClassVar, Dict, List, Tuple, Optional, Sequence
 
 from .models import Base, BaseKey
 from .namespace import Namespace

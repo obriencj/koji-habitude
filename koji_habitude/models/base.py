@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 
 from typing import (
     Any, ClassVar, Dict, List, Optional, Protocol,
-    Sequence, Tuple, TypeAlias,
+    Sequence, Tuple, Type, TypeAlias,
 )
 
 
@@ -33,7 +33,7 @@ A tuple of (typename, name), used as the key for objects across this package
 
 
 class Base(Protocol):
-    typename: str
+    typename: ClassVar[str]
 
     name: str
 
@@ -61,7 +61,12 @@ class Base(Protocol):
         ...
 
 
-class BaseObject(BaseModel):
+# we need this to enable our inheritance of both the BaseModel from pydantic and
+# the Protocol from typing
+MetaModelProtocol: Type[type] = type("MetaModelProtocol", (type(BaseModel), type(Protocol)), {})
+
+
+class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
     """
     Adapter between the Base protocol and Pydantic models.
     """
@@ -69,7 +74,7 @@ class BaseObject(BaseModel):
     typename: ClassVar[str] = 'object'
 
     name: str = Field(alias='name')
-    yaml_type: str = Field(alias='type', default=None)
+    yaml_type: Optional[str] = Field(alias='type', default=None)
     filename: Optional[str] = Field(alias='__file__', default=None)
     lineno: Optional[int] = Field(alias='__line__', default=None)
     trace: Optional[List[Dict[str, Any]]] = Field(alias='__trace__', default_factory=list)
@@ -180,7 +185,7 @@ class BaseKojiObject(BaseObject):
 
     def diff(
             self,
-            koji_data: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+            koji_data: Optional[Dict[str, Any]]) -> Sequence[Dict[str, Any]]:
 
         """
         Compare with koji data and return update calls.

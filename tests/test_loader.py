@@ -162,7 +162,7 @@ class TestFindFiles(unittest.TestCase):
         Test behavior with None/empty path.
         """
 
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(ValueError):
             find_files(None)
 
 
