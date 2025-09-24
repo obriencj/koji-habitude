@@ -1108,8 +1108,199 @@ class TestSolverTemplates(unittest.TestCase):
 
     def test_template_based_dependencies(self):
         """Test solver with template-generated dependencies."""
-        # TODO: Implement test using product_template.yaml and testproduct.yaml
-        pass
+        solver = create_solver_with_files(['product_template.yaml', 'testproduct.yaml'])
+        solver.prepare()
+
+        # Resolve all objects
+        resolved_objects = list(solver)
+
+        # Should contain objects generated from the template
+        expected_keys = [
+            # From product template
+            ('group', 'testproduct-packagers'),
+            # From testproduct versions
+            ('tag', 'testproduct-1.0-build'),
+            ('tag', 'testproduct-1.0-candidate'),
+            ('tag', 'testproduct-1.0-released'),
+            ('tag', 'testproduct-1.0'),
+            ('target', 'testproduct-1.0-candidate'),
+            ('target', 'testproduct-1.0-release'),
+            ('tag', 'testproduct-2.0-build'),
+            ('tag', 'testproduct-2.0-candidate'),
+            ('tag', 'testproduct-2.0-released'),
+            ('tag', 'testproduct-2.0'),
+            ('target', 'testproduct-2.0-candidate'),
+            ('target', 'testproduct-2.0-release'),
+            # Implicit missing permissions
+            ('permission', 'testproduct-pkglist'),
+            ('permission', 'testproduct-taggers')
+        ]
+        assert_contains_objects(self, resolved_objects, expected_keys)
+
+        # Should have resolved all objects without getting stuck
+        self.assertEqual(len(resolved_objects), 15)
+
+        # Should have no remaining items
+        self.assertEqual(len(solver.remaining_keys()), 0)
+
+    def test_template_based_dependencies_partial_work(self):
+        """Test solver with partial work list on template-generated dependencies."""
+        # Only include some targets in work list
+        work_keys = [
+            ('target', 'testproduct-1.0-candidate'),
+            ('target', 'testproduct-2.0-release')
+        ]
+        solver = create_solver_with_files(['product_template.yaml', 'testproduct.yaml'], work_keys=work_keys)
+        solver.prepare()
+
+        # Resolve objects
+        resolved_objects = list(solver)
+
+        # Should resolve the requested targets and all their dependencies
+        expected_keys = [
+            # Requested targets
+            ('target', 'testproduct-1.0-candidate'),
+            ('target', 'testproduct-2.0-release'),
+            # Dependencies for testproduct-1.0-candidate
+            ('tag', 'testproduct-1.0-build'),
+            ('tag', 'testproduct-1.0-candidate'),
+            ('tag', 'testproduct-1.0'),
+            ('tag', 'testproduct-1.0-released'),
+            # Dependencies for testproduct-2.0-release
+            ('tag', 'testproduct-2.0-candidate'),
+            ('tag', 'testproduct-2.0-released'),
+            ('tag', 'testproduct-2.0'),
+
+        ]
+        assert_contains_objects(self, resolved_objects, expected_keys)
+
+        # Should not resolve objects not needed for the work items
+        resolved_keys = [obj.key() for obj in resolved_objects]
+        self.assertNotIn(('group', 'testproduct-packagers'), resolved_keys)
+        self.assertNotIn(('permission', 'testproduct-pkglist'), resolved_keys)
+        self.assertNotIn(('permission', 'testproduct-taggers'), resolved_keys)
+        self.assertNotIn(('tag', 'testproduct-2.0-build'), resolved_keys)
+        self.assertNotIn(('target', 'testproduct-1.0-release'), resolved_keys)
+        self.assertNotIn(('target', 'testproduct-2.0-candidate'), resolved_keys)
+
+    def test_template_based_dependencies_ordering(self):
+        """Test that template-generated dependencies are resolved in correct order."""
+        solver = create_solver_with_files(['product_template.yaml', 'testproduct.yaml'])
+        solver.prepare()
+
+        # Resolve objects
+        resolved_objects = list(solver)
+        resolved_keys = [obj.key() for obj in resolved_objects]
+
+        # Base tags should be resolved before build tags
+        base_tag_pos = resolved_keys.index(('tag', 'testproduct-1.0'))
+        build_tag_pos = resolved_keys.index(('tag', 'testproduct-1.0-build'))
+        self.assertLess(base_tag_pos, build_tag_pos,
+                       "Base tag should be resolved before build tag")
+
+        # Build tags should be resolved before targets
+        build_tag_pos = resolved_keys.index(('tag', 'testproduct-1.0-build'))
+        target_pos = resolved_keys.index(('target', 'testproduct-1.0-candidate'))
+        self.assertLess(build_tag_pos, target_pos,
+                       "Build tag should be resolved before target")
+
+        # Candidate tags should be resolved before targets that use them
+        candidate_tag_pos = resolved_keys.index(('tag', 'testproduct-1.0-candidate'))
+        target_pos = resolved_keys.index(('target', 'testproduct-1.0-candidate'))
+        self.assertLess(candidate_tag_pos, target_pos,
+                       "Candidate tag should be resolved before target")
+
+    def test_template_based_dependencies_with_missing_dependencies(self):
+        """Test template-generated dependencies mixed with missing dependencies."""
+        # Use multiple files to create a complex scenario
+        solver = create_solver_with_files([
+            'product_template.yaml',
+            'testproduct.yaml',
+            'missing_dependencies.yaml'
+        ])
+        solver.prepare()
+
+        # Resolve objects
+        resolved_objects = list(solver)
+
+        # Should contain objects from all files
+        expected_keys = [
+            # From product template and testproduct
+            ('group', 'testproduct-packagers'),
+            ('tag', 'testproduct-1.0-build'),
+            ('tag', 'testproduct-1.0-candidate'),
+            ('tag', 'testproduct-1.0-released'),
+            ('tag', 'testproduct-1.0'),
+            ('target', 'testproduct-1.0-candidate'),
+            ('target', 'testproduct-1.0-release'),
+            ('tag', 'testproduct-2.0-build'),
+            ('tag', 'testproduct-2.0-candidate'),
+            ('tag', 'testproduct-2.0-released'),
+            ('tag', 'testproduct-2.0'),
+            ('target', 'testproduct-2.0-candidate'),
+            ('target', 'testproduct-2.0-release'),
+            # From missing_dependencies.yaml
+            ('tag', 'child-tag'),
+            ('target', 'missing-target'),
+            ('user', 'user-with-missing-group'),
+            ('tag', 'tag-with-missing-repo'),
+            # Missing dependencies
+            ('tag', 'missing-parent-tag'),
+            ('tag', 'missing-build-tag'),
+            ('tag', 'missing-dest-tag'),
+            ('group', 'missing-group'),
+            ('permission', 'missing-permission'),
+            ('external-repo', 'missing-external-repo'),
+            # Implicit missing permissions
+            ('permission', 'testproduct-pkglist'),
+            ('permission', 'testproduct-taggers')
+        ]
+        assert_contains_objects(self, resolved_objects, expected_keys)
+
+        # Should have resolved all objects
+        self.assertEqual(len(resolved_objects), 25)
+
+    def test_template_based_dependencies_reporting(self):
+        """Test that template-generated dependencies don't affect missing dependency reporting."""
+        solver = create_solver_with_files(['product_template.yaml', 'testproduct.yaml'])
+        solver.prepare()
+
+        # Should only have the 2 implicit missing permissions
+        report = solver.report()
+        self.assertEqual(len(report.missing), 2)
+
+        # After resolving, should still have the 2 implicit missing permissions
+        resolved_objects = list(solver)
+        report_after = solver.report()
+        self.assertEqual(len(report_after.missing), 2)
+
+    def test_template_based_dependencies_complex_workflow(self):
+        """Test complex workflow with template-generated dependencies."""
+        # Test a realistic scenario where we only want to build specific targets
+        work_keys = [
+            ('target', 'testproduct-1.0-candidate'),
+            ('target', 'testproduct-2.0-release')
+        ]
+        solver = create_solver_with_files(['product_template.yaml', 'testproduct.yaml'], work_keys=work_keys)
+        solver.prepare()
+
+        # Resolve objects
+        resolved_objects = list(solver)
+        resolved_keys = [obj.key() for obj in resolved_objects]
+
+        # Should have resolved the requested targets
+        self.assertIn(('target', 'testproduct-1.0-candidate'), resolved_keys)
+        self.assertIn(('target', 'testproduct-2.0-release'), resolved_keys)
+
+        # Should have resolved their dependencies
+        self.assertIn(('tag', 'testproduct-1.0-build'), resolved_keys)
+        self.assertIn(('tag', 'testproduct-1.0-candidate'), resolved_keys)
+        self.assertIn(('tag', 'testproduct-2.0-candidate'), resolved_keys)
+        self.assertIn(('tag', 'testproduct-2.0-released'), resolved_keys)
+
+        # Should not have resolved unnecessary objects
+        self.assertNotIn(('target', 'testproduct-1.0-release'), resolved_keys)
+        self.assertNotIn(('target', 'testproduct-2.0-candidate'), resolved_keys)
 
 
 class TestSolverIntegration(unittest.TestCase):
