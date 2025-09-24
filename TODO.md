@@ -58,14 +58,25 @@ This document tracks planned features and improvements for koji-habitude.
 
 **Goal**: Comprehensive test coverage for core functionality.
 
-**Current Status**: Extensive test coverage exists for core modules with 29 test
-data files and comprehensive test suites.
+**Current Status**: Extensive test coverage exists for core modules with 42 test
+data files and comprehensive test suites (274 total tests).
 
 **Test Data Structure**:
 - `tests/data/templates/` - Template definition test files
 - `tests/data/namespace/` - Namespace and expansion test scenarios
 - `tests/data/samples/` - Valid sample data files
 - `tests/data/bad/` - Invalid data for error handling tests
+- `tests/data/demo/` - Demo scenarios and examples
+- `tests/data/solver/` - Solver-specific test scenarios
+
+**Test File Coverage**:
+- `test_loader.py`: 52 tests (file loading, YAML parsing, error handling)
+- `test_models.py`: 52 tests (CORE_MODELS validation, dependency resolution)
+- `test_templates.py`: 32 tests (template expansion, Jinja2 processing)
+- `test_expansion.py`: 14 tests (template expansion workflows)
+- `test_namespace.py`: 53 tests (namespace handling, object resolution)
+- `test_resolver.py`: 27 tests (dependency resolution algorithms)
+- `test_solver.py`: 58 tests (tiered execution, splitting logic)
 
 ### ✅ Completed Test Coverage
 
@@ -114,12 +125,12 @@ data files and comprehensive test suites.
 - [ ] Test CLI help text and documentation
 
 **Dependency Resolution Testing**:
-- [ ] Test Resolver module with various dependency scenarios
-- [ ] Test Solver module tiered execution
-- [ ] Test Node-based dependency graph construction
-- [ ] Test automatic splitting for cross-tier dependencies
-- [ ] Test MissingObject placeholder system
-- [ ] Test priority-based execution ordering
+- [x] Test Resolver module with various dependency scenarios (test_resolver.py - 27 tests)
+- [x] Test Solver module tiered execution (test_solver.py - 58 tests)
+- [x] Test Node-based dependency graph construction (test_solver.py)
+- [x] Test automatic splitting for cross-tier dependencies (test_solver.py)
+- [x] Test MissingObject placeholder system (test_resolver.py)
+- [x] Test priority-based execution ordering (test_solver.py)
 
 **Comparison Testing**:
 - [ ] Test koji object diffing logic (once implemented)

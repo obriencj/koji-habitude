@@ -14,7 +14,7 @@
 - Pydantic validation with field constraints and proper error handling
 - Dependency resolution architecture (Resolver and Solver modules)
 - Tiered execution system with automatic splitting for cross-dependencies
-- Extensive unit test coverage (50+ test cases for models)
+- Comprehensive unit test coverage (274 tests across 8 test files)
 - Template expansion and YAML processing
 
 **🚧 In Progress:**
@@ -24,7 +24,7 @@
 
 **📋 Next Steps:**
 - Implement `sync` and `validate` command bodies
-- Add CLI testing and integration tests
+- Add CLI testing (currently missing test_cli.py)
 - Performance optimization and error handling improvements
 
 
