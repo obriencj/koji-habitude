@@ -31,7 +31,7 @@ inheritance:
 type: target
 name: myproject-build
 build-tag: build-tag
-dest_tag: base-tag
+dest-tag: base-tag
 
 ---
 type: external-repo

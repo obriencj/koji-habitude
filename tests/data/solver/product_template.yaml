@@ -59,13 +59,13 @@ content: |
     type: target
     name: {{ g.basetag }}-candidate
     build-tag: {{ g.basetag }}-build
-    dest_tag: {{ g.basetag }}-candidate
+    dest-tag: {{ g.basetag }}-candidate
 
     ---
     type: target
     name: {{ g.basetag }}-release
     build-tag: {{ g.basetag }}-candidate
-    dest_tag: {{ g.basetag }}-released
+    dest-tag: {{ g.basetag }}-released
 
     {% endraw %}
 

@@ -18,12 +18,12 @@ inheritance:
 type: target
 name: myproject-build
 build-tag: build-tag
-dest_tag: dest-tag
+dest-tag: dest-tag
 
 ---
 type: target
 name: myproject-release
 build-tag: dest-tag
-dest_tag: build-tag
+dest-tag: build-tag
 
 # The end.
