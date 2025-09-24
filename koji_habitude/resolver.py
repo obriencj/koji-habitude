@@ -19,22 +19,23 @@ License v3 AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: AI Assisted, Mostly Human
 
 
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Set, Tuple
+from pydantic import BaseModel, Field
+from typing import Any, ClassVar, Dict, List, Set, Tuple
 
-from .models import Base
+from .models import BaseObject
 from .namespace import Namespace
 
 
-class MissingObject(Base):
+class MissingObject(BaseObject):
     """
     A placeholder for a dependency that should exist.
     """
 
-    typename = 'missing'
+    typename: ClassVar[str] = 'missing'
 
     def __init__(self, key: Tuple[str, str]):
-        self.typename, self.name = key
+        tp, name = key
+        super().__init__({'type': tp, 'name': name})
         self._key = key
 
     def key(self):
@@ -53,13 +54,12 @@ class MissingObject(Base):
         return ()
 
 
-@dataclass
-class Report:
+class Report(BaseModel):
     """
     A Report is a container for a set of missing dependencies.
     """
 
-    missing: List[Tuple[str, str]] = field(default_factory=list)
+    missing: List[Tuple[str, str]] = Field(default_factory=list)
 
 
 class Resolver:
@@ -77,7 +77,10 @@ class Resolver:
 
 
     def resolve(self, key):
-        obj = self.created.get(key) or self.namespace._ns.get(key)
+        if self.namespace is None:
+            obj = self.created.get(key)
+        else:
+            obj = self.created.get(key) or self.namespace._ns.get(key)
         if obj is None:
             obj = self.created[key] = MissingObject(key)
         return obj
@@ -111,7 +114,7 @@ class Resolver:
 
     def report(self):
         # The default Offline implementation does nothing
-        return Report(missing=self.created.keys())
+        return Report(missing=list(self.created.keys()))
 
 
 class OnlineResolver(Resolver):

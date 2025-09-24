@@ -55,8 +55,8 @@ class BaseObject(BaseModel):
 
     typename: ClassVar[str] = 'object'
 
-    yaml_type: str = Field(alias='type')
     name: str = Field(alias='name')
+    yaml_type: str = Field(alias='type', default=None)
     filename: Optional[str] = Field(alias='__file__', default=None)
     lineno: Optional[int] = Field(alias='__line__', default=None)
     trace: Optional[List[Dict[str, Any]]] = Field(alias='__trace__', default_factory=list)
@@ -73,10 +73,9 @@ class BaseObject(BaseModel):
             raise ValueError(f"name is required for {self.typename}")
         self.name = name
 
-        yaml_type = self.yaml_type and self.yaml_type.strip()
-        if not yaml_type:
-            raise ValueError(f"type is required for {self.typename}")
-        self.yaml_type = yaml_type
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'BaseObject':
+        return cls.model_validate(data)
 
     @property
     def data(self) -> Dict[str, Any]:
