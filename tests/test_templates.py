@@ -319,7 +319,6 @@ arches:
         self.assertIn('- x86_64', result)
         self.assertIn('- aarch64', result)
 
-    @unittest.skip("Cannot mock validate method on pydantic model")
     def test_render_with_validation_failure(self):
         """
         Test rendering when validation fails.
@@ -333,7 +332,7 @@ arches:
         template = Template(template_data)
 
         # Mock validate to return False
-        with patch.object(template, 'validate_call', return_value=False):
+        with patch.object(Template, 'validate_call', return_value=False):
             with self.assertRaises(TemplateValueError) as context:
                 template.render({'test': 'data'})
             self.assertIn("Data validation failed", str(context.exception))
