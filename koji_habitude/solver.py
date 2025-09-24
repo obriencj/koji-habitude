@@ -22,10 +22,10 @@ from .resolver import Resolver
 
 
 class Node:
-    def __init__(self, obj, splitable=False):
+    def __init__(self, obj, splitable=None):
         self.key = obj.key()
         self.obj = obj
-        self.can_split = splitable
+        self.can_split = splitable if splitable is not None else obj.can_split()
         self.dependencies = {}
         self.dependents = {}
 
@@ -50,6 +50,9 @@ class Node:
         return (len(self.dependencies),
                 0 if self.can_split else 1,
                 0 - len(self.dependents))
+
+    def __repr__(self):
+        return f"<Node(key={self.key}, priority={self.get_priority()})>"
 
 
 class Solver:
@@ -139,13 +142,18 @@ class Solver:
         acted = False
 
         while work:
+            print(f"Work: {work}")
             # get an iterator over the work list
             for node in work:
+                print(f"Node: {node.key}, Score: {node.score}, Can Split: {node.can_split}")
                 if node.score == 0:
                     yield self._unlink(node)
                     acted = True
 
                 elif node.can_split:
+                    if acted:
+                        break
+
                     yield self._unlink(self._split(node))
                     acted = True
                     if node.score == 0:
