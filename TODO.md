@@ -15,6 +15,30 @@ This document tracks planned features and improvements for koji-habitude.
 - [x] Update documentation to reflect current state
 - [x] Fix namespace import issues (RawObject → BaseObject)
 
+**Data Model and Schemas**:
+- [x] Implement comprehensive CORE_MODELS schemas (Channel, ExternalRepo, Group,
+  Host, Permission, Tag, Target, User)
+- [x] Add Pydantic validation with proper field constraints and aliases
+- [x] Implement dependency resolution methods for all model types
+- [x] Add splitting functionality for models that support tiered execution
+- [x] Create robust base classes (BaseObject, BaseKojiObject) with common
+  functionality
+
+**Unit Testing Infrastructure**:
+- [x] Add comprehensive unit tests for all CORE_MODELS (50 test cases)
+- [x] Test model creation, validation, dependency resolution, and splitting
+- [x] Test registry consistency and model behavior verification
+- [x] Test Pydantic validation and field constraints
+- [x] Document implementation bugs found during testing
+
+**Dependency Resolution Architecture**:
+- [x] Implement Resolver module for external dependency resolution
+- [x] Implement Solver module for tiered dependency resolution
+- [x] Add Node-based dependency graph construction
+- [x] Implement automatic splitting for cross-tier dependencies
+- [x] Add priority-based execution ordering
+- [x] Create MissingObject placeholder system for unresolved dependencies
+
 ## 🚀 Immediate Next Steps
 
 **Core Implementation** (Ready for development):
@@ -34,7 +58,8 @@ This document tracks planned features and improvements for koji-habitude.
 
 **Goal**: Comprehensive test coverage for core functionality.
 
-**Current Status**: Extensive test coverage exists for core modules with 29 test data files and comprehensive test suites.
+**Current Status**: Extensive test coverage exists for core modules with 29 test
+data files and comprehensive test suites.
 
 **Test Data Structure**:
 - `tests/data/templates/` - Template definition test files
@@ -49,6 +74,14 @@ This document tracks planned features and improvements for koji-habitude.
 - [x] Test template schema validation (test_templates.py)
 - [x] Test object data structure validation (test_namespace.py)
 - [x] Test invalid data handling (test_loader.py with bad/ directory)
+
+**Model Testing**:
+- [x] Test CORE_MODELS creation and validation (test_models.py)
+- [x] Test base model classes (BaseObject, BaseKojiObject, RawObject)
+- [x] Test dependency resolution for all model types
+- [x] Test splitting functionality where supported
+- [x] Test Pydantic validation and field constraints
+- [x] Test model registry consistency and behavior
 
 **Template Testing**:
 - [x] Test Jinja2 template expansion (test_templates.py)
@@ -79,6 +112,14 @@ This document tracks planned features and improvements for koji-habitude.
 - [ ] Test CLI error handling and user feedback
 - [ ] Test CLI integration with core modules
 - [ ] Test CLI help text and documentation
+
+**Dependency Resolution Testing**:
+- [ ] Test Resolver module with various dependency scenarios
+- [ ] Test Solver module tiered execution
+- [ ] Test Node-based dependency graph construction
+- [ ] Test automatic splitting for cross-tier dependencies
+- [ ] Test MissingObject placeholder system
+- [ ] Test priority-based execution ordering
 
 **Comparison Testing**:
 - [ ] Test koji object diffing logic (once implemented)
@@ -158,7 +199,15 @@ Items that may be added later:
 
 ## 📝 Notes
 
-**Current State**: The CLI framework is functional and ready for core implementation. All commands are available with proper help text, but command bodies need implementation for full functionality.
+**Current State**: The project has made significant progress on core
+architecture:
+- ✅ **CLI Framework**: Complete and functional with all commands available
+- ✅ **Data Models**: All CORE_MODELS implemented with Pydantic validation
+- ✅ **Unit Testing**: Comprehensive test coverage for models (50 test cases)
+- ✅ **Dependency Resolution**: Resolver and Solver modules implemented for
+  tiered execution
+- 🚧 **Integration**: Ready for koji client integration and command body
+  implementation
 
 **Development Guidelines**:
 - Maintain backward compatibility when adding new features
