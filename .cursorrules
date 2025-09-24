@@ -13,7 +13,7 @@ This is a Python project called koji-habitude that synchronizes local koji data 
 - Keep dependencies at an absolute minimum
 
 ### CLI Implementation
-- Use clique for CLI operations with subcommands
+- Use click for CLI operations with subcommands
 - CLI should accept koji profile (optional), templates path, and data directory
 
 ### Configuration Files
@@ -23,7 +23,7 @@ This is a Python project called koji-habitude that synchronizes local koji data 
 
 ### Dependencies
 - Minimize dependencies to absolute essentials
-- Approved dependencies: clique (CLI), koji (mandatory for koji operations)
+- Approved dependencies: click (CLI), koji (mandatory for koji operations)
 - Justify any additional dependencies before adding them
 
 ## Git Operations
