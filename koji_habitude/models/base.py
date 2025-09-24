@@ -80,6 +80,10 @@ class BaseObject(BaseModel):
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'BaseObject':
+        """
+        Create an instance directly from a dictionary. Records the original data
+        dict for later review via the `data` property.
+        """
         obj = cls.model_validate(data)
         obj._data = data
         return obj
@@ -92,25 +96,45 @@ class BaseObject(BaseModel):
         return self._data
 
     def key(self) -> Tuple[str, str]:
+        """
+        Return the key of this object as a tuple of (typename, name)
+        """
         return (self.typename, self.name)
 
     def filepos(self) -> Tuple[Optional[str], Optional[int]]:
+        """
+        Return the file position of this object as a tuple of (filename, lineno)
+        """
         return (self.filename, self.lineno)
 
     def filepos_str(self) -> str:
+        """
+        Return a string representation of the file position of this object
+        """
         filename = self.filename or '<unknown>'
         if self.lineno:
             return f"{filename}:{self.lineno}"
         else:
             return filename
 
-    def can_split(self):
+    def can_split(self) -> bool:
+        """
+        True if this object can be split in order to break cyclic dependencies
+        """
         return False
 
-    def split(self):
+    def split(self) -> 'BaseObject':
+        """
+        If the object supports splitting, create a minimal copy of this object
+        specifying only that it needs to exist, with a dependant link on the
+        original object. Otherwise raise a TypeError.
+        """
         raise TypeError(f"Cannot split {self.typename}")
 
-    def dependency_keys(self):
+    def dependency_keys(self) -> Sequence[Tuple[str, str]]:
+        """
+        Return the keys of the dependencies of this object as a sequence of (typename, name) tuples
+        """
         return ()
 
     def __repr__(self) -> str:
@@ -125,7 +149,7 @@ class BaseKojiObject(BaseObject):
     # override in subclasses
     typename: ClassVar[str] = 'koji-object'
 
-    # override in subclasses to support splitting
+    # override in subclasses to support automatic splitting
     _can_split: ClassVar[bool] = False
 
 
@@ -142,8 +166,10 @@ class BaseKojiObject(BaseObject):
         any internal references that break ordering. Then the next tier can
         add the links.
         """
-
-        return type(self)(name=self.name)
+        if self._can_split:
+            return type(self)(name=self.name)
+        else:
+            raise TypeError(f"Cannot split {self.typename}")
 
 
     def diff(
