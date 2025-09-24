@@ -29,7 +29,7 @@ class User(BaseKojiObject):
 
 
     def split(self) -> Optional['User']:
-        return User({'name': self.name, 'enabled': self.enabled})
+        return User(name=self.name, enabled=self.enabled)
 
 
     def dependency_keys(self) -> List[Tuple[str, str]]:

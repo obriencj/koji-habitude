@@ -32,14 +32,12 @@ class Host(BaseKojiObject):
 
 
     def split(self) -> Optional['Host']:
-        return Host({
-            'name': self.name,
-            'arches': self.arches,
-            'capacity': self.capacity,
-            'enabled': self.enabled,
-            'description': self.description
-        })
-
+        return Host(
+            name=self.name,
+            arches=self.arches,
+            capacity=self.capacity,
+            enabled=self.enabled,
+            description=self.description)
 
 
     def dependency_keys(self) -> List[Tuple[str, str]]:

@@ -14,12 +14,21 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 import logging
-from collections import OrderedDict
 from enum import Enum, auto
-from typing import Any, Dict, Iterator, Optional, List, OrderedDict, Type
+from typing import Any, Dict, Iterator, Optional, Sequence, Type, Mapping
 
 from .templates import Template, TemplateCall
-from .models import CORE_MODELS, Base, RawObject
+from .models import CORE_MODELS, Base, BaseObject
+
+
+__all__ = (
+    'Namespace',
+    'TemplateNamespace',
+    'ExpanderNamespace',
+    'Redefine',
+    'RedefineError',
+    'ExpansionError',
+)
 
 
 default_logger = logging.getLogger(__name__)
@@ -62,11 +71,26 @@ class Redefine(Enum):
 def add_into(
         into: Dict,
         key: Any,
-        obj: Any,
+        obj: Base,
         redefine: Redefine = Redefine.ERROR,
-        logger: Optional[logging.Logger] = None):
+        logger: Optional[logging.Logger] = None) -> None:
 
-    orig = into.get(key, None)
+    """
+    Add an object into a dictionary, handling redefinition.
+
+    Args:
+        into: The dictionary to add the object into
+        key: The key to add the object under
+        obj: The object to add
+        redefine: The redefine setting
+        logger: The logger to use when redefine is IGNORE_WARN or ALLOW_WARN
+
+    Raises:
+        RedefineError: If the object is being redefined and the redefine setting is ERROR
+        AssertionError: If the redefine setting is unknown
+    """
+
+    orig = into.get(key)
 
     if orig is None:
         into[key] = obj
@@ -77,17 +101,20 @@ def add_into(
     # Oh no, we're in redefine territory
 
     if redefine == Redefine.IGNORE:
+        # ignore the attempt at redefinition, do nothing
         return
 
     if redefine == Redefine.ALLOW:
+        # allow the redefinition, update the value
         into[key] = obj
         return
 
-    stmt = f"{key} at {obj.filepos()} (original {orig.filepos()})"
+    # prepare a statement to be used in the other cases
+    stmt = f"{key} at {obj.filepos_str()} (original {orig.filepos_str()})"
     logger = logger or default_logger
 
     if redefine == Redefine.ERROR:
-        raise NamespaceRedefine(f"Redefinition of {stmt}")
+        raise RedefineError(f"Redefinition of {stmt}")
 
     elif redefine == Redefine.IGNORE_WARN:
         logger.warning(f"Ignored redefinition of {stmt}")
@@ -101,11 +128,17 @@ def add_into(
         assert False, f"Unknown redefine setting {redefine!r}"
 
 
-class NamespaceRedefine(Exception):
+class RedefineError(Exception):
+    """
+    Indicates a redefinition of an object in the namespace
+    """
     pass
 
 
 class ExpansionError(Exception):
+    """
+    Indicates an error during the template expansion process
+    """
     pass
 
 
@@ -113,7 +146,7 @@ class Namespace:
 
     def __init__(
             self,
-            coretypes: List[Type[Base]] = CORE_MODELS,
+            coretypes: Dict[str, Type[Base]] | Sequence[Type[Base]] = CORE_MODELS,
             enable_templates: bool = True,
             redefine: Redefine = Redefine.ERROR,
             logger: Optional[logging.Logger] = None):
@@ -124,10 +157,11 @@ class Namespace:
         # mapping of type names to classes. The special mapping of None
         # indicates the class to be used when nothing else matches. This
         # is normally a TemplateCall
-        self.typemap = {}
-
-        for tp in coretypes:
-            self.typemap[tp.typename] = tp
+        self.typemap: Dict[str | None, Type[Base]]
+        if not isinstance(coretypes, Mapping):
+            self.typemap = {tp.typename: tp for tp in coretypes}
+        else:
+            self.typemap = dict(coretypes)
 
         if enable_templates:
             self.typemap["template"] = Template
@@ -149,7 +183,22 @@ class Namespace:
         self.max_depth = 100
 
 
-    def to_object(self, objdict):
+    def to_object(self, objdict: Dict[str, Any]) -> Base:
+        """
+        Convert a dictionary into a Base object instance. Types are resolved
+        from the `type` key. An exception is raised if no type key is present.
+
+        If templates are enabled, then the `type` key may be `template` in order
+        to define a new template. Any other unknown type is assumed to be a
+        template call.
+
+        If templates are not enabled, then any unknown type is an error.
+
+        Raises:
+            ValueError: If no type key is present, or if no type handler is
+            found for the type
+        """
+
         objtype = objdict.get('type')
         if objtype is None:
             raise ValueError("Object data has no type set")
@@ -158,14 +207,27 @@ class Namespace:
         if cls is None:
             raise ValueError(f"No type handler for {objtype}")
 
-        return cls(objdict)
+        return cls.from_dict(objdict)
 
 
-    def to_objects(self, objseq):
+    def to_objects(self, objseq: Sequence[Dict[str, Any]]) -> Iterator[Base]:
+        """
+        Convert a sequence of dictionaries into a sequence of Base object
+        instances, via the `to_object` method.
+        """
+
         return map(self.to_object, objseq)
 
 
-    def add(self, obj):
+    def add(self, obj: Base) -> None:
+        """
+        Add an object to the namespace. This is called during the `expand`
+        method as objects are loaded from the feed queue.
+
+        Raises:
+            TypeError: If the object is a Template or TemplateCall
+        """
+
         if isinstance(obj, (Template, TemplateCall)):
             raise TypeError(f"{type(obj).__name__} cannot be"
                             " directly added to a Namespace")
@@ -175,6 +237,13 @@ class Namespace:
 
 
     def add_template(self, template: Template):
+        """
+        Add a template to the namespace. This is called during the `expand`
+        method as templates are loaded from the feed queue.
+
+        Raises:
+            TypeError: If the object is not a Template
+        """
         if not isinstance(template, Template):
             raise TypeError("add_template requires a Template instance")
 
@@ -182,11 +251,23 @@ class Namespace:
                          self.redefine, self.logger)
 
 
-    def feed_raw(self, data):
+    def feed_raw(self, data: Dict[str, Any]) -> None:
+        """
+        Add raw data to the queue of objects to be added to this namespace. The
+        data will be converted to an object via the `to_object` method. This
+        queue is processed via the `expand()` method.
+        """
+
         return self.feed(self.to_object(data))
 
 
-    def feedall_raw(self, datasequence):
+    def feedall_raw(self, datasequence: Sequence[Dict[str, Any]]) -> None:
+        """
+        Add a sequence of raw data to the queue of objects to be added to this
+        namespace. The data will be converted to an object via the `to_object`
+        method. This queue is processed via the `expand()` method.
+        """
+
         return self.feedall(self.to_objects(datasequence))
 
 
@@ -209,7 +290,25 @@ class Namespace:
         return self._feedline.extend(sequence)
 
 
-    def expand(self):
+    def expand(self) -> None:
+        """
+        Process the queue of objects that have been fed into this namespace via
+        the `feed` or `feedall` methods. At this point any templates in the
+        queue will be added to the namespace, and any template calls will be
+        expanded. This is the final step in the loading process.
+
+        The redefine semantics are applied as objects are processed, so this
+        method will raise an exception if a redefinition is encountered and the
+        redefine setting is `ERROR`.
+
+        Raises:
+            ExpansionError: If the maximum depth is reached when attempting to
+            expand a recursively expanding template
+
+            AssertionError: If the first deferal is not a TemplateCall when
+            no further objects can be added to the namespace (indicates a bug)
+        """
+
         work = self._feedline
         while work:
             deferals = []
@@ -294,10 +393,14 @@ class Namespace:
 
 
 class TemplateNamespace(Namespace):
+    """
+    A namespace that only allows templates to be added and expanded. Discards
+    all other objects.
+    """
 
     def __init__(
             self,
-            coretypes: List[Type[Base]] = CORE_MODELS,
+            coretypes: Dict[str, Type[Base]] = CORE_MODELS,
             redefine: Redefine = Redefine.ERROR,
             logger: Optional[logging.Logger] = None):
 
@@ -309,7 +412,7 @@ class TemplateNamespace(Namespace):
 
         # we need to know what to skip, because the default is to
         # assume it's a TemplateCall
-        self.ignored_types = set(tp.typename for tp in coretypes)
+        self.ignored_types = set(coretypes)
 
 
     def to_objects(self, dataseq) -> Iterator[Base]:
@@ -324,16 +427,24 @@ class TemplateNamespace(Namespace):
         return super().to_object(data)
 
 
-    def add(self, obj):
-        # We don't actually record any real objects in the TemplateNamespace
+    def add(self, obj: Base) -> None:
+        """
+        Does nothing in this subclass
+        """
         pass
 
 
 class ExpanderNamespace(Namespace):
+    """
+    A namespace that expands all core types to basic BaseObject instances. This
+    avoids schema validation, and enables us to guarantee template expansion.
+    Useful for when a user want to see the raw expanded output of their
+    templates.
+    """
 
     def __init__(
         self,
-        coretypes: List[Type[Base]] = CORE_MODELS,
+        coretypes: Dict[str, Type[Base]] = CORE_MODELS,
         redefine: Redefine = Redefine.ERROR,
         logger: Optional[logging.Logger] = None):
 
@@ -343,7 +454,7 @@ class ExpanderNamespace(Namespace):
             redefine=redefine,
             logger=logger)
 
-        faketypes = {tp.typename: RawObject for tp in coretypes}
+        faketypes = {tp.typename: BaseObject for tp in coretypes}
         faketypes['template'] = Template
         faketypes[None] = TemplateCall
         self.typemap = faketypes

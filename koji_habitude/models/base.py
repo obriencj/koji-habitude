@@ -11,13 +11,18 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: AI Generated with Human Rework
 
 
-from typing import Annotated
-
-from pydantic import BaseModel, Field, StringConstraints
+from pydantic import BaseModel, Field
 
 from typing import (
     Any, ClassVar, Dict, List, Optional, Protocol,
     Sequence, Tuple,
+)
+
+
+__all__ = (
+    'Base',
+    'BaseObject',
+    'BaseKojiObject',
 )
 
 
@@ -45,12 +50,14 @@ class Base(Protocol):
     def dependency_keys(self) -> Sequence[Tuple[str, str]]:
         ...
 
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'Base':
+        ...
+
 
 class BaseObject(BaseModel):
     """
-    Adapter between the Base protocol and dataclasses. Works with the redefined
-    `field` decorator to allow for automatic population of dataclass fields from
-    data.
+    Adapter between the Base protocol and Pydantic models.
     """
 
     typename: ClassVar[str] = 'object'
@@ -61,11 +68,9 @@ class BaseObject(BaseModel):
     lineno: Optional[int] = Field(alias='__line__', default=None)
     trace: Optional[List[Dict[str, Any]]] = Field(alias='__trace__', default_factory=list)
 
-    _data: Dict[str, Any]
+    # this is the record of the `from_dict` call if it was used
+    _data: Optional[Dict[str, Any]] = None
 
-    def __init__(self, data: Dict[str, Any]):
-        super().__init__(**data)
-        self._data = data
 
     def model_post_init(self, __context: Any):
         name = self.name and self.name.strip()
@@ -75,10 +80,15 @@ class BaseObject(BaseModel):
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'BaseObject':
-        return cls.model_validate(data)
+        obj = cls.model_validate(data)
+        obj._data = data
+        return obj
 
     @property
-    def data(self) -> Dict[str, Any]:
+    def data(self) -> Dict[str, Any] | None:
+        """
+        Access the raw data that was used if this object was created via `from_dict`
+        """
         return self._data
 
     def key(self) -> Tuple[str, str]:
@@ -86,6 +96,13 @@ class BaseObject(BaseModel):
 
     def filepos(self) -> Tuple[Optional[str], Optional[int]]:
         return (self.filename, self.lineno)
+
+    def filepos_str(self) -> str:
+        filename = self.filename or '<unknown>'
+        if self.lineno:
+            return f"{filename}:{self.lineno}"
+        else:
+            return filename
 
     def can_split(self):
         return False
@@ -98,9 +115,6 @@ class BaseObject(BaseModel):
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}({self.typename}, {self.name})>"
-
-
-RawObject = BaseObject
 
 
 class BaseKojiObject(BaseObject):
@@ -129,7 +143,7 @@ class BaseKojiObject(BaseObject):
         add the links.
         """
 
-        return type(self)({'type': self.typename, 'name': self.name})
+        return type(self)(name=self.name)
 
 
     def diff(

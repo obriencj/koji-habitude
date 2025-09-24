@@ -14,10 +14,10 @@ from unittest.mock import Mock, patch
 from pathlib import Path
 
 from koji_habitude.namespace import (
-    add_into, Redefine, NamespaceRedefine, Namespace, TemplateNamespace
+    add_into, Redefine, RedefineError, Namespace
 )
 from koji_habitude.templates import Template, TemplateCall
-from koji_habitude.models import Tag, ExternalRepo, User, Target, Host, Group, CORE_MODELS
+from koji_habitude.models import Tag, ExternalRepo, User, Target, Host, Group
 import yaml
 
 
@@ -30,6 +30,9 @@ class MockObject:
         self.lineno = lineno
 
     def filepos(self):
+        return (self.filename, self.lineno)
+
+    def filepos_str(self):
         return f"{self.filename}:{self.lineno}"
 
     def __eq__(self, other):
@@ -82,7 +85,7 @@ class TestAddInto(unittest.TestCase):
 
         add_into(self.test_dict, "key1", self.mock_obj1)
 
-        with self.assertRaises(NamespaceRedefine) as context:
+        with self.assertRaises(RedefineError) as context:
             add_into(self.test_dict, "key1", self.mock_obj1_duplicate)
 
         self.assertIn("Redefinition of key1", str(context.exception))
@@ -94,7 +97,7 @@ class TestAddInto(unittest.TestCase):
 
         add_into(self.test_dict, "key1", self.mock_obj1)
 
-        with self.assertRaises(NamespaceRedefine):
+        with self.assertRaises(RedefineError):
             add_into(self.test_dict, "key1", self.mock_obj1_duplicate,
                     redefine=Redefine.ERROR)
 
@@ -267,7 +270,7 @@ class TestNamespaceInitAndGuards(unittest.TestCase):
 
         ns = Namespace()
         tag_data = {'type': 'tag', 'name': 'test-tag'}
-        tag_obj = Tag(tag_data)
+        tag_obj = Tag.from_dict(tag_data)
 
         # Should not raise any exception
         ns.add(tag_obj)
@@ -282,7 +285,7 @@ class TestNamespaceInitAndGuards(unittest.TestCase):
 
         ns = Namespace()
         template_data = {'type': 'template', 'name': 'test-template', 'content': 'test'}
-        template_obj = Template(template_data)
+        template_obj = Template.from_dict(template_data)
 
         with self.assertRaises(TypeError) as context:
             ns.add(template_obj)
@@ -294,7 +297,7 @@ class TestNamespaceInitAndGuards(unittest.TestCase):
 
         ns = Namespace()
         call_data = {'type': 'custom-template', 'name': 'test-call'}
-        call_obj = TemplateCall(call_data)
+        call_obj = TemplateCall.from_dict(call_data)
 
         with self.assertRaises(TypeError) as context:
             ns.add(call_obj)
@@ -306,7 +309,7 @@ class TestNamespaceInitAndGuards(unittest.TestCase):
 
         ns = Namespace()
         template_data = {'type': 'template', 'name': 'test-template', 'content': 'test'}
-        template_obj = Template(template_data)
+        template_obj = Template.from_dict(template_data)
 
         # Should not raise any exception
         ns.add_template(template_obj)
@@ -320,7 +323,7 @@ class TestNamespaceInitAndGuards(unittest.TestCase):
 
         ns = Namespace()
         tag_data = {'type': 'tag', 'name': 'test-tag'}
-        tag_obj = Tag(tag_data)
+        tag_obj = Tag.from_dict(tag_data)
 
         with self.assertRaises(TypeError) as context:
             ns.add_template(tag_obj)
@@ -332,7 +335,7 @@ class TestNamespaceInitAndGuards(unittest.TestCase):
 
         ns = Namespace()
         call_data = {'type': 'custom-template', 'name': 'test-call'}
-        call_obj = TemplateCall(call_data)
+        call_obj = TemplateCall.from_dict(call_data)
 
         with self.assertRaises(TypeError) as context:
             ns.add_template(call_obj)
@@ -340,34 +343,34 @@ class TestNamespaceInitAndGuards(unittest.TestCase):
         self.assertIn("add_template requires a Template instance", str(context.exception))
 
     def test_add_duplicate_object_raises_error(self):
-        """Test that adding duplicate objects raises NamespaceRedefine with ERROR mode."""
+        """Test that adding duplicate objects raises RedefineError with ERROR mode."""
 
         ns = Namespace(redefine=Redefine.ERROR)
         tag_data = {'type': 'tag', 'name': 'test-tag'}
-        tag_obj1 = Tag(tag_data)
-        tag_obj2 = Tag(tag_data)
+        tag_obj1 = Tag.from_dict(tag_data)
+        tag_obj2 = Tag.from_dict(tag_data)
 
         # First add should succeed
         ns.add(tag_obj1)
 
         # Second add should raise error
-        with self.assertRaises(NamespaceRedefine):
+        with self.assertRaises(RedefineError):
             ns.add(tag_obj2)
 
     def test_add_template_duplicate_raises_error(self):
-        """Test that adding duplicate templates raises NamespaceRedefine with ERROR mode."""
+        """Test that adding duplicate templates raises RedefineError with ERROR mode."""
 
         ns = Namespace(redefine=Redefine.ERROR)
         template_data1 = {'type': 'template', 'name': 'test-template', 'content': 'test1'}
         template_data2 = {'type': 'template', 'name': 'test-template', 'content': 'test2'}
-        template_obj1 = Template(template_data1)
-        template_obj2 = Template(template_data2)
+        template_obj1 = Template.from_dict(template_data1)
+        template_obj2 = Template.from_dict(template_data2)
 
         # First add should succeed
         ns.add_template(template_obj1)
 
         # Second add should raise error
-        with self.assertRaises(NamespaceRedefine):
+        with self.assertRaises(RedefineError):
             ns.add_template(template_obj2)
 
     def test_add_same_object_instance_succeeds(self):
@@ -375,7 +378,7 @@ class TestNamespaceInitAndGuards(unittest.TestCase):
 
         ns = Namespace(redefine=Redefine.ERROR)
         tag_data = {'type': 'tag', 'name': 'test-tag'}
-        tag_obj = Tag(tag_data)
+        tag_obj = Tag.from_dict(tag_data)
 
         # Both adds should succeed (same instance)
         ns.add(tag_obj)
@@ -391,7 +394,7 @@ class TestNamespaceInitAndGuards(unittest.TestCase):
 
         ns = Namespace(redefine=Redefine.ERROR)
         template_data = {'type': 'template', 'name': 'test-template', 'content': 'test'}
-        template_obj = Template(template_data)
+        template_obj = Template.from_dict(template_data)
 
         # Both adds should succeed (same instance)
         ns.add_template(template_obj)

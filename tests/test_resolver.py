@@ -92,8 +92,8 @@ class TestResolver(unittest.TestCase):
         # Create a mock namespace with some objects
         self.namespace = Mock(spec=Namespace)
         self.namespace._ns = {
-            ('tag', 'existing-tag'): Tag({'name': 'existing-tag', 'type': 'tag'}),
-            ('user', 'existing-user'): User({'name': 'existing-user', 'type': 'user'}),
+            ('tag', 'existing-tag'): Tag(name='existing-tag', type='tag'),
+            ('user', 'existing-user'): User(name='existing-user', type='user'),
         }
 
         self.resolver = Resolver(self.namespace)
@@ -169,11 +169,11 @@ class TestResolver(unittest.TestCase):
     def test_can_split_object(self):
         """Test can_split with an object directly."""
         # Test with a splittable object
-        tag = Tag({'name': 'test-tag', 'type': 'tag'})
+        tag = Tag(name='test-tag', type='tag')
         self.assertTrue(self.resolver.can_split(tag))
 
         # Test with a non-splittable object
-        ext_repo = ExternalRepo({'name': 'test-repo', 'type': 'external-repo', 'url': 'http://example.com'})
+        ext_repo = ExternalRepo(name='test-repo', type='external-repo', url='http://example.com')
         self.assertFalse(self.resolver.can_split(ext_repo))
 
     def test_split_key_existing_object(self):
@@ -197,7 +197,7 @@ class TestResolver(unittest.TestCase):
 
     def test_split_object(self):
         """Test split with an object directly."""
-        tag = Tag({'name': 'test-tag', 'type': 'tag', 'arches': ['x86_64']})
+        tag = Tag(name='test-tag', type='tag', arches=['x86_64'])
         split_obj = self.resolver.split(tag)
 
         self.assertIsInstance(split_obj, Tag)
@@ -259,8 +259,8 @@ class TestResolverIntegration(unittest.TestCase):
         tag_data = {'name': 'test-tag', 'type': 'tag', 'arches': ['x86_64']}
         user_data = {'name': 'test-user', 'type': 'user', 'enabled': True}
 
-        self.namespace.add(Tag(tag_data))
-        self.namespace.add(User(user_data))
+        self.namespace.add(Tag.from_dict(tag_data))
+        self.namespace.add(User.from_dict(user_data))
 
         self.resolver = Resolver(self.namespace)
 
@@ -290,7 +290,7 @@ class TestResolverIntegration(unittest.TestCase):
             'type': 'tag',
             'inheritance': [{'name': 'parent-tag'}]
         }
-        child_tag = Tag(tag_data)
+        child_tag = Tag.from_dict(tag_data)
         self.namespace.add(child_tag)
 
         # Resolve the child tag

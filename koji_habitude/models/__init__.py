@@ -11,7 +11,11 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: AI Generated with Human Rework
 
 
-from .base import Base, BaseKojiObject, BaseObject, RawObject
+from typing import Tuple, Type
+from types import MappingProxyType
+
+
+from .base import Base, BaseKojiObject, BaseObject
 from .channel import Channel
 from .external_repo import ExternalRepo
 from .group import Group
@@ -23,11 +27,11 @@ from .user import User
 
 
 __all__ = (
+    'CORE_TYPES',
     'CORE_MODELS',
 
     'Base',
     'BaseObject',
-    'RawObject',
     'BaseKojiObject',
 
     'Channel',
@@ -41,7 +45,7 @@ __all__ = (
 )
 
 
-CORE_MODELS = (
+CORE_TYPES: Tuple[Type[BaseKojiObject], ...] = (
     Channel,
     ExternalRepo,
     Group,
@@ -51,6 +55,8 @@ CORE_MODELS = (
     Target,
     User,
 )
+
+CORE_MODELS: MappingProxyType[str, Type[BaseKojiObject]] = MappingProxyType({tp.typename: tp for tp in CORE_TYPES})
 
 
 # The end.
