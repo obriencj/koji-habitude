@@ -27,6 +27,7 @@ class TestMissingObject(unittest.TestCase):
 
         self.assertEqual(missing.typename, 'missing')
         self.assertEqual(missing.name, 'missing-tag')
+        self.assertEqual(missing.yaml_type, 'tag')
         self.assertEqual(missing.key(), key)
 
     def test_missing_object_filepos(self):

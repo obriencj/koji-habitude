@@ -22,11 +22,10 @@ License v3 AI-Assistant: Claude 3.5 Sonnet via Cursor
 from pydantic import BaseModel, Field
 from typing import Any, ClassVar, Dict, List, Set, Tuple
 
-from .models import BaseObject
 from .namespace import Namespace
 
 
-class MissingObject(BaseObject):
+class MissingObject:
     """
     A placeholder for a dependency that should exist.
     """
@@ -34,8 +33,7 @@ class MissingObject(BaseObject):
     typename: ClassVar[str] = 'missing'
 
     def __init__(self, key: Tuple[str, str]):
-        tp, name = key
-        super().__init__({'type': tp, 'name': name})
+        self.yaml_type, self.name = key
         self._key = key
 
     def key(self):
