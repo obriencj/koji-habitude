@@ -292,18 +292,161 @@ class TestSolverSimpleChains(unittest.TestCase):
 
     def test_simple_linear_chain(self):
         """Test solver with simple linear dependency chain."""
-        # TODO: Implement test using simple_chain.yaml
-        pass
+        # Create solver with simple chain (tag1 -> tag2 -> tag3)
+        solver = create_solver_with_files(['simple_chain.yaml'])
+        solver.prepare()
+
+        # Resolve all objects
+        resolved_objects = list(solver)
+
+        # Should resolve in dependency order: tag3, tag2, tag1
+        expected_order = [
+            ('tag', 'tag3'),
+            ('tag', 'tag2'),
+            ('tag', 'tag1')
+        ]
+        assert_dependency_order(self, resolved_objects, expected_order)
+
+        # After resolution, remaining should be empty
+        self.assertEqual(len(solver.remaining_keys()), 0)
+
+    def test_simple_linear_chain_partial_work(self):
+        """Test solver with partial work list on linear chain."""
+        # Create solver but only include tag1 in work list
+        solver = create_solver_with_files(['simple_chain.yaml'], work_keys=[('tag', 'tag1')])
+        solver.prepare()
+
+        # Should still resolve all dependencies
+        resolved_objects = list(solver)
+
+        # Should resolve in dependency order: tag3, tag2, tag1
+        expected_order = [
+            ('tag', 'tag3'),
+            ('tag', 'tag2'),
+            ('tag', 'tag1')
+        ]
+        assert_dependency_order(self, resolved_objects, expected_order)
 
     def test_independent_objects(self):
         """Test solver with objects that have no dependencies."""
-        # TODO: Implement test using independent_objects.yaml
-        pass
+        solver = create_solver_with_files(['independent_objects.yaml'])
+        solver.prepare()
+
+        # Resolve all objects
+        resolved_objects = list(solver)
+
+        # Should contain all objects from the file, plus the implicit missing permissions
+        # for the packagers group
+        expected_keys = [
+            ('user', 'build-user'),
+            ('user', 'release-user'),
+            ('group', 'packagers'),
+            ('permission', 'admin'),
+            ('external-repo', 'epel-9'),
+            ('permission', 'pkglist'),
+            ('permission', 'taggers'),
+        ]
+        assert_contains_objects(self, resolved_objects, expected_keys)
+
+        # Order doesn't matter for independent objects, but all should be resolved
+        self.assertEqual(len(resolved_objects), len(expected_keys))
+
+    def test_independent_objects_partial_work(self):
+        """Test solver with partial work list on independent objects."""
+        # Only include some objects in work list
+        work_keys = [('user', 'build-user'), ('group', 'packagers')]
+        solver = create_solver_with_files(['independent_objects.yaml'], work_keys=work_keys)
+        solver.prepare()
+
+        # Resolve objects
+        resolved_objects = list(solver)
+
+        # Should only resolve the work items
+        expected_keys = [
+            ('user', 'build-user'),
+            ('group', 'packagers'),
+            ('permission', 'pkglist'),
+            ('permission', 'taggers'),
+        ]
+        assert_contains_objects(self, resolved_objects, expected_keys)
+        self.assertEqual(len(resolved_objects), 4)
 
     def test_target_dependencies(self):
         """Test solver with target -> tag dependencies."""
-        # TODO: Implement test using target_dependencies.yaml
-        pass
+        solver = create_solver_with_files(['target_dependencies.yaml'])
+        solver.prepare()
+
+        # Resolve all objects
+        resolved_objects = list(solver)
+
+        # Should resolve tags first, then targets
+        # Tags have no dependencies, targets depend on tags
+        tag_keys = [('tag', 'build-tag'), ('tag', 'dest-tag')]
+        target_keys = [('target', 'myproject-build'), ('target', 'myproject-release')]
+
+        # Find positions of tags and targets
+        resolved_keys = [obj.key() for obj in resolved_objects]
+        tag_positions = [resolved_keys.index(key) for key in tag_keys if key in resolved_keys]
+        target_positions = [resolved_keys.index(key) for key in target_keys if key in resolved_keys]
+
+        # All tags should come before all targets
+        if tag_positions and target_positions:
+            max_tag_pos = max(tag_positions)
+            min_target_pos = min(target_positions)
+            self.assertLess(max_tag_pos, min_target_pos,
+                           "Tags should be resolved before targets")
+
+    def test_target_dependencies_partial_work(self):
+        """Test solver with partial work list on target dependencies."""
+        # Only include targets in work list
+        work_keys = [('target', 'myproject-build'), ('target', 'myproject-release')]
+        solver = create_solver_with_files(['target_dependencies.yaml'], work_keys=work_keys)
+        solver.prepare()
+
+        # Resolve objects
+        resolved_objects = list(solver)
+
+        # Should resolve all tags (dependencies) and the requested targets
+        expected_keys = [
+            ('tag', 'build-tag'),
+            ('tag', 'dest-tag'),
+            ('target', 'myproject-build'),
+            ('target', 'myproject-release')
+        ]
+        assert_contains_objects(self, resolved_objects, expected_keys)
+
+        # Tags should still come before targets
+        resolved_keys = [obj.key() for obj in resolved_objects]
+        tag_positions = [resolved_keys.index(key) for key in [('tag', 'build-tag'), ('tag', 'dest-tag')]]
+        target_positions = [resolved_keys.index(key) for key in [('target', 'myproject-build'), ('target', 'myproject-release')]]
+
+        if tag_positions and target_positions:
+            max_tag_pos = max(tag_positions)
+            min_target_pos = min(target_positions)
+            self.assertLess(max_tag_pos, min_target_pos)
+
+    def test_empty_work_list(self):
+        """Test solver with empty work list."""
+        solver = create_solver_with_files(['simple_chain.yaml'], work_keys=[])
+        solver.prepare()
+
+        # Should have no remaining items
+        self.assertEqual(len(solver.remaining_keys()), 0)
+
+        # Should resolve nothing
+        resolved_objects = list(solver)
+        self.assertEqual(len(resolved_objects), 0)
+
+    def test_single_object_work_list(self):
+        """Test solver with single object in work list."""
+        work_keys = [('tag', 'tag3')]  # Leaf node with no dependencies
+        solver = create_solver_with_files(['simple_chain.yaml'], work_keys=work_keys)
+        solver.prepare()
+
+        # Should resolve only the single object
+        resolved_objects = list(solver)
+        self.assertEqual(len(resolved_objects), 1)
+        self.assertEqual(resolved_objects[0].key(), ('tag', 'tag3'))
 
 
 class TestSolverDependencyTypes(unittest.TestCase):
