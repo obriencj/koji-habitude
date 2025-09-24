@@ -11,13 +11,15 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: AI Generated with Human Rework
 
 
-from .base import Base, BaseObject, BaseKojiObject, RawObject
-from .tag import Tag
+from .base import Base, BaseKojiObject, BaseObject, RawObject
+from .channel import Channel
 from .external_repo import ExternalRepo
-from .user import User
-from .target import Target
-from .host import Host
 from .group import Group
+from .host import Host
+from .permission import Permission
+from .tag import Tag
+from .target import Target
+from .user import User
 
 
 __all__ = (
@@ -26,11 +28,13 @@ __all__ = (
     'Base',
     'BaseObject',
     'RawObject',
-
     'BaseKojiObject',
+
+    'Channel',
     'ExternalRepo',
     'Group',
     'Host',
+    'Permission',
     'Tag',
     'Target',
     'User',
@@ -38,9 +42,11 @@ __all__ = (
 
 
 CORE_MODELS = (
+    Channel,
     ExternalRepo,
     Group,
     Host,
+    Permission,
     Tag,
     Target,
     User,

@@ -1,0 +1,24 @@
+# Simple dependency chain for basic solver testing
+# tag1 -> tag2 -> tag3 (linear dependency)
+
+---
+type: tag
+name: tag3
+arches: [x86_64]
+locked: true
+
+---
+type: tag
+name: tag2
+arches: [x86_64]
+inheritance:
+  - name: tag3
+
+---
+type: tag
+name: tag1
+arches: [x86_64]
+inheritance:
+  - name: tag2
+
+# The end.

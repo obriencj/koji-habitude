@@ -1,0 +1,51 @@
+# Complex circular dependency scenario
+# Multiple overlapping circular dependencies
+
+---
+type: tag
+name: base-tag
+arches: [x86_64]
+locked: true
+
+---
+type: tag
+name: tag-1
+arches: [x86_64]
+inheritance:
+  - name: tag-2
+  - name: base-tag
+
+---
+type: tag
+name: tag-2
+arches: [x86_64]
+inheritance:
+  - name: tag-3
+
+---
+type: tag
+name: tag-3
+arches: [x86_64]
+inheritance:
+  - name: tag-1
+
+---
+type: tag
+name: tag-4
+arches: [x86_64]
+inheritance:
+  - name: tag-5
+
+---
+type: tag
+name: tag-5
+arches: [x86_64]
+inheritance:
+  - name: tag-4
+
+# This creates:
+# - Circular dependency: tag-1 -> tag-2 -> tag-3 -> tag-1
+# - Circular dependency: tag-4 -> tag-5 -> tag-4
+# - Both depend on base-tag (which should be processed first)
+
+# The end.

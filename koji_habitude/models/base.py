@@ -11,8 +11,14 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: AI Generated with Human Rework
 
 
-from typing import Dict, List, Tuple, Optional, Any, TYPE_CHECKING, Protocol
-from abc import ABC, abstractmethod
+from typing import Annotated
+
+from pydantic import BaseModel, Field, StringConstraints
+
+from typing import (
+    Any, ClassVar, Dict, List, Optional, Protocol,
+    Sequence, Tuple,
+)
 
 
 class Base(Protocol):
@@ -24,30 +30,56 @@ class Base(Protocol):
     lineno: Optional[int]
     trace: Optional[List[Dict[str, Any]]]
 
-    def __init__(self, data: Dict[str, Any]) -> None:
-        ...
-
     def key(self) -> Tuple[str, str]:
         ...
 
     def filepos(self) -> Tuple[Optional[str], Optional[int]]:
         ...
 
+    def can_split(self) -> bool:
+        ...
 
-class BaseObject(Base):
+    def split(self) -> Optional['Base']:
+        ...
 
-    typename = 'object'
+    def dependency_keys(self) -> Sequence[Tuple[str, str]]:
+        ...
 
-    def __init__(self, data: Dict[str, Any]) -> None:
-        name = data.get('name')
-        name = name and name.strip()
+
+class BaseObject(BaseModel):
+    """
+    Adapter between the Base protocol and dataclasses. Works with the redefined
+    `field` decorator to allow for automatic population of dataclass fields from
+    data.
+    """
+
+    typename: ClassVar[str] = 'object'
+
+    name: str = Field(alias='name')
+    yaml_type: str = Field(alias='type', default=None)
+    filename: Optional[str] = Field(alias='__file__', default=None)
+    lineno: Optional[int] = Field(alias='__line__', default=None)
+    trace: Optional[List[Dict[str, Any]]] = Field(alias='__trace__', default_factory=list)
+
+    _data: Dict[str, Any]
+
+    def __init__(self, data: Dict[str, Any]):
+        super().__init__(**data)
+        self._data = data
+
+    def model_post_init(self, __context: Any):
+        name = self.name and self.name.strip()
         if not name:
-            raise ValueError("Non-empty name is required")
+            raise ValueError(f"name is required for {self.typename}")
+        self.name = name
 
-        self.name = data['name']
-        self.filename = data.get('__file__')
-        self.lineno = data.get('__line__')
-        self.trace = data.get('__trace__')
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'BaseObject':
+        return cls.model_validate(data)
+
+    @property
+    def data(self) -> Dict[str, Any]:
+        return self._data
 
     def key(self) -> Tuple[str, str]:
         return (self.typename, self.name)
@@ -55,46 +87,39 @@ class BaseObject(Base):
     def filepos(self) -> Tuple[Optional[str], Optional[int]]:
         return (self.filename, self.lineno)
 
+    def can_split(self):
+        return False
 
-class RawObject(BaseObject):
+    def split(self):
+        raise TypeError(f"Cannot split {self.typename}")
 
-    typename = 'raw'
+    def dependency_keys(self):
+        return ()
 
-    def __init__(self, data: Dict[str, Any]) -> None:
-        super().__init__(data)
-        self.data = data
-        self.typename = data.get('type', 'raw')
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}({self.typename}, {self.name})>"
 
 
-class BaseKojiObject(ABC, BaseObject):
+RawObject = BaseObject
+
+
+class BaseKojiObject(BaseObject):
     """
     Base class for all koji object models.
     """
 
     # override in subclasses
-    typename = 'koji-object'
+    typename: ClassVar[str] = 'koji-object'
+
+    # override in subclasses to support splitting
+    _can_split: ClassVar[bool] = False
 
 
-    def __init__(self, data: Dict[str, Any]) -> None:
-        """
-        Initialize koji object from data dictionary.
-
-        Args:
-            data: Dictionary containing object configuration
-        """
-
-        super().__init__(data)
-        self.data = data
-
-        # filled by the resolver or by defer_deps
-        self.dependants = []
+    def can_split(self):
+        return self._can_split
 
 
-    def dependency_keys(self):
-        return ()
-
-
-    def defer_deps(self) -> 'BaseKojiObject':
+    def split(self) -> 'BaseKojiObject':
         """
         Create a minimal copy of this object specifying only that it needs
         to exist, with a dependant link on the original object.
@@ -104,16 +129,10 @@ class BaseKojiObject(ABC, BaseObject):
         add the links.
         """
 
-        deferal = type(self)({
-            "type": self.typename,
-            "name": self.name
-        })
-
-        deferal.dependants = [self]
-        return deferal
+        return type(self)({'type': self.typename, 'name': self.name})
 
 
-    def koji_diff(
+    def diff(
             self,
             koji_data: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
@@ -131,14 +150,6 @@ class BaseKojiObject(ABC, BaseObject):
 
         # TODO: Implement object diffing logic
         return ()
-
-
-    def __repr__(self) -> str:
-        """
-        String representation of the object.
-        """
-
-        return f"<{self.__class__.__name__}({self.typename}, {self.name})>"
 
 
 # The end.

@@ -29,8 +29,8 @@ content: |
       type: target
       name: {{ '{{ product }}' }}-{{ '{{ component }}' }}-{{ '{{ version }}' }}-target
       description: "Build target for {{ '{{ product }}' }} {{ '{{ component }}' }} version {{ '{{ version }}' }}"
-      build_tag: {{ '{{ product }}' }}-{{ '{{ component }}' }}-{{ '{{ version }}' }}-build
-      dest_tag: {{ '{{ product }}' }}-{{ '{{ component }}' }}-{{ '{{ version }}' }}-build
+      build-tag: {{ '{{ product }}' }}-{{ '{{ component }}' }}-{{ '{{ version }}' }}-build
+      dest-tag: {{ '{{ product }}' }}-{{ '{{ component }}' }}-{{ '{{ version }}' }}-build
     {% endraw %}
 ---
 # Call the top-level meta-template

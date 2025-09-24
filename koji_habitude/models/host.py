@@ -8,7 +8,11 @@ License: GNU General Public License v3
 AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
-from typing import Dict, List, Tuple, Any
+
+from typing import ClassVar, List, Tuple, Optional
+
+from pydantic import Field
+
 from .base import BaseKojiObject
 
 
@@ -17,25 +21,32 @@ class Host(BaseKojiObject):
     Koji build host object model.
     """
 
+    typename: ClassVar[str] = "host"
+    _can_split: ClassVar[bool] = True
 
-    typename = "host"
+    arches: List[str] = Field(alias='arches', default_factory=list)
+    capacity: float = Field(alias='capacity', default=0.0)
+    enabled: bool = Field(alias='enabled', default=True)
+    description: str = Field(alias='description', default='')
+    channels: List[str] = Field(alias='channels', default_factory=list)
 
 
-    def dependent_keys(self) -> List[Tuple[str, str]]:
+    def split(self) -> Optional['Host']:
+        return Host({
+            'name': self.name,
+            'arches': self.arches,
+            'capacity': self.capacity,
+            'enabled': self.enabled,
+            'description': self.description
+        })
+
+
+
+    def dependency_keys(self) -> List[Tuple[str, str]]:
         """
         Return dependencies for this host.
-
-        Hosts may depend on:
-        - Users (for ownership/permissions)
         """
+        return [('channel', channel) for channel in self.channels]
 
-        deps = []
-
-        # User dependency for host ownership
-        user = self.data.get('user')
-        if user:
-            deps.append(('user', user))
-
-        return deps
 
 # The end.

@@ -39,7 +39,7 @@ content: |
   arches:
     - x86_64
   inheritance:
-    - parent: stage1-build
+    - name: stage1-build
       priority: 10
 ---
 # Define stage3 template
@@ -53,7 +53,7 @@ content: |
   arches:
     - x86_64
   inheritance:
-    - parent: stage2-build
+    - name: stage2-build
       priority: 10
 ---
 # Define final stage template
@@ -64,5 +64,5 @@ content: |
   type: target
   name: {{ stage }}-target
   description: "{{ stage }} target"
-  build_tag: stage3-build
-  dest_tag: stage3-build
+  build-tag: stage3-build
+  dest-tag: stage3-build

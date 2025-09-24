@@ -8,7 +8,10 @@ License: GNU General Public License v3
 AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
-from typing import Dict, List, Tuple, Any
+from typing import Any, ClassVar, List, Tuple
+
+from pydantic import Field
+
 from .base import BaseKojiObject
 
 
@@ -17,10 +20,18 @@ class Target(BaseKojiObject):
     Koji build target object model.
     """
 
-    typename = "target"
+    typename: ClassVar[str] = "target"
+
+    build_tag: str = Field(alias='build-tag')
+    dest_tag: str = Field(alias='dest-tag', default=None)
 
 
-    def dependent_keys(self) -> List[Tuple[str, str]]:
+    def model_post_init(self, __context: Any):
+        if self.dest_tag is None:
+            self.dest_tag = self.name
+
+
+    def dependency_keys(self) -> List[Tuple[str, str]]:
         """
         Return dependencies for this target.
 
@@ -29,18 +40,10 @@ class Target(BaseKojiObject):
         - Destination tag
         """
 
-        deps = []
+        return [
+            ('tag', self.build_tag),
+            ('tag', self.dest_tag),
+        ]
 
-        # Build tag dependency
-        build_tag = self.data.get('build_tag')
-        if build_tag:
-            deps.append(('tag', build_tag))
-
-        # Destination tag dependency
-        dest_tag = self.data.get('dest_tag')
-        if dest_tag:
-            deps.append(('tag', dest_tag))
-
-        return deps
 
 # The end.

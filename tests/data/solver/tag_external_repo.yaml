@@ -1,0 +1,29 @@
+# Tag with external repository dependencies
+# Tests tag -> external-repo dependency resolution
+
+---
+type: external-repo
+name: epel-9
+url: "https://dl.fedoraproject.org/pub/epel/9/"
+
+---
+type: external-repo
+name: rpmfusion-free
+url: "https://mirrors.rpmfusion.org/mirrorlist?path=free/fedora/"
+
+---
+type: tag
+name: myproject-base
+arches: [x86_64]
+external-repos:
+  - name: epel-9
+  - name: rpmfusion-free
+
+---
+type: tag
+name: myproject-build
+arches: [x86_64]
+inheritance:
+  - name: myproject-base
+
+# The end.

@@ -8,7 +8,11 @@ License: GNU General Public License v3
 AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
-from typing import Dict, List, Tuple, Any
+
+from typing import ClassVar
+
+from pydantic import Field
+
 from .base import BaseKojiObject
 
 
@@ -17,26 +21,9 @@ class ExternalRepo(BaseKojiObject):
     Koji external repository object model.
     """
 
+    typename: ClassVar[str] = "external-repo"
 
-    typename = "external-repo"
-
-
-    def dependent_keys(self) -> List[Tuple[str, str]]:
-        """
-        Return dependencies for this external repo.
-
-        External repos depend on:
-        - Tags they are associated with
-        """
-
-        deps = []
-
-        # Check for tag dependency
-        tag = self.data.get('tag')
-        if tag:
-            deps.append(('tag', tag))
-
-        return deps
+    url: str = Field(alias='url', pattern=r'^https?://')
 
 
 # The end.

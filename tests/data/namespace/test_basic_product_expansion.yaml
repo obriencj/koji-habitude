@@ -22,8 +22,8 @@ content: |
   type: target
   name: {{ product }}-target
   description: "Build target for {{ product }}"
-  build_tag: {{ product }}-build
-  dest_tag: {{ product }}-dest
+  build-tag: {{ product }}-build
+  dest-tag: {{ product }}-dest
   ---
   type: group
   name: {{ product }}-users

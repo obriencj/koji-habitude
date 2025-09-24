@@ -1,0 +1,47 @@
+# User and group dependencies
+# Tests user -> group and user -> permission dependencies
+
+---
+type: group
+name: packagers
+permissions:
+  - pkglist
+  - taggers
+
+---
+type: group
+name: release-team
+permissions:
+  - release
+  - sign
+
+---
+type: permission
+name: admin
+description: "Full administrative access"
+
+---
+type: user
+name: packager1
+groups:
+  - packagers
+permissions:
+  - admin
+
+---
+type: user
+name: packager2
+groups:
+  - packagers
+  - release-team
+
+---
+type: user
+name: release-manager
+groups:
+  - release-team
+permissions:
+  - admin
+  - sign
+
+# The end.

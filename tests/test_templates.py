@@ -14,6 +14,7 @@ from pathlib import Path
 from unittest.mock import patch, mock_open
 
 from koji_habitude.templates import Template, TemplateCall, TemplateValueError
+from pydantic import ValidationError
 from koji_habitude.loader import MultiLoader, YAMLLoader
 
 
@@ -104,6 +105,7 @@ class TestTemplate(unittest.TestCase):
         """
 
         template_data = {
+            'type': 'template',
             'name': 'test-template',
             'content': '---\ntype: tag\nname: {{ name }}\n',
         }
@@ -121,22 +123,24 @@ class TestTemplate(unittest.TestCase):
         Test template name validation requirements.
         """
 
-        template_data = {'content': 'test content'}
+        template_data = {'type': 'template', 'content': 'test content'}
 
         # Test empty name
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ValidationError) as context:
             Template(template_data)
-        self.assertIn("Non-empty name is required", str(context.exception))
+        self.assertIn("Field required", str(context.exception))
 
         # Test None name
-        with self.assertRaises(ValueError) as context:
-            Template(template_data)
-        self.assertIn("Non-empty name is required", str(context.exception))
+        template_data_none = {'type': 'template', 'name': None, 'content': 'test content'}
+        with self.assertRaises(ValidationError) as context:
+            Template(template_data_none)
+        self.assertIn("Input should be a valid string", str(context.exception))
 
-        # Test whitespace-only name
+        # Test whitespace-only name (should not be accepted by pydantic)
+        template_data_whitespace = {'type': 'template', 'name': '   ', 'content': 'test content'}
         with self.assertRaises(ValueError) as context:
-            Template(template_data)
-        self.assertIn("Non-empty name is required", str(context.exception))
+            Template(template_data_whitespace)
+        self.assertIn("name is required for template", str(context.exception))
 
     def test_template_content_validation(self):
         """
@@ -145,11 +149,12 @@ class TestTemplate(unittest.TestCase):
 
         # Test missing both content and file
         with self.assertRaises(ValueError) as context:
-            Template({'name': 'test-template'})
+            Template({'type': 'template', 'name': 'test-template'})
         self.assertIn("Template content is required", str(context.exception))
 
         # Test both content and file specified
         template_data = {
+            'type': 'template',
             'name': 'test-template',
             'content': 'test content',
             'file': 'template.j2',
@@ -157,7 +162,7 @@ class TestTemplate(unittest.TestCase):
         }
         with patch('pathlib.Path.exists', return_value=True), \
              patch('pathlib.Path.is_dir', return_value=True):
-            with self.assertRaises(TemplateValueError) as context:
+            with self.assertRaises(ValidationError) as context:
                 Template(template_data)
             self.assertIn("Template content is not allowed when template file is specified", str(context.exception))
 
@@ -168,15 +173,17 @@ class TestTemplate(unittest.TestCase):
 
         # Test missing base path when file is specified
         template_data = {
+            'type': 'template',
             'name': 'test-template',
             'file': 'template.j2',
         }
-        with self.assertRaises(TemplateValueError) as context:
+        with self.assertRaises(ValidationError) as context:
             Template(template_data)
         self.assertIn("Base path is required when template file is specified", str(context.exception))
 
         # Test non-existent base path
         template_data = {
+            'type': 'template',
             'name': 'test-template',
             'file': 'template.j2',
             '__file__': '/nonexistent/path',
@@ -188,6 +195,7 @@ class TestTemplate(unittest.TestCase):
 
         # Test base path is not a directory
         template_data = {
+            'type': 'template',
             'name': 'test-template',
             'file': 'template.j2',
             '__file__': '/path/to/file.txt',
@@ -211,13 +219,14 @@ class TestTemplate(unittest.TestCase):
             },
         }
         template_data = {
+            'type': 'template',
             'name': 'test-template',
             'content': 'test content',
             'schema': schema,
         }
         template = Template(template_data)
 
-        self.assertEqual(template.schema, schema)
+        self.assertEqual(template.template_schema, schema)
 
     def test_template_repr(self):
         """
@@ -225,6 +234,7 @@ class TestTemplate(unittest.TestCase):
         """
 
         template_data = {
+            'type': 'template',
             'name': 'test-template',
             'content': 'test content',
         }
@@ -239,14 +249,15 @@ class TestTemplate(unittest.TestCase):
         """
 
         template_data = {
+            'type': 'template',
             'name': 'test-template',
             'content': 'test content',
         }
         template = Template(template_data)
 
         # Should always return True when no schema
-        self.assertTrue(template.validate({}))
-        self.assertTrue(template.validate({'any': 'data'}))
+        self.assertTrue(template.validate_call({}))
+        self.assertTrue(template.validate_call({'any': 'data'}))
 
     def test_validate_data_with_schema_todo(self):
         """
@@ -255,6 +266,7 @@ class TestTemplate(unittest.TestCase):
 
         schema = {'type': 'object'}
         template_data = {
+            'type': 'template',
             'name': 'test-template',
             'content': 'test content',
             'schema': schema,
@@ -262,7 +274,7 @@ class TestTemplate(unittest.TestCase):
         template = Template(template_data)
 
         # Currently always returns True (TODO implementation)
-        self.assertTrue(template.validate({'test': 'data'}))
+        self.assertTrue(template.validate_call({'test': 'data'}))
 
     def test_render_simple_template(self):
         """
@@ -270,6 +282,7 @@ class TestTemplate(unittest.TestCase):
         """
 
         template_data = {
+            'type': 'template',
             'name': 'greeting-template',
             'content': 'Hello {{ name }}!',
         }
@@ -284,6 +297,7 @@ class TestTemplate(unittest.TestCase):
         """
 
         template_data = {
+            'type': 'template',
             'name': 'tag-template',
             'content': '''---
 type: tag
@@ -311,13 +325,14 @@ arches:
         """
 
         template_data = {
+            'type': 'template',
             'name': 'test-template',
             'content': 'test content',
         }
         template = Template(template_data)
 
         # Mock validate to return False
-        with patch.object(template, 'validate', return_value=False):
+        with patch.object(Template, 'validate_call', return_value=False):
             with self.assertRaises(TemplateValueError) as context:
                 template.render({'test': 'data'})
             self.assertIn("Data validation failed", str(context.exception))
@@ -329,11 +344,11 @@ arches:
         """
 
         template_data = {
+            'type': 'template',
             'name': 'tag-template',
             'content': '''---
 type: tag
-name: {{ name }}
-description: "{{ description }}"''',
+name: {{ name }}''',
         }
         template = Template(template_data)
 
@@ -343,7 +358,6 @@ description: "{{ description }}"''',
 
         data = {
             'name': 'test-tag',
-            'description': 'Test tag description',
         }
 
         results = list(template.render_and_load(data))
@@ -352,7 +366,6 @@ description: "{{ description }}"''',
         result = results[0]
         self.assertEqual(result['type'], 'tag')
         self.assertEqual(result['name'], 'test-tag')
-        self.assertEqual(result['description'], 'Test tag description')
 
     def test_render_and_load_multiple_documents(self):
         """
@@ -360,6 +373,7 @@ description: "{{ description }}"''',
         """
 
         template_data = {
+            'type': 'template',
             'name': 'multi-template',
             'content': '''---
 type: tag
@@ -388,6 +402,7 @@ name: {{ name }}-dest'''
         """
 
         template_data = {
+            'type': 'template',
             'name': 'trace-template',
             'content': '''---
 type: tag
@@ -431,6 +446,7 @@ name: {{ name }}'''
         """
 
         template_data = {
+            'type': 'template',
             'name': 'nested-template',
             'content': '''---
 type: tag
@@ -474,6 +490,7 @@ name: {{ name }}'''
         """
 
         template_data = {
+            'type': 'template',
             'name': 'call-template',
             'content': '''---
 type: tag
@@ -503,6 +520,7 @@ name: {{ name }}'''
 
         # Template with malformed Jinja2 syntax
         template_data = {
+            'type': 'template',
             'name': 'bad-jinja-template',
             'content': '''---
 type: tag
@@ -522,6 +540,7 @@ name: {{ name }
 
         # Template with an invalid filter (error at template creation time)
         template_data = {
+            'type': 'template',
             'name': 'filter-error-template',
             'content': '''---
 type: tag
@@ -560,7 +579,6 @@ description: "{{ name | invalid_filter }}"'''
         # Test rendering with data
         data = {
             'name': 'fedora-39-build',
-            'description': 'Fedora 39 build tag',
             'arches': ['x86_64', 'aarch64'],
             'parents': ['fedora-39-base']
         }
@@ -571,11 +589,10 @@ description: "{{ name | invalid_filter }}"'''
         result = results[0]
         self.assertEqual(result['type'], 'tag')
         self.assertEqual(result['name'], 'fedora-39-build')
-        self.assertEqual(result['description'], 'Fedora 39 build tag')
         self.assertIn('x86_64', result['arches'])
         self.assertIn('aarch64', result['arches'])
         self.assertEqual(len(result['inheritance']), 1)
-        self.assertEqual(result['inheritance'][0]['parent'], 'fedora-39-base')
+        self.assertEqual(result['inheritance'][0]['name'], 'fedora-39-base')
         self.assertEqual(result['inheritance'][0]['priority'], 10)
 
     def test_external_template_file_with_real_data(self):
@@ -585,6 +602,7 @@ description: "{{ name | invalid_filter }}"'''
 
         # Use the actual template directory for this test
         template_data = {
+            'type': 'template',
             'name': 'external-target-template',
             'file': 'target_template.j2',
             '__file__': str(self.templates_dir / 'fake.yml'),
@@ -596,8 +614,6 @@ description: "{{ name | invalid_filter }}"'''
         data = {
             'name': 'fedora-39',
             'build_tag': 'fedora-39-build',
-            'dest_tag': 'fedora-39-dest',
-            'description': 'Fedora 39 target',
         }
 
         results = list(template.render_and_load(data))
@@ -606,9 +622,8 @@ description: "{{ name | invalid_filter }}"'''
         result = results[0]
         self.assertEqual(result['type'], 'target')
         self.assertEqual(result['name'], 'fedora-39')
-        self.assertEqual(result['build_tag'], 'fedora-39-build')
-        self.assertEqual(result['dest_tag'], 'fedora-39-dest')
-        self.assertEqual(result['description'], 'Fedora 39 target')
+        self.assertEqual(result['build-tag'], 'fedora-39-build')
+        self.assertEqual(result['dest-tag'], 'fedora-39-dest')
 
 
 class TestTemplatesWithRealFiles(unittest.TestCase):
@@ -660,7 +675,7 @@ class TestTemplatesWithRealFiles(unittest.TestCase):
             'name': 'test-build-tag',
             'description': 'Test build tag',
             'arches': ['x86_64', 'aarch64'],
-            'parents': ['base-tag', 'updates-tag']
+            'parents': ['base-tag', 'updates-tag'],
         }
 
         results = list(template.render_and_load(data))
@@ -669,15 +684,15 @@ class TestTemplatesWithRealFiles(unittest.TestCase):
         result = results[0]
         self.assertEqual(result['type'], 'tag')
         self.assertEqual(result['name'], 'test-build-tag')
-        self.assertEqual(result['description'], 'Test build tag')
         self.assertEqual(result['arches'], ['x86_64', 'aarch64'])
 
         # Check inheritance was properly rendered
         self.assertIn('inheritance', result)
+        print(result['inheritance'])
         self.assertEqual(len(result['inheritance']), 2)
-        self.assertEqual(result['inheritance'][0]['parent'], 'base-tag')
+        self.assertEqual(result['inheritance'][0]['name'], 'base-tag')
         self.assertEqual(result['inheritance'][0]['priority'], 10)
-        self.assertEqual(result['inheritance'][1]['parent'], 'updates-tag')
+        self.assertEqual(result['inheritance'][1]['name'], 'updates-tag')
         self.assertEqual(result['inheritance'][1]['priority'], 20)
 
     def test_load_external_template_with_multiloader(self):
@@ -711,8 +726,7 @@ class TestTemplatesWithRealFiles(unittest.TestCase):
         data = {
             'name': 'fedora-39',
             'build_tag': 'fedora-39-build',
-            'dest_tag': 'fedora-39-dest',
-            'description': 'Fedora 39 build target'
+            'dest_tag': 'fedora-39-candidate',
         }
 
         results = list(template.render_and_load(data))
@@ -721,9 +735,8 @@ class TestTemplatesWithRealFiles(unittest.TestCase):
         result = results[0]
         self.assertEqual(result['type'], 'target')
         self.assertEqual(result['name'], 'fedora-39')
-        self.assertEqual(result['build_tag'], 'fedora-39-build')
-        self.assertEqual(result['dest_tag'], 'fedora-39-dest')
-        self.assertEqual(result['description'], 'Fedora 39 build target')
+        self.assertEqual(result['build-tag'], 'fedora-39-build')
+        self.assertEqual(result['dest-tag'], 'fedora-39-candidate')
 
         # Verify tracing information
         self.assertIn('__trace__', result)
@@ -731,7 +744,7 @@ class TestTemplatesWithRealFiles(unittest.TestCase):
         self.assertEqual(trace['name'], 'external-target-template')
         self.assertEqual(trace['file'], str(template_file))
 
-    def test_load_external_template_without_description(self):
+    def test_load_external_template_without_dest_tag(self):
         """
         Test external template with optional fields (conditional Jinja2).
         """
@@ -740,11 +753,9 @@ class TestTemplatesWithRealFiles(unittest.TestCase):
         documents = load_documents_from_paths([template_file])
         template = Template(documents[0])
 
-        # Test rendering without optional description
         data = {
             'name': 'minimal-target',
             'build_tag': 'minimal-build',
-            'dest_tag': 'minimal-dest',
         }
 
         results = list(template.render_and_load(data))
@@ -752,10 +763,8 @@ class TestTemplatesWithRealFiles(unittest.TestCase):
 
         self.assertEqual(result['type'], 'target')
         self.assertEqual(result['name'], 'minimal-target')
-        self.assertEqual(result['build_tag'], 'minimal-build')
-        self.assertEqual(result['dest_tag'], 'minimal-dest')
-        # Description should not be present due to Jinja2 conditional
-        self.assertNotIn('description', result)
+        self.assertEqual(result['build-tag'], 'minimal-build')
+        self.assertEqual(result['dest-tag'], 'minimal-target-dest')
 
     def test_load_multi_output_template_with_multiloader(self):
         """
@@ -783,23 +792,21 @@ class TestTemplatesWithRealFiles(unittest.TestCase):
         build_tag = results[0]
         self.assertEqual(build_tag['type'], 'tag')
         self.assertEqual(build_tag['name'], 'fedora-40-build')
-        self.assertEqual(build_tag['description'], 'Build tag for fedora-40')
         self.assertEqual(build_tag['arches'], ['x86_64', 'aarch64', 's390x'])
 
         # Check dest tag
         dest_tag = results[1]
         self.assertEqual(dest_tag['type'], 'tag')
         self.assertEqual(dest_tag['name'], 'fedora-40-dest')
-        self.assertEqual(dest_tag['description'], 'Destination tag for fedora-40')
         self.assertIn('inheritance', dest_tag)
-        self.assertEqual(dest_tag['inheritance'][0]['parent'], 'fedora-40-build')
+        self.assertEqual(dest_tag['inheritance'][0]['name'], 'fedora-40-build')
 
         # Check target
         target = results[2]
         self.assertEqual(target['type'], 'target')
         self.assertEqual(target['name'], 'fedora-40')
-        self.assertEqual(target['build_tag'], 'fedora-40-build')
-        self.assertEqual(target['dest_tag'], 'fedora-40-dest')
+        self.assertEqual(target['build-tag'], 'fedora-40-build')
+        self.assertEqual(target['dest-tag'], 'fedora-40-dest')
 
     def test_load_all_templates_from_directory(self):
         """

@@ -9,18 +9,14 @@ License: GNU General Public License v3
 AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
-import logging
-import unittest
 from pathlib import Path
-from unittest.mock import Mock
+from unittest import TestCase
 
-from koji_habitude.namespace import (
-    Namespace, NamespaceRedefine, Redefine, ExpansionError
-)
-from koji_habitude.templates import Template, TemplateCall
 from jinja2.exceptions import TemplateSyntaxError
-from koji_habitude.models import Tag, ExternalRepo, User, Target, Host, Group
+
 from koji_habitude.loader import YAMLLoader
+from koji_habitude.models import Group, Tag, Target
+from koji_habitude.namespace import ExpansionError, Namespace
 
 
 def load_yaml_file(file_path):
@@ -37,7 +33,7 @@ def load_yaml_file(file_path):
     return YAMLLoader(file_path).load()
 
 
-class TestBasicTemplateExpansion(unittest.TestCase):
+class TestBasicTemplateExpansion(TestCase):
     """Test cases for basic template expansion creating multiple objects."""
 
     def setUp(self):
@@ -100,10 +96,10 @@ class TestBasicTemplateExpansion(unittest.TestCase):
 
         # Verify build tag has proper inheritance including override
         build_tag = self.ns._ns[('tag', 'webapp-build')]
-        inheritance = build_tag.data.get('inheritance', [])
+        inheritance = build_tag.parents
 
         # Should have inheritance from both base and override
-        parent_names = [p['parent'] for p in inheritance if isinstance(p, dict)]
+        parent_names = [p.name for p in inheritance]
         self.assertIn('webapp-dest', parent_names)
         self.assertIn('webapp-override', parent_names)
 
@@ -129,7 +125,7 @@ class TestBasicTemplateExpansion(unittest.TestCase):
                 self.assertIn(key, self.ns._ns, f"Missing {key[0]} {key[1]}")
 
 
-class TestDeferredResolution(unittest.TestCase):
+class TestDeferredResolution(TestCase):
     """Test cases for deferred template resolution (templates used before definition)."""
 
     def setUp(self):
@@ -181,7 +177,7 @@ class TestDeferredResolution(unittest.TestCase):
             self.assertIn((obj_type, obj_name), self.ns._ns)
 
 
-class TestMetaTemplateGeneration(unittest.TestCase):
+class TestMetaTemplateGeneration(TestCase):
     """Test cases for meta-templates that generate other templates."""
 
     def setUp(self):
@@ -231,7 +227,7 @@ class TestMetaTemplateGeneration(unittest.TestCase):
         # Verify build tag uses override in inheritance
         build_tag = self.ns._ns[('tag', 'webapp-2.0-build')]
         inheritance = build_tag.data.get('inheritance', [])
-        parent_names = [p['parent'] for p in inheritance if isinstance(p, dict)]
+        parent_names = [p['name'] for p in inheritance if isinstance(p, dict)]
         self.assertIn('webapp-2.0-override', parent_names)
 
     def test_nested_meta_template_generation(self):
@@ -252,7 +248,7 @@ class TestMetaTemplateGeneration(unittest.TestCase):
         self.assertIn(('target', 'myapp-frontend-3.0-target'), self.ns._ns)
 
 
-class TestExpansionErrorHandling(unittest.TestCase):
+class TestExpansionErrorHandling(TestCase):
     """Test cases for expansion error handling and deadlock detection."""
 
     def setUp(self):
@@ -308,10 +304,6 @@ class TestExpansionErrorHandling(unittest.TestCase):
         # Should fail during expansion when trying to use generated template
         with self.assertRaises(Exception):
             self.ns.expand()
-
-
-if __name__ == '__main__':
-    unittest.main()
 
 
 # The end.
