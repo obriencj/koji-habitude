@@ -46,9 +46,6 @@ class Base(Protocol):
         ...
 
 
-String = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
-
-
 class BaseObject(BaseModel):
     """
     Adapter between the Base protocol and dataclasses. Works with the redefined
@@ -58,8 +55,8 @@ class BaseObject(BaseModel):
 
     typename: ClassVar[str] = 'object'
 
-    yaml_type: String = Field(alias='type')
-    name: String = Field(alias='name')
+    yaml_type: str = Field(alias='type')
+    name: str = Field(alias='name')
     filename: Optional[str] = Field(alias='__file__', default=None)
     lineno: Optional[int] = Field(alias='__line__', default=None)
     trace: Optional[List[Dict[str, Any]]] = Field(alias='__trace__', default_factory=list)
@@ -69,6 +66,17 @@ class BaseObject(BaseModel):
     def __init__(self, data: Dict[str, Any]):
         super().__init__(**data)
         self._data = data
+
+    def model_post_init(self, __context: Any):
+        name = self.name and self.name.strip()
+        if not name:
+            raise ValueError(f"name is required for {self.typename}")
+        self.name = name
+
+        yaml_type = self.yaml_type and self.yaml_type.strip()
+        if not yaml_type:
+            raise ValueError(f"type is required for {self.typename}")
+        self.yaml_type = yaml_type
 
     @property
     def data(self) -> Dict[str, Any]:

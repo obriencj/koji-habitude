@@ -82,6 +82,7 @@ class Template(BaseObject):
 
 
     def model_post_init(self, __context: Any):
+        super().model_post_init(__context)
 
         if self.filename:
             self._base_path = Path(self.filename).parent

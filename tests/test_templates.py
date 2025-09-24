@@ -138,9 +138,9 @@ class TestTemplate(unittest.TestCase):
 
         # Test whitespace-only name (should not be accepted by pydantic)
         template_data_whitespace = {'type': 'template', 'name': '   ', 'content': 'test content'}
-        with self.assertRaises(ValidationError) as context:
+        with self.assertRaises(ValueError) as context:
             Template(template_data_whitespace)
-        self.assertIn("String should have at least 1 character", str(context.exception))
+        self.assertIn("name is required for template", str(context.exception))
 
     def test_template_content_validation(self):
         """
