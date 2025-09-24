@@ -151,14 +151,14 @@ class TestTemplate(unittest.TestCase):
         """
 
         # Test missing both content and file
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(TemplateException) as context:
             Template(type='template', name='test-template')
         self.assertIn("Template content is required", str(context.exception))
 
         # Test both content and file specified
         with patch('pathlib.Path.exists', return_value=True), \
              patch('pathlib.Path.is_dir', return_value=True):
-            with self.assertRaises(ValidationError) as context:
+            with self.assertRaises(TemplateException) as context:
                 Template(
                     type='template',
                     name='test-template',
