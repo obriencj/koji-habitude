@@ -62,7 +62,7 @@ class TestTemplateCall(unittest.TestCase):
             'name': 'test-object',
             'property': 'value'
         }
-        call = TemplateCall(data)
+        call = TemplateCall.from_dict(data)
 
         self.assertEqual(call.typename, 'my-template', "Should extract typename from data")
         self.assertEqual(call.data, data, "Should store original data")
@@ -78,7 +78,7 @@ class TestTemplateCall(unittest.TestCase):
             '__file__': '/path/to/file.yaml',
             '__line__': 42
         }
-        call = TemplateCall(data)
+        call = TemplateCall.from_dict(data)
 
         self.assertEqual(call.typename, 'complex-template')
         self.assertEqual(call.data['__file__'], '/path/to/file.yaml')
@@ -109,7 +109,7 @@ class TestTemplate(unittest.TestCase):
             'name': 'test-template',
             'content': '---\ntype: tag\nname: {{ name }}\n',
         }
-        template = Template(template_data)
+        template = Template.from_dict(template_data)
 
         self.assertEqual(template.name, 'test-template')
         self.assertEqual(template.template_content, template_data['content'])
@@ -123,23 +123,19 @@ class TestTemplate(unittest.TestCase):
         Test template name validation requirements.
         """
 
-        template_data = {'type': 'template', 'content': 'test content'}
-
         # Test empty name
         with self.assertRaises(ValidationError) as context:
-            Template(template_data)
+            Template(type='template', content='test content')
         self.assertIn("Field required", str(context.exception))
 
         # Test None name
-        template_data_none = {'type': 'template', 'name': None, 'content': 'test content'}
         with self.assertRaises(ValidationError) as context:
-            Template(template_data_none)
+            Template(type='template', name=None, content='test content')
         self.assertIn("Input should be a valid string", str(context.exception))
 
         # Test whitespace-only name (should not be accepted by pydantic)
-        template_data_whitespace = {'type': 'template', 'name': '   ', 'content': 'test content'}
         with self.assertRaises(ValueError) as context:
-            Template(template_data_whitespace)
+            Template(type='template', name='   ', content='test content')
         self.assertIn("name is required for template", str(context.exception))
 
     def test_template_content_validation(self):
@@ -149,21 +145,20 @@ class TestTemplate(unittest.TestCase):
 
         # Test missing both content and file
         with self.assertRaises(ValueError) as context:
-            Template({'type': 'template', 'name': 'test-template'})
+            Template(type='template', name='test-template')
         self.assertIn("Template content is required", str(context.exception))
 
         # Test both content and file specified
-        template_data = {
-            'type': 'template',
-            'name': 'test-template',
-            'content': 'test content',
-            'file': 'template.j2',
-            '__file__': '/fake/path',
-        }
         with patch('pathlib.Path.exists', return_value=True), \
              patch('pathlib.Path.is_dir', return_value=True):
             with self.assertRaises(ValidationError) as context:
-                Template(template_data)
+                Template(
+                    type='template',
+                    name='test-template',
+                    content='test content',
+                    file='template.j2',
+                    __file__='/fake/path'
+                )
             self.assertIn("Template content is not allowed when template file is specified", str(context.exception))
 
     def test_template_file_path_validation(self):
@@ -172,38 +167,35 @@ class TestTemplate(unittest.TestCase):
         """
 
         # Test missing base path when file is specified
-        template_data = {
-            'type': 'template',
-            'name': 'test-template',
-            'file': 'template.j2',
-        }
         with self.assertRaises(ValidationError) as context:
-            Template(template_data)
+            Template(
+                type='template',
+                name='test-template',
+                file='template.j2'
+            )
         self.assertIn("Base path is required when template file is specified", str(context.exception))
 
         # Test non-existent base path
-        template_data = {
-            'type': 'template',
-            'name': 'test-template',
-            'file': 'template.j2',
-            '__file__': '/nonexistent/path',
-        }
         with patch('pathlib.Path.exists', return_value=False):
             with self.assertRaises(FileNotFoundError) as context:
-                Template(template_data)
+                Template(
+                    type='template',
+                    name='test-template',
+                    file='template.j2',
+                    __file__='/nonexistent/path'
+                )
             self.assertIn("Base path not found", str(context.exception))
 
         # Test base path is not a directory
-        template_data = {
-            'type': 'template',
-            'name': 'test-template',
-            'file': 'template.j2',
-            '__file__': '/path/to/file.txt',
-        }
         with patch('pathlib.Path.exists', return_value=True), \
              patch('pathlib.Path.is_dir', return_value=False):
             with self.assertRaises(NotADirectoryError) as context:
-                Template(template_data)
+                Template(
+                    type='template',
+                    name='test-template',
+                    file='template.j2',
+                    __file__='/path/to/file.txt'
+                )
             self.assertIn("Base path is not a directory", str(context.exception))
 
     def test_template_schema_handling(self):
@@ -224,7 +216,7 @@ class TestTemplate(unittest.TestCase):
             'content': 'test content',
             'schema': schema,
         }
-        template = Template(template_data)
+        template = Template.from_dict(template_data)
 
         self.assertEqual(template.template_schema, schema)
 
@@ -238,7 +230,7 @@ class TestTemplate(unittest.TestCase):
             'name': 'test-template',
             'content': 'test content',
         }
-        template = Template(template_data)
+        template = Template.from_dict(template_data)
 
         repr_str = repr(template)
         self.assertEqual('<Template(name=test-template)>', repr_str)
@@ -253,7 +245,7 @@ class TestTemplate(unittest.TestCase):
             'name': 'test-template',
             'content': 'test content',
         }
-        template = Template(template_data)
+        template = Template.from_dict(template_data)
 
         # Should always return True when no schema
         self.assertTrue(template.validate_call({}))
@@ -271,7 +263,7 @@ class TestTemplate(unittest.TestCase):
             'content': 'test content',
             'schema': schema,
         }
-        template = Template(template_data)
+        template = Template.from_dict(template_data)
 
         # Currently always returns True (TODO implementation)
         self.assertTrue(template.validate_call({'test': 'data'}))
@@ -286,7 +278,7 @@ class TestTemplate(unittest.TestCase):
             'name': 'greeting-template',
             'content': 'Hello {{ name }}!',
         }
-        template = Template(template_data)
+        template = Template.from_dict(template_data)
 
         result = template.render({'name': 'World'})
         self.assertEqual(result, 'Hello World!')
@@ -307,7 +299,7 @@ arches:
   - {{ arch }}
 {% endfor %}''',
         }
-        template = Template(template_data)
+        template = Template.from_dict(template_data)
 
         data = {
             'name': 'test-tag',
@@ -329,7 +321,7 @@ arches:
             'name': 'test-template',
             'content': 'test content',
         }
-        template = Template(template_data)
+        template = Template.from_dict(template_data)
 
         # Mock validate to return False
         with patch.object(Template, 'validate_call', return_value=False):
@@ -350,7 +342,7 @@ arches:
 type: tag
 name: {{ name }}''',
         }
-        template = Template(template_data)
+        template = Template.from_dict(template_data)
 
         # Set tracing attributes that would normally be set by namespace
         template.filename = '/path/to/template.yaml'
@@ -382,7 +374,7 @@ name: {{ name }}-build
 type: tag
 name: {{ name }}-dest'''
         }
-        template = Template(template_data)
+        template = Template.from_dict(template_data)
 
         # Set tracing attributes that would normally be set by namespace
         template.filename = '/path/to/template.yaml'
@@ -408,7 +400,7 @@ name: {{ name }}-dest'''
 type: tag
 name: {{ name }}'''
         }
-        template = Template(template_data)
+        template = Template.from_dict(template_data)
 
         # Mock the filename and lineno properties that would be set by namespace
         template.filename = '/path/to/template.yaml'
@@ -452,7 +444,7 @@ name: {{ name }}'''
 type: tag
 name: {{ name }}'''
         }
-        template = Template(template_data)
+        template = Template.from_dict(template_data)
 
         template.filename = '/path/to/nested.yaml'
         template.lineno = 8
@@ -496,7 +488,7 @@ name: {{ name }}'''
 type: tag
 name: {{ name }}'''
         }
-        template = Template(template_data)
+        template = Template.from_dict(template_data)
 
         # Set tracing attributes that would normally be set by namespace
         template.filename = '/path/to/template.yaml'
@@ -506,7 +498,7 @@ name: {{ name }}'''
             'type': 'call-template',
             'name': 'test-tag'
         }
-        call = TemplateCall(call_data)
+        call = TemplateCall.from_dict(call_data)
 
         results = list(template.render_call(call))
         self.assertEqual(len(results), 1)
@@ -519,19 +511,17 @@ name: {{ name }}'''
         """
 
         # Template with malformed Jinja2 syntax
-        template_data = {
-            'type': 'template',
-            'name': 'bad-jinja-template',
-            'content': '''---
-type: tag
-name: {{ name }
-# Missing closing brace'''
-        }
-
         # Template creation should fail with malformed Jinja2 syntax
         from jinja2.exceptions import TemplateSyntaxError
         with self.assertRaises(TemplateSyntaxError):
-            Template(template_data)
+            Template(
+                type='template',
+                name='bad-jinja-template',
+                content='''---
+type: tag
+name: {{ name }
+# Missing closing brace'''
+            )
 
     def test_jinja2_filter_error_propagation(self):
         """
@@ -539,19 +529,17 @@ name: {{ name }
         """
 
         # Template with an invalid filter (error at template creation time)
-        template_data = {
-            'type': 'template',
-            'name': 'filter-error-template',
-            'content': '''---
-type: tag
-name: {{ name }}
-description: "{{ name | invalid_filter }}"'''
-        }
-
         # Template creation should fail with invalid filter
         from jinja2.exceptions import TemplateAssertionError
         with self.assertRaises(TemplateAssertionError):
-            Template(template_data)
+            Template(
+                type='template',
+                name='filter-error-template',
+                content='''---
+type: tag
+name: {{ name }}
+description: "{{ name | invalid_filter }}"'''
+            )
 
 
     def test_template_with_real_test_data(self):
@@ -572,7 +560,7 @@ description: "{{ name | invalid_filter }}"'''
         self.assertEqual(template_doc['name'], 'inline-tag-template')
 
         # Create template from the loaded data
-        template = Template(template_doc)
+        template = Template.from_dict(template_doc)
         template.filename = str(inline_template_path)
         template.lineno = 2  # Line where template starts
 
@@ -609,7 +597,7 @@ description: "{{ name | invalid_filter }}"'''
             '__line__': 2,
         }
 
-        template = Template(template_data)
+        template = Template.from_dict(template_data)
 
         data = {
             'name': 'fedora-39',
@@ -661,7 +649,7 @@ class TestTemplatesWithRealFiles(unittest.TestCase):
         self.assertIn('content', template_doc)
 
         # Create template from document
-        template = Template(template_doc)
+        template = Template.from_dict(template_doc)
 
         # Verify template properties
         self.assertEqual(template.name, 'inline-tag-template')
@@ -714,7 +702,7 @@ class TestTemplatesWithRealFiles(unittest.TestCase):
         self.assertNotIn('content', template_doc)
 
         # Create template from document
-        template = Template(template_doc)
+        template = Template.from_dict(template_doc)
 
         # Verify template properties
         self.assertEqual(template.name, 'external-target-template')
@@ -751,7 +739,7 @@ class TestTemplatesWithRealFiles(unittest.TestCase):
 
         template_file = self.templates_dir / 'external_file.yaml'
         documents = load_documents_from_paths([template_file])
-        template = Template(documents[0])
+        template = Template.from_dict(documents[0])
 
         data = {
             'name': 'minimal-target',
@@ -777,7 +765,7 @@ class TestTemplatesWithRealFiles(unittest.TestCase):
         template_doc = documents[0]
         self.assertEqual(template_doc['name'], 'multi-output-template')
 
-        template = Template(template_doc)
+        template = Template.from_dict(template_doc)
 
         # Test rendering - should generate 3 documents
         data = {
@@ -834,7 +822,7 @@ class TestTemplatesWithRealFiles(unittest.TestCase):
         for template_doc in template_docs:
             # Skip templates that don't have content or file (like the old test templates)
             if 'content' in template_doc or 'file' in template_doc:
-                template = Template(template_doc)
+                template = Template.from_dict(template_doc)
                 self.assertIsInstance(template, Template)
                 self.assertEqual(template.name, template_doc['name'])
 
@@ -845,7 +833,7 @@ class TestTemplatesWithRealFiles(unittest.TestCase):
 
         template_file = self.templates_dir / 'inline_content.yaml'
         documents = load_documents_from_paths([template_file])
-        template = Template(documents[0])
+        template = Template.from_dict(documents[0])
 
         # Create data with existing trace information (simulating nested expansion)
         data = {

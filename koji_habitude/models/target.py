@@ -8,11 +8,11 @@ License: GNU General Public License v3
 AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
-from typing import Any, ClassVar, List, Tuple
+from typing import Any, ClassVar, List
 
 from pydantic import Field
 
-from .base import BaseKojiObject
+from .base import BaseKojiObject, BaseKey
 
 
 class Target(BaseKojiObject):
@@ -31,7 +31,7 @@ class Target(BaseKojiObject):
             self.dest_tag = self.name
 
 
-    def dependency_keys(self) -> List[Tuple[str, str]]:
+    def dependency_keys(self) -> List[BaseKey]:
         """
         Return dependencies for this target.
 

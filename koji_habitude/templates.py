@@ -39,6 +39,10 @@ class TemplateCall:
         self.typename = data['type']
         self.data = data
 
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'TemplateCall':
+        return cls(data)
+
 
 class TemplateProtocol(Base):
 
@@ -69,6 +73,7 @@ class Template(BaseObject):
     _undeclared: Set[str]
     _jinja2_template: Jinja2Template
     _base_path: Optional[Path]
+
 
     @property
     def base_path(self) -> Optional[Path]:

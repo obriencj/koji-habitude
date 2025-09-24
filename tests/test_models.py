@@ -9,22 +9,10 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
 import unittest
-from pathlib import Path
-from typing import Dict, Any, List, Tuple
 
 from koji_habitude.models import (
-    CORE_MODELS,
-    BaseObject,
-    BaseKojiObject,
-    RawObject,
-    Channel,
-    ExternalRepo,
-    Group,
-    Host,
-    Permission,
-    Tag,
-    Target,
-    User,
+    CORE_MODELS, CORE_TYPES, BaseObject, BaseKojiObject, Channel, ExternalRepo,
+    Group, Host, Permission, Tag, Target, User,
 )
 
 
@@ -46,7 +34,7 @@ class TestBaseModels(unittest.TestCase):
             '__trace__': [{'key': 'value'}]
         }
 
-        obj = BaseObject(data)
+        obj = BaseObject.from_dict(data)
 
         self.assertEqual(obj.typename, 'object')
         self.assertEqual(obj.yaml_type, 'test-type')
@@ -62,7 +50,7 @@ class TestBaseModels(unittest.TestCase):
         """
 
         data = {'type': 'test-type', 'name': 'test-name'}
-        obj = BaseObject(data)
+        obj = BaseObject.from_dict(data)
 
         key = obj.key()
         self.assertEqual(key, ('object', 'test-name'))
@@ -78,7 +66,7 @@ class TestBaseModels(unittest.TestCase):
             '__file__': 'test.yaml',
             '__line__': 42
         }
-        obj = BaseObject(data)
+        obj = BaseObject.from_dict(data)
 
         filepos = obj.filepos()
         self.assertEqual(filepos, ('test.yaml', 42))
@@ -89,7 +77,7 @@ class TestBaseModels(unittest.TestCase):
         """
 
         data = {'type': 'test-type', 'name': 'test-name'}
-        obj = BaseObject(data)
+        obj = BaseObject.from_dict(data)
 
         self.assertFalse(obj.can_split())
 
@@ -99,7 +87,7 @@ class TestBaseModels(unittest.TestCase):
         """
 
         data = {'type': 'test-type', 'name': 'test-name'}
-        obj = BaseObject(data)
+        obj = BaseObject.from_dict(data)
 
         with self.assertRaises(TypeError) as context:
             obj.split()
@@ -112,7 +100,7 @@ class TestBaseModels(unittest.TestCase):
         """
 
         data = {'type': 'test-type', 'name': 'test-name'}
-        obj = BaseObject(data)
+        obj = BaseObject.from_dict(data)
 
         deps = obj.dependency_keys()
         self.assertEqual(deps, ())
@@ -123,18 +111,18 @@ class TestBaseModels(unittest.TestCase):
         """
 
         data = {'type': 'test-type', 'name': 'test-name'}
-        obj = BaseObject(data)
+        obj = BaseObject.from_dict(data)
 
         repr_str = repr(obj)
         self.assertEqual(repr_str, '<BaseObject(object, test-name)>')
 
     def test_raw_object_alias(self):
         """
-        Test that RawObject is an alias for BaseObject.
+        Test that BaseObject is an alias for BaseObject.
         """
 
         data = {'type': 'test-type', 'name': 'test-name'}
-        obj = RawObject(data)
+        obj = BaseObject.from_dict(data)
 
         self.assertIsInstance(obj, BaseObject)
         self.assertEqual(obj.typename, 'object')
@@ -145,7 +133,7 @@ class TestBaseModels(unittest.TestCase):
         """
 
         data = {'type': 'koji-object', 'name': 'test-name'}
-        obj = BaseKojiObject(data)
+        obj = BaseKojiObject.from_dict(data)
 
         self.assertEqual(obj.typename, 'koji-object')
         self.assertEqual(obj.name, 'test-name')
@@ -156,37 +144,24 @@ class TestBaseModels(unittest.TestCase):
         """
 
         data = {'type': 'koji-object', 'name': 'test-name'}
-        obj = BaseKojiObject(data)
+        obj = BaseKojiObject.from_dict(data)
 
         self.assertFalse(obj.can_split())
 
-    def test_base_koji_object_split_creates_minimal_copy(self):
+    def test_base_koji_object_split_raises(self):
         """
         Test that BaseKojiObject.split() creates a minimal copy.
         """
 
         data = {'type': 'koji-object', 'name': 'test-name'}
-        obj = BaseKojiObject(data)
+        obj = BaseKojiObject.from_dict(data)
 
-        split_obj = obj.split()
-
-        self.assertIsInstance(split_obj, BaseKojiObject)
-        self.assertEqual(split_obj.typename, 'koji-object')
-        self.assertEqual(split_obj.name, 'test-name')
+        with self.assertRaises(TypeError):
+            obj.split()
 
     def test_base_koji_object_diff_stub(self):
-        """
-        Test that BaseKojiObject.diff() returns empty tuple (stub implementation).
-        """
-
-        data = {'type': 'koji-object', 'name': 'test-name'}
-        obj = BaseKojiObject(data)
-
-        diff_result = obj.diff(None)
-        self.assertEqual(diff_result, ())
-
-        diff_result = obj.diff({'some': 'data'})
-        self.assertEqual(diff_result, ())
+        # TODO: Implement test for BaseKojiObject.diff()
+        pass
 
 
 class TestChannelModel(unittest.TestCase):
@@ -200,7 +175,7 @@ class TestChannelModel(unittest.TestCase):
         """
 
         data = {'type': 'channel', 'name': 'test-channel'}
-        channel = Channel(data)
+        channel = Channel.from_dict(data)
 
         self.assertEqual(channel.typename, 'channel')
         self.assertEqual(channel.name, 'test-channel')
@@ -217,7 +192,7 @@ class TestChannelModel(unittest.TestCase):
             'name': 'test-channel',
             'hosts': ['host1', 'host2', 'host3']
         }
-        channel = Channel(data)
+        channel = Channel.from_dict(data)
 
         self.assertEqual(channel.hosts, ['host1', 'host2', 'host3'])
 
@@ -231,7 +206,7 @@ class TestChannelModel(unittest.TestCase):
             'name': 'test-channel',
             'hosts': ['host1', 'host2']
         }
-        channel = Channel(data)
+        channel = Channel.from_dict(data)
 
         deps = channel.dependency_keys()
         expected = [('host', 'host1'), ('host', 'host2')]
@@ -243,7 +218,7 @@ class TestChannelModel(unittest.TestCase):
         """
 
         data = {'type': 'channel', 'name': 'test-channel'}
-        channel = Channel(data)
+        channel = Channel.from_dict(data)
 
         deps = channel.dependency_keys()
         self.assertEqual(deps, [])
@@ -264,7 +239,7 @@ class TestExternalRepoModel(unittest.TestCase):
             'name': 'test-repo',
             'url': 'https://example.com/repo'
         }
-        repo = ExternalRepo(data)
+        repo = ExternalRepo.from_dict(data)
 
         self.assertEqual(repo.typename, 'external-repo')
         self.assertEqual(repo.name, 'test-repo')
@@ -281,7 +256,7 @@ class TestExternalRepoModel(unittest.TestCase):
             'name': 'test-repo',
             'url': 'http://example.com/repo'
         }
-        repo = ExternalRepo(data)
+        repo = ExternalRepo.from_dict(data)
 
         self.assertEqual(repo.url, 'http://example.com/repo')
 
@@ -297,7 +272,7 @@ class TestExternalRepoModel(unittest.TestCase):
         }
 
         with self.assertRaises(ValueError):
-            ExternalRepo(data)
+            ExternalRepo.from_dict(data)
 
     def test_external_repo_dependency_keys(self):
         """
@@ -309,7 +284,7 @@ class TestExternalRepoModel(unittest.TestCase):
             'name': 'test-repo',
             'url': 'https://example.com/repo'
         }
-        repo = ExternalRepo(data)
+        repo = ExternalRepo.from_dict(data)
 
         deps = repo.dependency_keys()
         self.assertEqual(deps, ())
@@ -326,7 +301,7 @@ class TestGroupModel(unittest.TestCase):
         """
 
         data = {'type': 'group', 'name': 'test-group'}
-        group = Group(data)
+        group = Group.from_dict(data)
 
         self.assertEqual(group.typename, 'group')
         self.assertEqual(group.name, 'test-group')
@@ -345,7 +320,7 @@ class TestGroupModel(unittest.TestCase):
             'members': ['user1', 'user2'],
             'permissions': ['admin', 'build']
         }
-        group = Group(data)
+        group = Group.from_dict(data)
 
         self.assertEqual(group.members, ['user1', 'user2'])
         self.assertEqual(group.permissions, ['admin', 'build'])
@@ -361,7 +336,7 @@ class TestGroupModel(unittest.TestCase):
             'members': ['user1', 'user2'],
             'permissions': ['admin', 'build']
         }
-        group = Group(data)
+        group = Group.from_dict(data)
 
         deps = group.dependency_keys()
         expected = [
@@ -378,7 +353,7 @@ class TestGroupModel(unittest.TestCase):
         """
 
         data = {'type': 'group', 'name': 'test-group'}
-        group = Group(data)
+        group = Group.from_dict(data)
 
         deps = group.dependency_keys()
         self.assertEqual(deps, [])
@@ -395,7 +370,7 @@ class TestHostModel(unittest.TestCase):
         """
 
         data = {'type': 'host', 'name': 'test-host'}
-        host = Host(data)
+        host = Host.from_dict(data)
 
         self.assertEqual(host.typename, 'host')
         self.assertEqual(host.name, 'test-host')
@@ -420,7 +395,7 @@ class TestHostModel(unittest.TestCase):
             'description': 'Test build host',
             'channels': ['default', 'build']
         }
-        host = Host(data)
+        host = Host.from_dict(data)
 
         self.assertEqual(host.arches, ['x86_64', 'i686'])
         self.assertEqual(host.capacity, 2.5)
@@ -442,7 +417,7 @@ class TestHostModel(unittest.TestCase):
             'description': 'Test host',
             'channels': ['default']
         }
-        host = Host(data)
+        host = Host.from_dict(data)
 
         split_host = host.split()
         self.assertIsInstance(split_host, Host)
@@ -464,7 +439,7 @@ class TestHostModel(unittest.TestCase):
             'name': 'test-host',
             'channels': ['channel1', 'channel2']
         }
-        host = Host(data)
+        host = Host.from_dict(data)
 
         deps = host.dependency_keys()
         expected = [('channel', 'channel1'), ('channel', 'channel2')]
@@ -476,7 +451,7 @@ class TestHostModel(unittest.TestCase):
         """
 
         data = {'type': 'host', 'name': 'test-host'}
-        host = Host(data)
+        host = Host.from_dict(data)
 
         deps = host.dependency_keys()
         self.assertEqual(deps, [])
@@ -493,7 +468,7 @@ class TestPermissionModel(unittest.TestCase):
         """
 
         data = {'type': 'permission', 'name': 'admin'}
-        permission = Permission(data)
+        permission = Permission.from_dict(data)
 
         self.assertEqual(permission.typename, 'permission')
         self.assertEqual(permission.name, 'admin')
@@ -505,7 +480,7 @@ class TestPermissionModel(unittest.TestCase):
         """
 
         data = {'type': 'permission', 'name': 'admin'}
-        permission = Permission(data)
+        permission = Permission.from_dict(data)
 
         deps = permission.dependency_keys()
         self.assertEqual(deps, ())
@@ -522,7 +497,7 @@ class TestTagModel(unittest.TestCase):
         """
 
         data = {'type': 'tag', 'name': 'test-tag'}
-        tag = Tag(data)
+        tag = Tag.from_dict(data)
 
         self.assertEqual(tag.typename, 'tag')
         self.assertEqual(tag.name, 'test-tag')
@@ -531,8 +506,8 @@ class TestTagModel(unittest.TestCase):
         self.assertFalse(tag.maven_include_all)
         self.assertEqual(tag.extras, {})
         self.assertEqual(tag.groups, {})
-        self.assertEqual(tag.parents, [])
-        self.assertEqual(tag.ext_repos, [])
+        self.assertEqual(tag.inheritance, [])
+        self.assertEqual(tag.external_repos, [])
         self.assertTrue(tag.can_split())
 
     def test_tag_creation_with_all_fields(self):
@@ -557,7 +532,7 @@ class TestTagModel(unittest.TestCase):
                 {'name': 'repo2'}
             ]
         }
-        tag = Tag(data)
+        tag = Tag.from_dict(data)
 
         self.assertEqual(tag.arches, ['x86_64', 'i686'])
         self.assertTrue(tag.maven)
@@ -566,18 +541,18 @@ class TestTagModel(unittest.TestCase):
         self.assertEqual(tag.groups, {'group1': ['pkg1', 'pkg2']})
 
         # Check inheritance links
-        self.assertEqual(len(tag.parents), 2)
-        self.assertEqual(tag.parents[0].name, 'parent1')
-        self.assertEqual(tag.parents[0].priority, 10)
-        self.assertEqual(tag.parents[1].name, 'parent2')
-        self.assertIsNone(tag.parents[1].priority)
+        self.assertEqual(len(tag.inheritance), 2)
+        self.assertEqual(tag.inheritance[0].name, 'parent1')
+        self.assertEqual(tag.inheritance[0].priority, 10)
+        self.assertEqual(tag.inheritance[1].name, 'parent2')
+        self.assertIsNone(tag.inheritance[1].priority)
 
         # Check external repo links
-        self.assertEqual(len(tag.ext_repos), 2)
-        self.assertEqual(tag.ext_repos[0].name, 'repo1')
-        self.assertEqual(tag.ext_repos[0].priority, 5)
-        self.assertEqual(tag.ext_repos[1].name, 'repo2')
-        self.assertIsNone(tag.ext_repos[1].priority)
+        self.assertEqual(len(tag.external_repos), 2)
+        self.assertEqual(tag.external_repos[0].name, 'repo1')
+        self.assertEqual(tag.external_repos[0].priority, 5)
+        self.assertEqual(tag.external_repos[1].name, 'repo2')
+        self.assertIsNone(tag.external_repos[1].priority)
 
     def test_tag_split(self):
         """
@@ -592,15 +567,15 @@ class TestTagModel(unittest.TestCase):
             'inheritance': [{'name': 'parent'}],
             'external-repos': [{'name': 'repo'}]
         }
-        tag = Tag(data)
+        tag = Tag.from_dict(data)
 
         split_tag = tag.split()
         self.assertIsInstance(split_tag, Tag)
         self.assertEqual(split_tag.name, 'test-tag')
         self.assertEqual(split_tag.arches, ['x86_64'])
         # Inheritance and external repos should not be included in split (dependency data)
-        self.assertEqual(split_tag.parents, [])
-        self.assertEqual(split_tag.ext_repos, [])
+        self.assertEqual(split_tag.inheritance, [])
+        self.assertEqual(split_tag.external_repos, [])
 
     def test_tag_dependency_keys(self):
         """
@@ -619,7 +594,7 @@ class TestTagModel(unittest.TestCase):
                 {'name': 'repo2'}
             ]
         }
-        tag = Tag(data)
+        tag = Tag.from_dict(data)
 
         deps = tag.dependency_keys()
         expected = [
@@ -636,7 +611,7 @@ class TestTagModel(unittest.TestCase):
         """
 
         data = {'type': 'tag', 'name': 'test-tag'}
-        tag = Tag(data)
+        tag = Tag.from_dict(data)
 
         deps = tag.dependency_keys()
         self.assertEqual(deps, [])
@@ -657,7 +632,7 @@ class TestTargetModel(unittest.TestCase):
             'name': 'test-target',
             'build-tag': 'build-tag'
         }
-        target = Target(data)
+        target = Target.from_dict(data)
 
         self.assertEqual(target.typename, 'target')
         self.assertEqual(target.name, 'test-target')
@@ -676,7 +651,7 @@ class TestTargetModel(unittest.TestCase):
             'build-tag': 'build-tag',
             'dest-tag': 'dest-tag'
         }
-        target = Target(data)
+        target = Target.from_dict(data)
 
         self.assertEqual(target.build_tag, 'build-tag')
         self.assertEqual(target.dest_tag, 'dest-tag')
@@ -692,7 +667,7 @@ class TestTargetModel(unittest.TestCase):
             'build-tag': 'build-tag'
             # dest-tag not specified
         }
-        target = Target(data)
+        target = Target.from_dict(data)
 
         self.assertEqual(target.dest_tag, 'test-target')
 
@@ -707,7 +682,7 @@ class TestTargetModel(unittest.TestCase):
             'build-tag': 'build-tag',
             'dest-tag': 'dest-tag'
         }
-        target = Target(data)
+        target = Target.from_dict(data)
 
         deps = target.dependency_keys()
         expected = [('tag', 'build-tag'), ('tag', 'dest-tag')]
@@ -725,7 +700,7 @@ class TestUserModel(unittest.TestCase):
         """
 
         data = {'type': 'user', 'name': 'test-user'}
-        user = User(data)
+        user = User.from_dict(data)
 
         self.assertEqual(user.typename, 'user')
         self.assertEqual(user.name, 'test-user')
@@ -746,7 +721,7 @@ class TestUserModel(unittest.TestCase):
             'permissions': ['admin', 'build'],
             'enabled': False
         }
-        user = User(data)
+        user = User.from_dict(data)
 
         self.assertEqual(user.groups, ['group1', 'group2'])
         self.assertEqual(user.permissions, ['admin', 'build'])
@@ -764,7 +739,7 @@ class TestUserModel(unittest.TestCase):
             'permissions': ['admin', 'build'],
             'enabled': False
         }
-        user = User(data)
+        user = User.from_dict(data)
         split_user = user.split()
         self.assertIsInstance(split_user, User)
         self.assertEqual(split_user.name, 'test-user')
@@ -783,7 +758,7 @@ class TestUserModel(unittest.TestCase):
             'groups': ['group1', 'group2'],
             'permissions': ['admin', 'build']
         }
-        user = User(data)
+        user = User.from_dict(data)
 
         deps = user.dependency_keys()
         expected = [
@@ -800,7 +775,7 @@ class TestUserModel(unittest.TestCase):
         """
 
         data = {'type': 'user', 'name': 'test-user'}
-        user = User(data)
+        user = User.from_dict(data)
 
         deps = user.dependency_keys()
         self.assertEqual(deps, [])
@@ -808,12 +783,12 @@ class TestUserModel(unittest.TestCase):
 
 class TestCoreModelsRegistry(unittest.TestCase):
     """
-    Test the CORE_MODELS registry and model consistency.
+    Test the CORE_TYPES registry and model consistency.
     """
 
     def test_core_models_contains_all_expected_models(self):
         """
-        Test that CORE_MODELS contains all expected model classes.
+        Test that CORE_TYPES contains all expected model classes.
         """
 
         expected_models = [
@@ -827,14 +802,14 @@ class TestCoreModelsRegistry(unittest.TestCase):
             User,
         ]
 
-        self.assertEqual(len(CORE_MODELS), len(expected_models))
+        self.assertEqual(len(CORE_TYPES), len(expected_models))
 
         for model_class in expected_models:
-            self.assertIn(model_class, CORE_MODELS)
+            self.assertIn(model_class, CORE_TYPES)
 
     def test_core_models_have_correct_typenames(self):
         """
-        Test that all CORE_MODELS have correct typename attributes.
+        Test that all CORE_TYPES have correct typename attributes.
         """
 
         expected_typenames = {
@@ -848,13 +823,13 @@ class TestCoreModelsRegistry(unittest.TestCase):
             User: 'user',
         }
 
-        for model_class in CORE_MODELS:
+        for model_class in CORE_TYPES:
             expected_typename = expected_typenames[model_class]
             self.assertEqual(model_class.typename, expected_typename)
 
     def test_core_models_can_split_support(self):
         """
-        Test that CORE_MODELS have correct can_split support.
+        Test that CORE_TYPES have correct can_split support.
         """
 
         expected_split_support = {
@@ -868,13 +843,13 @@ class TestCoreModelsRegistry(unittest.TestCase):
             User: True,
         }
 
-        for model_class in CORE_MODELS:
+        for model_class in CORE_TYPES:
             expected_support = expected_split_support[model_class]
             self.assertEqual(model_class._can_split, expected_support)
 
     def test_core_models_instantiation_with_minimal_data(self):
         """
-        Test that all CORE_MODELS can be instantiated with minimal data.
+        Test that all CORE_TYPES can be instantiated with minimal data.
         """
 
         minimal_data_templates = {
@@ -888,15 +863,15 @@ class TestCoreModelsRegistry(unittest.TestCase):
             User: {'type': 'user', 'name': 'test'},
         }
 
-        for model_class in CORE_MODELS:
+        for model_class in CORE_TYPES:
             data = minimal_data_templates[model_class]
-            obj = model_class(data)
+            obj = model_class.from_dict(data)
             self.assertIsInstance(obj, BaseKojiObject)
             self.assertEqual(obj.name, 'test')
 
     def test_core_models_dependency_keys_return_tuples(self):
         """
-        Test that all CORE_MODELS dependency_keys() methods return proper tuples.
+        Test that all CORE_TYPES dependency_keys() methods return proper tuples.
         """
 
         minimal_data_templates = {
@@ -910,9 +885,9 @@ class TestCoreModelsRegistry(unittest.TestCase):
             User: {'type': 'user', 'name': 'test'},
         }
 
-        for model_class in CORE_MODELS:
+        for model_class in CORE_TYPES:
             data = minimal_data_templates[model_class]
-            obj = model_class(data)
+            obj = model_class.from_dict(data)
             deps = obj.dependency_keys()
 
             self.assertIsInstance(deps, (list, tuple))

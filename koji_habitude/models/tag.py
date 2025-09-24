@@ -10,7 +10,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 from pydantic import BaseModel, Field
 from typing import ClassVar, Dict, List, Tuple, Any, Optional
-from .base import BaseKojiObject
+from .base import BaseKojiObject, BaseKey
 
 
 class InheritanceLink(BaseModel):
@@ -32,15 +32,15 @@ class Tag(BaseKojiObject):
     extras: Dict[str, Any] = Field(alias='extras', default_factory=dict)
     groups: Dict[str, List[str]] = Field(alias='groups', default_factory=dict)
 
-    parents: List[InheritanceLink] = Field(alias='inheritance', default_factory=list)
-    ext_repos: List[InheritanceLink] = Field(alias='external-repos', default_factory=list)
+    inheritance: List[InheritanceLink] = Field(alias='inheritance', default_factory=list)
+    external_repos: List[InheritanceLink] = Field(alias='external-repos', default_factory=list)
 
 
     def split(self) -> Optional['Tag']:
-        return Tag({'name': self.name, 'arches': self.arches})
+        return Tag(name=self.name, arches=self.arches)
 
 
-    def dependency_keys(self) -> List[Tuple[str, str]]:
+    def dependency_keys(self) -> List[BaseKey]:
         """
         Return dependencies for this tag.
 
@@ -52,11 +52,11 @@ class Tag(BaseKojiObject):
         deps = []
 
         # Check for inheritance dependencies
-        for parent in self.parents:
+        for parent in self.inheritance:
             deps.append(('tag', parent.name))
 
         # Check for external repository dependencies
-        for ext_repo in self.ext_repos:
+        for ext_repo in self.external_repos:
             deps.append(('external-repo', ext_repo.name))
 
         return deps

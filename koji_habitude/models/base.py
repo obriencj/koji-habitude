@@ -11,14 +11,25 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: AI Generated with Human Rework
 
 
-from typing import Annotated
-
-from pydantic import BaseModel, Field, StringConstraints
+from pydantic import BaseModel, Field
 
 from typing import (
     Any, ClassVar, Dict, List, Optional, Protocol,
-    Sequence, Tuple,
+    Sequence, Tuple, TypeAlias,
 )
+
+
+__all__ = (
+    'Base',
+    'BaseObject',
+    'BaseKojiObject',
+)
+
+
+BaseKey: TypeAlias = Tuple[str, str]
+"""
+A tuple of (typename, name), used as the key for objects across this package
+"""
 
 
 class Base(Protocol):
@@ -30,7 +41,7 @@ class Base(Protocol):
     lineno: Optional[int]
     trace: Optional[List[Dict[str, Any]]]
 
-    def key(self) -> Tuple[str, str]:
+    def key(self) -> BaseKey:
         ...
 
     def filepos(self) -> Tuple[Optional[str], Optional[int]]:
@@ -42,15 +53,17 @@ class Base(Protocol):
     def split(self) -> Optional['Base']:
         ...
 
-    def dependency_keys(self) -> Sequence[Tuple[str, str]]:
+    def dependency_keys(self) -> Sequence[BaseKey]:
+        ...
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'Base':
         ...
 
 
 class BaseObject(BaseModel):
     """
-    Adapter between the Base protocol and dataclasses. Works with the redefined
-    `field` decorator to allow for automatic population of dataclass fields from
-    data.
+    Adapter between the Base protocol and Pydantic models.
     """
 
     typename: ClassVar[str] = 'object'
@@ -61,11 +74,9 @@ class BaseObject(BaseModel):
     lineno: Optional[int] = Field(alias='__line__', default=None)
     trace: Optional[List[Dict[str, Any]]] = Field(alias='__trace__', default_factory=list)
 
-    _data: Dict[str, Any]
+    # this is the record of the `from_dict` call if it was used
+    _data: Optional[Dict[str, Any]] = None
 
-    def __init__(self, data: Dict[str, Any]):
-        super().__init__(**data)
-        self._data = data
 
     def model_post_init(self, __context: Any):
         name = self.name and self.name.strip()
@@ -75,32 +86,65 @@ class BaseObject(BaseModel):
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'BaseObject':
-        return cls.model_validate(data)
+        """
+        Create an instance directly from a dictionary. Records the original data
+        dict for later review via the `data` property.
+        """
+        obj = cls.model_validate(data)
+        obj._data = data
+        return obj
 
     @property
-    def data(self) -> Dict[str, Any]:
+    def data(self) -> Dict[str, Any] | None:
+        """
+        Access the raw data that was used if this object was created via `from_dict`
+        """
         return self._data
 
-    def key(self) -> Tuple[str, str]:
+    def key(self) -> BaseKey:
+        """
+        Return the key of this object as a tuple of (typename, name)
+        """
         return (self.typename, self.name)
 
     def filepos(self) -> Tuple[Optional[str], Optional[int]]:
+        """
+        Return the file position of this object as a tuple of (filename, lineno)
+        """
         return (self.filename, self.lineno)
 
-    def can_split(self):
+    def filepos_str(self) -> str:
+        """
+        Return a string representation of the file position of this object
+        """
+        filename = self.filename or '<unknown>'
+        if self.lineno:
+            return f"{filename}:{self.lineno}"
+        else:
+            return filename
+
+    def can_split(self) -> bool:
+        """
+        True if this object can be split in order to break cyclic dependencies
+        """
         return False
 
-    def split(self):
+    def split(self) -> 'BaseObject':
+        """
+        If the object supports splitting, create a minimal copy of this object
+        specifying only that it needs to exist, with a dependant link on the
+        original object. Otherwise raise a TypeError.
+        """
         raise TypeError(f"Cannot split {self.typename}")
 
-    def dependency_keys(self):
+    def dependency_keys(self) -> Sequence[BaseKey]:
+        """
+        Return the keys of the dependencies of this object as a sequence of (typename, name) tuples
+        """
         return ()
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}({self.typename}, {self.name})>"
-
-
-RawObject = BaseObject
 
 
 class BaseKojiObject(BaseObject):
@@ -111,7 +155,7 @@ class BaseKojiObject(BaseObject):
     # override in subclasses
     typename: ClassVar[str] = 'koji-object'
 
-    # override in subclasses to support splitting
+    # override in subclasses to support automatic splitting
     _can_split: ClassVar[bool] = False
 
 
@@ -128,8 +172,10 @@ class BaseKojiObject(BaseObject):
         any internal references that break ordering. Then the next tier can
         add the links.
         """
-
-        return type(self)({'type': self.typename, 'name': self.name})
+        if self._can_split:
+            return type(self)(name=self.name)
+        else:
+            raise TypeError(f"Cannot split {self.typename}")
 
 
     def diff(
