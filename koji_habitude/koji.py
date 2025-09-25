@@ -24,7 +24,7 @@ __all__ = (
 )
 
 
-def session(profile: str = 'koji', authenticate: bool = False)-> ClientSession:
+def session(profile: str = 'koji', authenticate: bool = False) -> ClientSession:
     """
     Create a koji client session.
     """
@@ -34,6 +34,7 @@ def session(profile: str = 'koji', authenticate: bool = False)-> ClientSession:
     session = ClientSession(server, opts=conf)
     if authenticate:
         activate_session(session)
+        session._currentuser = session.getLoggedInUser()
     return session
 
 
