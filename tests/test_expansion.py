@@ -9,6 +9,8 @@ License: GNU General Public License v3
 AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
+# Vibe-Coding State: AI Generated
+
 from pathlib import Path
 from unittest import TestCase
 
