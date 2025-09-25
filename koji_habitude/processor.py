@@ -29,12 +29,20 @@ logger = logging.getLogger(__name__)
 
 
 class ProcessorState(Enum):
-    READY_CHUNK = "ready-chunk"
-    READY_READ = "ready-read"
-    READY_COMPARE = "ready-compare"
-    READY_APPLY = "ready-apply"
-    EXHAUSTED = "exhausted"
-    BROKEN = "broken"
+    """
+    Processor state machine for managing the read/compare/apply cycle.
+
+    State transitions:
+    READY_CHUNK → READY_READ → READY_COMPARE → READY_APPLY → READY_CHUNK
+    Any state → BROKEN (on error)
+    READY_CHUNK → EXHAUSTED (when stream empty)
+    """
+    READY_CHUNK = "ready-chunk"      # Ready to load new chunk
+    READY_READ = "ready-read"        # Ready to fetch koji data
+    READY_COMPARE = "ready-compare"  # Ready to analyze differences
+    READY_APPLY = "ready-apply"      # Ready to apply changes
+    EXHAUSTED = "exhausted"          # No more objects to process
+    BROKEN = "broken"                # Error occurred, cannot continue
 
 
 @dataclass
@@ -102,7 +110,7 @@ class Processor:
 
     def step(self, chunk_size: Optional[int] = None) -> bool:
         """
-        Execute one complete cycle: read -> compare -> write.
+        Execute one complete cycle: read -> compare -> apply.
 
         Can be safely invoked from either the READY_CHUNK or READY_READ states.
         If READY_CHUNK, the current chunk is discarded and a new one is loaded.
@@ -136,7 +144,7 @@ class Processor:
         try:
             self.step_read()
             self.step_compare()
-            self.step_write()
+            self.step_apply()
 
         except Exception:
             self.state = ProcessorState.BROKEN
@@ -177,9 +185,12 @@ class Processor:
         """
         Fetch current state from Koji for all objects in current chunk.
 
-        Uses multicall to efficiently batch the fetch operations.
-        Each object's fetch_koji_state method is called to add its
-        required API calls to the multicall.
+        This step:
+        1. Creates empty change reports for each object via obj.change_report()
+        2. Calls load() on each report to fetch current koji state via multicall
+        3. Stores the populated reports for use in step_compare()
+
+        After this step, change reports contain current koji data but no changes yet.
         """
 
         if self.state != ProcessorState.READY_READ:
@@ -209,11 +220,14 @@ class Processor:
 
     def step_compare(self) -> None:
         """
-        Compare each object with its current koji state.
+        Compare each object with its current koji state and identify changes.
 
-        Calls each object's diff_against_koji method to determine what
-        changes need to be made. Collects change reports for objects
-        that require updates.
+        This step:
+        1. Retrieves the change reports populated in step_read()
+        2. Calls compare() on each report to analyze differences
+        3. Populates the reports with specific changes that need to be made
+
+        After this step, change reports contain both current data and required changes.
         """
 
         if self.state != ProcessorState.READY_COMPARE:
@@ -238,11 +252,14 @@ class Processor:
 
     def step_apply(self) -> None:
         """
-        Apply changes to Koji for objects that require updates.
+        Apply the identified changes to the koji instance.
 
-        Uses multicall to efficiently batch the write operations.
-        Only objects with change reports will have their apply_to_koji
-        method called.
+        This step:
+        1. Retrieves the change reports with changes identified in step_compare()
+        2. Calls apply() on each report to execute the changes via multicall
+        3. Commits all changes to the koji instance
+
+        After this step, the koji instance matches the desired state.
         """
 
         if self.state != ProcessorState.READY_APPLY:
