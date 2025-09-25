@@ -504,7 +504,7 @@ class TestTagModel(unittest.TestCase):
         self.assertEqual(tag.typename, 'tag')
         self.assertEqual(tag.name, 'test-tag')
         self.assertEqual(tag.arches, [])
-        self.assertFalse(tag.maven)
+        self.assertFalse(tag.maven_support)
         self.assertFalse(tag.maven_include_all)
         self.assertEqual(tag.extras, {})
         self.assertEqual(tag.groups, {})
@@ -521,7 +521,7 @@ class TestTagModel(unittest.TestCase):
             'type': 'tag',
             'name': 'test-tag',
             'arches': ['x86_64', 'i686'],
-            'maven': True,
+            'maven-support': True,
             'maven-include-all': True,
             'extras': {'key1': 'value1', 'key2': 'value2'},
             'groups': {'group1': ['pkg1', 'pkg2']},
@@ -537,7 +537,7 @@ class TestTagModel(unittest.TestCase):
         tag = Tag.from_dict(data)
 
         self.assertEqual(tag.arches, ['x86_64', 'i686'])
-        self.assertTrue(tag.maven)
+        self.assertTrue(tag.maven_support)
         self.assertTrue(tag.maven_include_all)
         self.assertEqual(tag.extras, {'key1': 'value1', 'key2': 'value2'})
         self.assertEqual(tag.groups, {'group1': ['pkg1', 'pkg2']})
@@ -565,7 +565,7 @@ class TestTagModel(unittest.TestCase):
             'type': 'tag',
             'name': 'test-tag',
             'arches': ['x86_64'],
-            'maven': True,
+            'maven-support': True,
             'inheritance': [{'name': 'parent'}],
             'external-repos': [{'name': 'repo'}]
         }
@@ -639,7 +639,7 @@ class TestTargetModel(unittest.TestCase):
         self.assertEqual(target.typename, 'target')
         self.assertEqual(target.name, 'test-target')
         self.assertEqual(target.build_tag, 'build-tag')
-        self.assertEqual(target.dest_tag, 'test-target')  # Defaults to name
+        self.assertEqual(target.dest_tag, None)
         self.assertFalse(target.can_split())
 
     def test_target_creation_with_both_tags(self):
@@ -671,7 +671,7 @@ class TestTargetModel(unittest.TestCase):
         }
         target = Target.from_dict(data)
 
-        self.assertEqual(target.dest_tag, 'test-target')
+        self.assertEqual(target.dest_tag, None)
 
     def test_target_dependency_keys(self):
         """
