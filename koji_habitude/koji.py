@@ -11,8 +11,10 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: Pure Human
 
 
-from typing import List, Optional
-from koji import ClientSession, MultiCallSession, VirtualCall, read_config
+from typing import List, Optional, Dict
+
+from koji import ClientSession, MultiCallSession, VirtualCall, read_config, activate_session
+
 from .models import BaseKey
 
 
@@ -22,14 +24,17 @@ __all__ = (
 )
 
 
-def session(profile: str = 'koji')-> ClientSession:
+def session(profile: str = 'koji', authenticate: bool = False)-> ClientSession:
     """
     Create a koji client session.
     """
 
     conf = read_config(profile)
     server = conf["server"]
-    return ClientSession(server, opts=conf)
+    session = ClientSession(server, opts=conf)
+    if authenticate:
+        activate_session(session)
+    return session
 
 
 class ReportingMulticall(MultiCallSession):
