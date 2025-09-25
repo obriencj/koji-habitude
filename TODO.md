@@ -196,6 +196,73 @@ koji-habitude validate --type tag /path/to/data
 koji-habitude diff --type target /path/to/data
 ```
 
+## 📚 Documentation
+
+**Goal**: Comprehensive documentation for users and developers.
+
+**Current Status**: Basic Sphinx documentation structure exists with some content, but needs expansion and improvement.
+
+### ✅ Completed Documentation Infrastructure
+
+- [x] Configure project for building docs using Sphinx (setup.cfg with sphinx testenv)
+- [x] Create documentation stubs (docs/ directory with basic structure)
+- [x] Set up Sphinx configuration (docs/conf.py with autodoc, intersphinx)
+- [x] Create overview documentation (docs/overview.rst from README.md)
+- [x] Add Makefile targets for documentation building (docs, preview-docs, clean-docs)
+- [x] Configure automatic overview regeneration from README.md
+- [x] Set up basic API reference structure (docs/koji_habitude.rst)
+
+### 🚧 Documentation Content Needs
+
+**API Documentation**:
+- [ ] Complete API reference for all modules (loader, models, namespace, resolver, solver, templates)
+- [ ] Add comprehensive docstrings to all public functions and classes
+- [ ] Document CLI command options and usage examples
+- [ ] Add type hints documentation and examples
+- [ ] Document error handling and exception types
+
+**User Documentation**:
+- [ ] Create comprehensive user guide with step-by-step tutorials
+- [ ] Add YAML format specification and examples
+- [ ] Document template system with advanced examples
+- [ ] Create troubleshooting guide for common issues
+- [ ] Add performance tuning and best practices guide
+
+**Developer Documentation**:
+- [ ] Document architecture and design decisions
+- [ ] Create developer setup and contribution guide
+- [ ] Document testing strategy and how to add tests
+- [ ] Add code style and conventions documentation
+- [ ] Document dependency resolution algorithms
+
+**Examples and Tutorials**:
+- [ ] Create complete example configurations
+- [ ] Add tutorial for setting up a new koji instance
+- [ ] Document common use cases and patterns
+- [ ] Add migration guide from manual koji management
+- [ ] Create troubleshooting scenarios with solutions
+
+### 📋 Documentation Infrastructure Improvements
+
+- [ ] Add sphinx-autodoc-typehints for better type documentation
+- [ ] Configure sphinx extensions for better cross-referencing
+- [ ] Add documentation versioning strategy
+- [ ] Set up automated documentation deployment
+- [ ] Add documentation testing to CI pipeline
+- [ ] Create documentation style guide
+- [ ] Add spell checking for documentation
+- [ ] Configure documentation search functionality
+
+### 📖 Documentation Quality
+
+- [ ] Review and improve existing docstrings for clarity
+- [ ] Ensure all public APIs have comprehensive documentation
+- [ ] Add inline code examples to docstrings
+- [ ] Standardize documentation format across all modules
+- [ ] Add parameter and return value documentation
+- [ ] Document side effects and important behaviors
+- [ ] Add "See Also" sections for related functionality
+
 ## 🔮 Future Considerations
 
 Items that may be added later:
