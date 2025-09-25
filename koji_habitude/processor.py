@@ -190,10 +190,19 @@ class Processor:
             return
         logger.debug(f"Fetching koji state for {len(self.current_chunk)} objects")
 
+        self.change_reports: Dict[BaseKey, ChangeReport] = {}
         with multicall(self.koji_session, associations=self.read_logs) as mc:
             for obj in self.current_chunk:
+
+                # let our mc know to record calls with this key associated
                 mc.associate(obj.key())
-                obj.fetch_koji_state(mc)
+
+                # create and load the change report for this object
+                change_report = obj.change_report()
+                change_report.load(self.koji_session)
+
+                # store it in our change reports
+                self.change_reports[obj.key()] = change_report
 
         self.state = ProcessorState.READY_COMPARE
 
@@ -215,11 +224,15 @@ class Processor:
             return
         logger.debug(f"Comparing {len(self.current_chunk)} objects with koji state")
 
-        self.change_reports: Dict[BaseKey, ChangeReport] = {}
         for obj in self.current_chunk:
-            self.current_reports[obj.key()] = obj.diff_against_koji()
+            # get the change report for this object
+            report = self.change_reports[obj.key()]
 
-        self.change_reports.update(self.current_reports)
+            # by now its calls from the load should have results, so we can
+            # compare it with the koji state. This will cause to the report
+            # to create and record any changes that need to be made.
+            report.compare()
+
         self.state = ProcessorState.READY_APPLY
 
 
@@ -235,17 +248,19 @@ class Processor:
         if self.state != ProcessorState.READY_APPLY:
             raise ProcessorStateError(f"Processor is not in the READY_WRITE state: {self.state}")
 
-        if not self.current_reports:
-            logger.debug("No change reports to apply")
+        if not self.current_chunk:
+            logger.debug("No objects to apply changes to")
             return
-        logger.debug(f"Applying changes for {len(self.current_reports)} objects")
+        logger.debug(f"Applying changes for {len(self.current_chunk)} objects")
 
         with self.koji_session.multicall() as m:
-            for change_report in self.current_reports.values():
-                change_report.apply_to_koji(m)
+            for obj in self.current_chunk:
 
-        self.current_reports.clear()
-        self.current_chunk.clear()
+                # get the change report for this object
+                change_report = self.change_reports[obj.key()]
+
+                # apply the changes to the koji instance
+                change_report.apply(m)
 
         self.state = ProcessorState.READY_CHUNK
 
@@ -300,7 +315,7 @@ class DiffOnlyProcessor(Processor):
     without actually applying them to the koji instance.
     """
 
-    def step_write(self) -> None:
+    def step_apply(self) -> None:
         """
         Override to skip write operations in diff mode.
 
@@ -311,9 +326,6 @@ class DiffOnlyProcessor(Processor):
             raise ProcessorStateError(f"Processor is not in the READY_APPLY state: {self.state}")
 
         logger.info(f"DIFF MODE: Would apply changes for {len(self.change_reports)} objects")
-
-        self.current_reports.clear()
-        self.current_chunk.clear()
 
         self.state = ProcessorState.READY_CHUNK
 
