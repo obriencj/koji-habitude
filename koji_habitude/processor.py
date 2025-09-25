@@ -51,13 +51,13 @@ class ProcessorSummary:
     steps_completed: int
     state: ProcessorState
 
-    changes: Dict[BaseKey, ChangeReport]
+    change_reports: Dict[BaseKey, ChangeReport]
     read_calls: Dict[BaseKey, List[VirtualCall]]
     write_calls: Dict[BaseKey, List[VirtualCall]]
 
     @property
     def total_changes(self) -> int:
-        return sum(len(reports) for reports in self.changes.values())
+        return sum(len(reports) for reports in self.change_reports.values())
 
     @property
     def total_read_calls(self) -> int:
@@ -101,9 +101,9 @@ class Processor:
         self.chunk_size = chunk_size
 
         self.current_chunk: List[Base] = []
-        self.state = ProcessorState.READY_READ
+        self.state = ProcessorState.READY_CHUNK
 
-        self.change_reports: List[Dict[str, Any]] = []
+        self.change_reports: Dict[BaseKey, ChangeReport] = {}
         self.read_logs: Dict[BaseKey, List[VirtualCall]] = {}
         self.write_logs: Dict[BaseKey, List[VirtualCall]] = {}
 
@@ -201,7 +201,6 @@ class Processor:
             return
         logger.debug(f"Fetching koji state for {len(self.current_chunk)} objects")
 
-        self.change_reports: Dict[BaseKey, ChangeReport] = {}
         with multicall(self.koji_session, associations=self.read_logs) as mc:
             for obj in self.current_chunk:
 
@@ -308,7 +307,7 @@ class Processor:
 
             state=self.state,
 
-            changes=self.change_reports,
+            change_reports=self.change_reports,
             read_calls=self.read_logs,
             write_calls=self.write_logs,
         )
