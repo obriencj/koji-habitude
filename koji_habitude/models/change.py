@@ -17,31 +17,104 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 from enum import Enum
 from typing import Any, Optional
 
-from .base import BaseKey
+from koji import ClientSession, VirtualCall
+
+from .base import Base
 
 
-class ChangeMode(Enum):
-    CREATE = 'create'
-    UPDATE = 'update'
-    DELETE = 'delete'
+class ChangeError(Exception):
+    pass
+
+
+class ChangeReportError(Exception):
+    pass
+
+
+class ChangeReportState(Enum):
+    PENDING = 'pending'
+    LOADING = 'loading'
+    LOADED = 'loaded'
+    COMPARING = 'comparing'
+    COMPARED = 'compared'
+    APPLIED = 'applied'
+    ERROR = 'error'
 
 
 class Change:
-    def __init__(self, mode: ChangeMode, old: Optional[Any], new: Optional[Any]):
-        self.mode: ChangeMode = mode
-        self.old: Optional[Any] = old
-        self.new: Optional[Any] = new
+    def __init__(self, obj: Base):
+        self.obj = obj
+        self.key = obj.key()
+        self._result = None
+
+    def impl_apply(self, session: ClientSession) -> VirtualCall:
+        raise NotImplementedError("Subclasses of Change must implement impl_apply")
+
+    def apply(self, session: ClientSession) -> None:
+        if self._result is not None:
+            raise ChangeError(f"Change applied multiple times: {self.obj.name}")
+        self._result = self.impl_apply(session)
+
+    @property
+    def result(self):
+        return self._result.result
 
 
 class ChangeReport:
 
-    def __init__(self, key: BaseKey):
-        self.key = key
+    def __init__(self, obj: Base):
+        self.obj = obj
+        self.key = obj.key()
+        self.state = ChangeReportState.PENDING
         self.changes = []
 
 
-    def add_change(self, change: Change):
+    def __len__(self):
+        return len(self.changes)
+
+
+    def __iter__(self):
+        return iter(self.changes)
+
+
+    def read(self, session: ClientSession) -> None:
+        if self.state != ChangeReportState.PENDING:
+            raise ChangeReportError(f"Change report is not pending: {self.state}")
+
+        self.state = ChangeReportState.LOADING
+        self.impl_read(session)
+        self.state = ChangeReportState.LOADED
+
+
+    def impl_read(self, session: ClientSession) -> None:
+        raise NotImplementedError("Subclasses of ChangeReport must implement impl_read")
+
+
+    def compare(self) -> None:
+        if self.state != ChangeReportState.LOADED:
+            raise ChangeReportError(f"Change report is not loaded: {self.state}")
+        self.state = ChangeReportState.COMPARING
+        self.impl_compare()
+        self.state = ChangeReportState.COMPARED
+
+
+    def impl_compare(self) -> None:
+        raise NotImplementedError("Subclasses of ChangeReport must implement impl_compare")
+
+
+    def add(self, change: Change) -> None:
+        if self.state != ChangeReportState.LOADING:
+            raise ChangeReportError(f"Change report is not loading: {self.state}")
         self.changes.append(change)
+
+
+    def apply(self, session: ClientSession) -> None:
+        if self.state != ChangeReportState.COMPARED:
+            raise ChangeReportError(f"Change report is not compared: {self.state}")
+
+        self.state = ChangeReportState.APPLYING
+        for change in self.changes:
+            change.apply(session)
+        self.state = ChangeReportState.APPLIED
 
 
 # The end.
