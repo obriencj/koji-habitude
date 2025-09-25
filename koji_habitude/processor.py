@@ -269,7 +269,7 @@ class Processor:
             return
         logger.debug(f"Applying changes for {len(self.current_chunk)} objects")
 
-        with self.koji_session.multicall() as m:
+        with multicall(self.koji_session, associations=self.write_logs) as m:
             for obj in self.current_chunk:
 
                 # get the change report for this object
