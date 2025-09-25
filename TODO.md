@@ -49,6 +49,25 @@ This document tracks planned features and improvements for koji-habitude.
 - [ ] Add multicall support for efficient koji operations
 - [ ] Test CLI commands with real data files
 
+**Processor Module** (New architecture component):
+- [ ] Implement model methods for koji integration (`fetch_koji_state`, `diff_against_koji`, `apply_to_koji`)
+- [ ] Complete Processor class implementation with multicall integration
+- [ ] Implement DiffOnlyProcessor for dry-run operations
+- [ ] Add error handling and recovery for partial failures
+- [ ] Implement change tracking and reporting
+- [ ] Add progress reporting and status updates
+- [ ] Test Processor with mock koji sessions
+- [ ] Add unit tests for Processor and DiffOnlyProcessor classes
+
+**Workflow Orchestration** (High-level coordination):
+- [ ] Implement Workflow class for end-to-end process coordination
+- [ ] Add missing object validation before processing
+- [ ] Implement progress reporting and TUI integration
+- [ ] Add error handling and rollback capabilities
+- [ ] Create workflow configuration and options
+- [ ] Add workflow testing with integration scenarios
+- [ ] Document workflow usage and best practices
+
 **Infrastructure**:
 - [ ] Set up continuous integration testing
 - [ ] Add type hints throughout codebase
@@ -137,6 +156,15 @@ data files and comprehensive test suites (274 total tests).
 - [ ] Test update call generation
 - [ ] Test multicall result processing
 - [ ] Mock koji responses for testing
+
+**Processor Testing**:
+- [ ] Test Processor class with mock koji sessions
+- [ ] Test DiffOnlyProcessor dry-run functionality
+- [ ] Test chunking behavior with various chunk sizes
+- [ ] Test error handling for partial failures
+- [ ] Test multicall integration and promise resolution
+- [ ] Test change tracking and reporting accuracy
+- [ ] Test progress reporting and status updates
 
 **Integration Testing**:
 - [ ] Test end-to-end workflows with real data
