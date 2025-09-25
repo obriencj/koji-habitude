@@ -13,7 +13,8 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 from typing import List, Optional, Dict
 
-from koji import ClientSession, MultiCallSession, VirtualCall, read_config, activate_session
+from koji import ClientSession, MultiCallSession, VirtualCall, read_config
+from koji_cli.lib import activate_session
 
 from .models import BaseKey
 
