@@ -12,7 +12,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 from dataclasses import dataclass
 from typing import ClassVar, List, Sequence
 
-from koji import ClientSession, VirtualCall
+from koji import MultiCallSession, VirtualCall
 from pydantic import Field
 
 from .base import BaseKojiObject, BaseKey
@@ -34,7 +34,7 @@ class HostSetArches(Change):
     name: str
     arches: List[str]
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.editHost(self.name, arches=' '.join(self.arches))
 
 
@@ -43,7 +43,7 @@ class HostSetCapacity(Change):
     name: str
     capacity: float
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.editHost(self.name, capacity=self.capacity)
 
 @dataclass
@@ -51,7 +51,7 @@ class HostSetEnabled(Change):
     name: str
     enabled: bool
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.editHost(self.name, enabled=self.enabled)
 
 
@@ -60,7 +60,7 @@ class HostSetDescription(Change):
     name: str
     description: str
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.editHost(self.name, description=self.description)
 
 
@@ -69,7 +69,7 @@ class HostAddChannel(Change):
     name: str
     channel: str
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.addHostChannel(self.name, self.channel)
 
 
@@ -78,7 +78,7 @@ class HostRemoveChannel(Change):
     name: str
     channel: str
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.removeHostChannel(self.name, self.channel)
 
 
@@ -105,7 +105,7 @@ class HostChangeReport(ChangeReport):
     def remove_host_channel(self):
         self.add(HostRemoveChannel(self.obj.name, self.obj.channel))
 
-    def impl_read(self, session: ClientSession):
+    def impl_read(self, session: MultiCallSession):
         self._hostinfo: VirtualCall = session.getHost(self.obj.name)
 
     def impl_compare(self):

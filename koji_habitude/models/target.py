@@ -11,7 +11,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 from dataclasses import dataclass
 from typing import Any, ClassVar, Optional, Sequence
 
-from koji import ClientSession, VirtualCall
+from koji import MultiCallSession, VirtualCall
 from pydantic import Field
 
 from .base import BaseKojiObject, BaseKey
@@ -24,7 +24,7 @@ class TargetCreate(Change):
     build_tag: str
     dest_tag: Optional[str] = None
 
-    def impl_apply(self, session: ClientSession) -> VirtualCall:
+    def impl_apply(self, session: MultiCallSession) -> VirtualCall:
         return session.createBuildTarget(self.name, self.build_tag, self.dest_tag or self.name)
 
 
@@ -34,7 +34,7 @@ class TargetEdit(Change):
     build_tag: str
     dest_tag: Optional[str] = None
 
-    def impl_apply(self, session: ClientSession) -> VirtualCall:
+    def impl_apply(self, session: MultiCallSession) -> VirtualCall:
         return session.editBuildTarget(self.name, self.build_tag, self.dest_tag or self.name)
 
 
@@ -48,7 +48,7 @@ class TargetChangeReport(ChangeReport):
         self.add(TargetEdit(self.obj.name, self.obj.build_tag, self.obj.dest_tag))
 
 
-    def impl_read(self, session: ClientSession):
+    def impl_read(self, session: MultiCallSession):
         self._targetinfo: VirtualCall = session.getBuildTarget(self.obj.name, strict=False)
 
 

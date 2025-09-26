@@ -11,7 +11,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 from dataclasses import dataclass
 from typing import Any, ClassVar, Dict, List, Optional, Sequence
 
-from koji import ClientSession, VirtualCall
+from koji import MultiCallSession, VirtualCall
 from pydantic import BaseModel, Field
 
 from .base import BaseKey, BaseKojiObject
@@ -27,7 +27,7 @@ class TagCreate(Change):
     maven_support: bool
     maven_include_all: bool
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.createTag(
             self.name,
             locked=self.locked,
@@ -42,7 +42,7 @@ class TagSetLocked(Change):
     name: str
     locked: bool
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.editTag2(self.name, locked=self.locked)
 
 
@@ -51,7 +51,7 @@ class TagSetPermission(Change):
     name: str
     permission: Optional[str]
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.editTag2(self.name, perm=self.permission)
 
 
@@ -61,7 +61,7 @@ class TagSetMaven(Change):
     maven_support   : bool
     maven_include_all: bool
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.editTag2(
             self.name,
             maven_support=self.maven_support,
@@ -73,7 +73,7 @@ class TagSetArches(Change):
     name: str
     arches: List[str]
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.editTag2(self.name, arches=' '.join(self.arches))
 
 
@@ -82,7 +82,7 @@ class TagSetExtras(Change):
     name: str
     extras: Dict[str, Any]
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.editTag2(self.name, extra=self.extras)
 
 
@@ -91,7 +91,7 @@ class TagAddGroup(Change):
     name: str
     group: str
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.addTagGroup(self.name, self.group)
 
 
@@ -100,7 +100,7 @@ class TagRemoveGroup(Change):
     name: str
     group: str
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.removeTagGroup(self.name, self.group)
 
 
@@ -110,7 +110,7 @@ class TagAddGroupPackage(Change):
     group: str
     package: str
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.groupListAdd(self.name, self.group, self.package)
 
 
@@ -120,7 +120,7 @@ class TagRemoveGroupPackage(Change):
     group: str
     package: str
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.groupListRemove(self.name, self.group, self.package)
 
 
@@ -130,7 +130,7 @@ class TagAddInheritance(Change):
     parent: str
     priority: int
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         data = [{'name': self.parent, 'priority': self.priority}]
         return session.setInheritanceData(self.name, data)
 
@@ -139,7 +139,7 @@ class TagRemoveInheritance(Change):
     name: str
     parent: str
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         data = [{'name': self.parent, 'priority': self.priority,
                 'delete link': True}]
         return session.setInheritanceData(self.name, data)
@@ -151,7 +151,7 @@ class TagAddExternalRepo(Change):
     repo: str
     priority: int
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.addExternalRepoToTag(self.name, self.repo, self.priority)
 
 
@@ -160,7 +160,7 @@ class TagRemoveExternalRepo(Change):
     name: str
     repo: str
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.removeExternalRepoFromTag(self.name, self.repo)
 
 
@@ -218,7 +218,7 @@ class TagChangeReport(ChangeReport):
     def remove_external_repo(self, repo: 'InheritanceLink'):
         self.add(TagRemoveExternalRepo(self.obj.name, repo.name))
 
-    def impl_read(self, session: ClientSession):
+    def impl_read(self, session: MultiCallSession):
         self._taginfo: VirtualCall = session.getTag(self.obj.name, strict=False)
         self._groups: VirtualCall = session.getTagGroups(self.obj.name, inherit=False)
         self._inheritance: VirtualCall = session.getInheritanceData(self.obj.name)

@@ -17,7 +17,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 from enum import Enum
 from typing import Any, Optional
 
-from koji import ClientSession, VirtualCall
+from koji import MultiCallSession, VirtualCall
 
 from .base import Base
 
@@ -49,10 +49,10 @@ class Change:
     def __post_init__(self):
         self._result = None
 
-    def impl_apply(self, session: ClientSession) -> VirtualCall:
+    def impl_apply(self, session: MultiCallSession) -> VirtualCall:
         raise NotImplementedError("Subclasses of Change must implement impl_apply")
 
-    def apply(self, session: ClientSession) -> None:
+    def apply(self, session: MultiCallSession) -> None:
         if self._result is not None:
             raise ChangeError(f"Change applied multiple times: {self.obj.name}")
         self._result = self.impl_apply(session)
@@ -79,7 +79,7 @@ class ChangeReport:
         return iter(self.changes)
 
 
-    def read(self, session: ClientSession) -> None:
+    def read(self, session: MultiCallSession) -> None:
         if self.state != ChangeReportState.PENDING:
             raise ChangeReportError(f"Change report is not pending: {self.state}")
 
@@ -88,7 +88,7 @@ class ChangeReport:
         self.state = ChangeReportState.LOADED
 
 
-    def impl_read(self, session: ClientSession) -> None:
+    def impl_read(self, session: MultiCallSession) -> None:
         raise NotImplementedError("Subclasses of ChangeReport must implement impl_read")
 
 
@@ -110,7 +110,7 @@ class ChangeReport:
         self.changes.append(change)
 
 
-    def apply(self, session: ClientSession) -> None:
+    def apply(self, session: MultiCallSession) -> None:
         if self.state != ChangeReportState.COMPARED:
             raise ChangeReportError(f"Change report is not compared: {self.state}")
 

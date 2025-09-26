@@ -12,7 +12,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 from dataclasses import dataclass
 from typing import ClassVar, Optional
 
-from koji import ClientSession, VirtualCall
+from koji import MultiCallSession, VirtualCall
 from pydantic import Field
 
 from .base import BaseKojiObject
@@ -24,7 +24,7 @@ class PermissionCreate(Change):
     name: str
     description: Optional[str]
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         currentuser = vars(session)['_currentuser']['id']
         # there's no way to create a permission on its own, you have to grant it to someone
         # and then revoke it. We record the logged in user as _currentuser when we use the
@@ -39,7 +39,7 @@ class PermissionSetDescription(Change):
     name: str
     description: str
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.editPermission(self.name, description=self.description)
 
 
@@ -57,7 +57,7 @@ class PermissionChangeReport(ChangeReport):
         self.add(PermissionSetDescription(self.obj.name, self.obj.description))
 
 
-    def impl_read(self, session: ClientSession):
+    def impl_read(self, session: MultiCallSession):
         self._permissioninfo: VirtualCall = session.getPermission(self.obj.name)
 
 

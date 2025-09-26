@@ -12,7 +12,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 from dataclasses import dataclass
 from typing import ClassVar, List, Any
 
-from koji import ClientSession, VirtualCall
+from koji import MultiCallSession, VirtualCall
 from pydantic import Field
 
 from .base import BaseKojiObject, BaseKey
@@ -24,7 +24,7 @@ class UserCreate(Change):
     name: str
     enabled: bool
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.createUser(self.name, status=self.enabled)
 
 
@@ -32,7 +32,7 @@ class UserCreate(Change):
 class UserEnable(Change):
     name: str
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.enableUser(self.name)
 
 
@@ -40,7 +40,7 @@ class UserEnable(Change):
 class UserDisable(Change):
     name: str
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.disableUser(self.name)
 
 
@@ -49,7 +49,7 @@ class UserGrantPermission(Change):
     name: str
     permission: str
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.grantPermission(self.name, self.permission, create=True)
 
 
@@ -58,7 +58,7 @@ class UserRevokePermission(Change):
     name: str
     permission: str
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.revokePermission(self.name, self.permission)
 
 
@@ -67,7 +67,7 @@ class UserAddToGroup(Change):
     name: str
     group: str
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.addGroupMember(self.group, self.name, strict=False)
 
 
@@ -76,7 +76,7 @@ class UserRemoveFromGroup(Change):
     name: str
     group: str
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.dropGroupMember(self.group, self.name)
 
 
@@ -107,7 +107,7 @@ class UserChangeReport(ChangeReport):
         self.add(UserRemoveFromGroup(self.obj.name, group))
 
 
-    def impl_read(self, session: ClientSession):
+    def impl_read(self, session: MultiCallSession):
         self._userinfo: VirtualCall = session.getUser(self.obj.name, strict=False, groups=True)
         self._permissions: VirtualCall = session.getUserPerms(self.obj.name)
 

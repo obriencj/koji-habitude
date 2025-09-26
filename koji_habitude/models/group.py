@@ -11,7 +11,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 from dataclasses import dataclass
 from typing import ClassVar, List, Tuple
 
-from koji import ClientSession, VirtualCall
+from koji import MultiCallSession, VirtualCall
 from pydantic import Field
 
 from .base import BaseKojiObject, BaseKey
@@ -22,7 +22,7 @@ from .change import Change, ChangeReport
 class GroupCreate(Change):
     name: str
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.newGroup(self.name)
 
 
@@ -30,7 +30,7 @@ class GroupCreate(Change):
 class GroupEnable(Change):
     name: str
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.enableUser(self.name)
 
 
@@ -38,7 +38,7 @@ class GroupEnable(Change):
 class GroupDisable(Change):
     name: str
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.disableUser(self.name)
 
 
@@ -47,7 +47,7 @@ class GroupAddMember(Change):
     name: str
     member: str
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.addGroupMember(self.name, self.member)
 
 
@@ -56,7 +56,7 @@ class GroupRemoveMember(Change):
     name: str
     member: str
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.dropGroupMember(self.name, self.member)
 
 
@@ -65,7 +65,7 @@ class GroupAddPermission(Change):
     name: str
     permission: str
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.grantPermission(self.name, self.permission, create=True)
 
 
@@ -74,7 +74,7 @@ class GroupRemovePermission(Change):
     name: str
     permission: str
 
-    def impl_apply(self, session: ClientSession):
+    def impl_apply(self, session: MultiCallSession):
         return session.revokePermission(self.name, self.permission)
 
 
@@ -102,7 +102,7 @@ class GroupChangeReport(ChangeReport):
         self.add(GroupRemovePermission(self.obj.name, permission))
 
 
-    def impl_read(self, session: ClientSession):
+    def impl_read(self, session: MultiCallSession):
         self._groupinfo: VirtualCall = session.getUser(self.obj.name, strict=False)
         self._members: VirtualCall = session.getGroupMembers(self.obj.name)
         self._permissions: VirtualCall = session.getUserPerms(self.obj.name)
