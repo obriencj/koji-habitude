@@ -19,7 +19,7 @@ define checkfor
 endef
 
 
-.PHONY: build flake8 mypy twine test clean help tidy purge quicktest docs overview clean-docs preview-docs
+.PHONY: build flake8 mypy twine test clean help tidy purge quicktest docs overview clean-docs preview-docs coverage
 
 # Default target
 help:
@@ -30,6 +30,7 @@ help:
 	@echo "  twine   - Check package with twine"
 	@echo "  test    - Run tests with pytest"
 	@echo "  quicktest - Run tests with system Python (faster)"
+	@echo "  coverage - Run tests with coverage and generate HTML report"
 	@echo "  tidy    - Tidy up stray python cache files"
 	@echo "  clean   - Tidy up, then clean build artifacts"
 	@echo "  purge   - Clean up, then purge tox environments"
@@ -61,6 +62,11 @@ test:
 
 quicktest:
 	$(TOX) -qe quicktest
+
+# Run tests with coverage and generate HTML report
+coverage:
+	@mkdir -p build/coverage
+	$(TOX) -qe coverage
 
 tidy:
 	@rm -rf *.egg-info/
