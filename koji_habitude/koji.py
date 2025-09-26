@@ -39,7 +39,7 @@ def session(profile: str = 'koji', authenticate: bool = False) -> ClientSession:
     session = ClientSession(server, opts=conf)
 
     if authenticate:
-        activate_session(session)
+        activate_session(session, conf)
         vars(session)['_currentuser'] = session.getLoggedInUser()
     else:
         vars(session)['_currentuser'] = None
