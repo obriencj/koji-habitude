@@ -35,7 +35,8 @@ class TargetEdit(Change):
     dest_tag: Optional[str] = None
 
     def impl_apply(self, session: MultiCallSession) -> VirtualCall:
-        return session.editBuildTarget(self.name, self.build_tag, self.dest_tag or self.name)
+        # thank you, koji-typing
+        return session.editBuildTarget(self.name, self.name, self.build_tag, self.dest_tag or self.name)
 
 
 class TargetChangeReport(ChangeReport):
