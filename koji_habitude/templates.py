@@ -15,29 +15,66 @@ import logging
 
 from pydantic import Field, PrivateAttr
 from pathlib import Path
-from typing import Any, ClassVar, Dict, Iterator, Optional, Set
+from typing import Any, ClassVar, Dict, Iterator, Optional, Set, Sequence, Tuple, List
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined, Template as Jinja2Template
 from jinja2.exceptions import UndefinedError, TemplateNotFound
 from jinja2.meta import find_undeclared_variables
 import yaml
 
-from .models import BaseObject
+from .models import Base, BaseObject, BaseKey
 
 
 logger = logging.getLogger("koji_habitude.templates")
 
 
-class TemplateCall:
+class TemplateCall(Base):
 
     """
     Represents a YAML doc that needs to be expanded into zero or more
     new docs via a Template.
     """
 
+    # this value is overridden in instances
+    typename: ClassVar[str] = "template-call"
+
+
     def __init__(self, data: Dict[str, Any]):
-        self.typename: str = data['type']
+        self.typename: str = data['type']  # type: ignore
+        if self.typename is None:
+            raise TemplateException(
+                "template call must have a type",
+                data.get('__file__'), data.get('__line__'))
+
+        self.name: str = data.get('name', self.typename)
         self.data: Dict[str, Any] = data
+
+    def key(self) -> BaseKey:
+        return ('template-call', self.name)
+
+    @property
+    def filename(self) -> Optional[str]:
+        return self.data.get('__file__')
+
+    @property
+    def lineno(self) -> Optional[int]:
+        return self.data.get('__line__')
+
+    @property
+    def trace(self) -> Optional[List[Dict[str, Any]]]:
+        return self.data.get('__trace__')
+
+    def filepos(self) -> Tuple[Optional[str], Optional[int]]:
+        return (self.filename, self.lineno)
+
+    def can_split(self) -> bool:
+        return False
+
+    def split(self) -> 'TemplateCall':
+        raise TypeError("Cannot split template call")
+
+    def dependency_keys(self) -> Sequence[BaseKey]:
+        return ()
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'TemplateCall':
