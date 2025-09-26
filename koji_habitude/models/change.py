@@ -15,11 +15,11 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Optional, List
 
 from koji import MultiCallSession, VirtualCall
 
-from .base import Base
+from .base import Base, BaseKey
 
 
 class ChangeError(Exception):
@@ -43,10 +43,10 @@ class ChangeReportState(Enum):
 
 class Change:
 
-    def __init__(self):
-        self._result = None
+    def __init__(self) -> None:
+        self._result: Optional[VirtualCall] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self._result = None
 
     def impl_apply(self, session: MultiCallSession) -> VirtualCall:
@@ -54,21 +54,23 @@ class Change:
 
     def apply(self, session: MultiCallSession) -> None:
         if self._result is not None:
-            raise ChangeError(f"Change applied multiple times: {self.obj.name}")
+            raise ChangeError(f"Attempted to re-apply change: {self!r}")
         self._result = self.impl_apply(session)
 
     @property
-    def result(self):
+    def result(self) -> Any:
+        if self._result is None:
+            raise ChangeError(f"Change not applied: {self!r}")
         return self._result.result
 
 
 class ChangeReport:
 
     def __init__(self, obj: Base):
-        self.obj = obj
-        self.key = obj.key()
-        self.state = ChangeReportState.PENDING
-        self.changes = []
+        self.obj: Base = obj
+        self.key: BaseKey = obj.key()
+        self.state: ChangeReportState = ChangeReportState.PENDING
+        self.changes: List[Change] = []
 
 
     def __len__(self):
