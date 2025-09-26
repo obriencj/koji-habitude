@@ -10,7 +10,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import ClassVar, List, Any
+from typing import ClassVar, List, Optional
 
 from koji import MultiCallSession, VirtualCall
 from pydantic import Field
@@ -22,7 +22,7 @@ from .change import Change, ChangeReport
 @dataclass
 class UserCreate(Change):
     name: str
-    enabled: bool
+    enabled: Optional[bool]
 
     def impl_apply(self, session: MultiCallSession):
         return session.createUser(self.name, status=self.enabled)
@@ -122,11 +122,12 @@ class UserChangeReport(ChangeReport):
                 self.add_to_group(group)
             return
 
-        if info['status'] != self.obj.enabled:
-            if self.obj.enabled:
-                self.enable_user()
-            else:
-                self.disable_user()
+        if self.obj.enabled is not None:
+            if info['status'] != self.obj.enabled:
+                if self.obj.enabled:
+                    self.enable_user()
+                else:
+                    self.disable_user()
 
         groups = info['groups']
         for group in self.obj.groups:
