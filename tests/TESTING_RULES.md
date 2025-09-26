@@ -143,50 +143,100 @@ self.assertIn("missing required field", str(context.exception))
 
 ## Anti-Patterns and Forbidden Practices
 
-### Never Write Tests That Pass Due to Bugs
-**CRITICAL**: Unit tests must NEVER be written to pass by depending on bugs or exceptions from broken code.
+### CRITICAL ANTI-PATTERN: Tests That Pass When Bugs Exist
+**CRITICAL**: Unit tests must NEVER be written to pass when production code has bugs.
 
 #### Forbidden Patterns
-- **DO NOT** write tests that expect exceptions from what you think are bugs
+- **DO NOT** write tests that pass by expecting specific error messages from bugs
+- **DO NOT** write tests that pass by asserting on exception types from bugs
+- **DO NOT** use `self.assertIn()` to check for bug error messages
+- **DO NOT** write tests that document bugs by making them pass
 - **DO NOT** use `with self.assertRaises(Exception):` to make tests pass when you suspect implementation problems
 - **DO NOT** write comments like "This test documents the current behavior until the implementation is fixed"
 - **DO NOT** hide bugs by making tests pass through exception expectations
+- **DO NOT** mock around bugs to make tests pass
 
-#### Correct Approach
+#### Required Patterns
+- **DO** write tests assuming the API works correctly
+- **DO** write tests that FAIL when bugs exist (this reveals the bugs)
+- **DO** write tests that PASS only when production code works correctly
 - **DO** write tests that validate the intended behavior of your code
 - **DO** write tests that will fail if there are actual bugs
 - **DO** fix bugs in the implementation, not in the tests
 - **DO** write tests that document the correct expected behavior
 
-#### Example of Bad Test (DO NOT DO THIS)
+#### Example of Catastrophically Bad Test (NEVER DO THIS)
 ```python
-def test_some_functionality(self):
-    # The current implementation has a bug - it doesn't include 'type' field
-    # This test documents the current behavior until the implementation is fixed
-    with self.assertRaises(Exception):
-        result = some_function()
+def test_processor_has_load_method_bug(self):
+    """Test that documents the load() method bug."""
+    # WRONG - this test passes when the bug exists
+    with self.assertRaises(AttributeError) as context:
+        processor.step()
+    self.assertIn("'TargetChangeReport' object has no attribute 'load'", str(context.exception),
+                 "BUG: change_report.load() called but method is actually 'read()'")
 ```
 
-#### Example of Good Test (DO THIS)
+#### Example of Correct Test (DO THIS)
 ```python
-def test_some_functionality(self):
-    result = some_function()
-    self.assertIsInstance(result, ExpectedType)
-    self.assertEqual(result.field1, expected_value)
-    self.assertEqual(result.field2, expected_value)
+def test_processor_calls_read_method_on_change_reports(self):
+    """Test that processor calls the correct read() method on change reports."""
+    # This test will fail until the bug is fixed (load() -> read())
+    # That's correct - the test reveals the bug
+    target = create_test_target('test-target', 'build-tag', 'dest-tag')
+    solver = create_target_solver([target])
+    mock_session = create_test_koji_session()
+
+    processor = Processor(
+        koji_session=mock_session,
+        stream_origin=solver,
+        chunk_size=10
+    )
+
+    # This will fail due to the bug, revealing it
+    result = processor.step()
+    self.assertTrue(result)
 ```
+
+## Test Failure Response Protocol
+
+When a test fails due to a bug in production code:
+
+1. **DO NOT** modify the test to make it pass
+2. **DO NOT** mock around the bug
+3. **DO NOT** write tests that expect the bug to exist
+4. **DO** report the bug to the programmer
+5. **DO** let the programmer fix the production code
+6. **DO** verify the test passes after the bug is fixed
+
+**The test failure is the test working correctly - it found a bug.**
+
+## Test Writing Philosophy
+
+**Golden Rule**: Write tests as if the production code works correctly.
+
+**Process**:
+1. Write test assuming correct API behavior
+2. Run test
+3. If test FAILS → You found a bug (good!)
+4. Report bug to programmer
+5. Programmer fixes production code
+6. Test now PASSES (because bug is fixed)
+
+**Never**:
+- Write tests that pass when bugs exist
+- Mock around bugs to make tests pass
+- Write tests that expect specific error messages from bugs
+
+**Always**:
+- Write tests that validate correct behavior
+- Let test failures reveal bugs
+- Let programmer fixes make tests pass
 
 ### Test Philosophy
 - **Tests should fail when code is broken**
 - **Tests should pass when code works correctly**
 - **Tests should document intended behavior, not current bugs**
 - **If you find a bug, fix the implementation, not the test**
-
-### When You Suspect a Bug
-1. **Investigate the implementation** to understand what it should do
-2. **Write a test that validates the correct behavior**
-3. **Fix the implementation** to make the test pass
-4. **Never write a test that passes by expecting the bug to raise an exception**
 
 ## Test Coverage Requirements
 
@@ -247,6 +297,46 @@ This document may be extended with additional rules as the project evolves. Comm
 - All test code must pass the same linting standards as production code
 - Follow PEP 8 style guidelines
 - Use the project's configured linting tools (flake8, etc.)
+
+## Code Review Checklist for Tests
+
+Before submitting any test code, verify:
+
+- [ ] No test passes when production code has bugs
+- [ ] No test uses assertions to check for bug error messages
+- [ ] No test mocks around bugs to make them pass
+- [ ] All tests validate correct behavior
+- [ ] Test failures would reveal real bugs
+- [ ] Tests would pass when production code works correctly
+- [ ] No test uses `self.assertIn()` to verify bug error messages
+- [ ] No test uses `self.assertRaises()` to expect bugs
+- [ ] All tests are written assuming the API works correctly
+
+## Bug Documentation in Tests
+
+If you need to document bugs found during testing:
+
+1. **DO NOT** write tests that pass when bugs exist
+2. **DO NOT** use assertions to verify bug error messages
+3. **DO** write comments explaining what the correct behavior should be
+4. **DO** write tests that will pass once the bug is fixed
+5. **DO** use clear test names that indicate expected behavior
+
+Example of CORRECT bug documentation:
+```python
+def test_processor_calls_read_method_on_change_reports(self):
+    """Test that processor calls the correct read() method on change reports."""
+    # This test will fail until the bug is fixed (load() -> read())
+    # That's correct - the test reveals the bug
+```
+
+Example of WRONG bug documentation:
+```python
+def test_processor_has_load_method_bug(self):
+    """Test that documents the load() method bug."""
+    # WRONG - this test passes when the bug exists
+    self.assertIn("'TargetChangeReport' object has no attribute 'load'", error_msg)
+```
 
 ---
 

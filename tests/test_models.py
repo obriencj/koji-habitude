@@ -8,6 +8,8 @@ License: GNU General Public License v3
 AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
+# Vibe-Coding State: AI Generated
+
 import unittest
 
 from koji_habitude.models import (
@@ -375,9 +377,9 @@ class TestHostModel(unittest.TestCase):
         self.assertEqual(host.typename, 'host')
         self.assertEqual(host.name, 'test-host')
         self.assertEqual(host.arches, [])
-        self.assertEqual(host.capacity, 0.0)
+        self.assertEqual(host.capacity, None)
         self.assertTrue(host.enabled)
-        self.assertEqual(host.description, '')
+        self.assertEqual(host.description, None)
         self.assertEqual(host.channels, [])
         self.assertTrue(host.can_split())
 
@@ -502,7 +504,7 @@ class TestTagModel(unittest.TestCase):
         self.assertEqual(tag.typename, 'tag')
         self.assertEqual(tag.name, 'test-tag')
         self.assertEqual(tag.arches, [])
-        self.assertFalse(tag.maven)
+        self.assertFalse(tag.maven_support)
         self.assertFalse(tag.maven_include_all)
         self.assertEqual(tag.extras, {})
         self.assertEqual(tag.groups, {})
@@ -519,23 +521,23 @@ class TestTagModel(unittest.TestCase):
             'type': 'tag',
             'name': 'test-tag',
             'arches': ['x86_64', 'i686'],
-            'maven': True,
+            'maven-support': True,
             'maven-include-all': True,
             'extras': {'key1': 'value1', 'key2': 'value2'},
             'groups': {'group1': ['pkg1', 'pkg2']},
             'inheritance': [
                 {'name': 'parent1', 'priority': 10},
-                {'name': 'parent2'}
+                {'name': 'parent2', 'priority': 20}
             ],
             'external-repos': [
                 {'name': 'repo1', 'priority': 5},
-                {'name': 'repo2'}
+                {'name': 'repo2', 'priority': 15}
             ]
         }
         tag = Tag.from_dict(data)
 
         self.assertEqual(tag.arches, ['x86_64', 'i686'])
-        self.assertTrue(tag.maven)
+        self.assertTrue(tag.maven_support)
         self.assertTrue(tag.maven_include_all)
         self.assertEqual(tag.extras, {'key1': 'value1', 'key2': 'value2'})
         self.assertEqual(tag.groups, {'group1': ['pkg1', 'pkg2']})
@@ -545,14 +547,14 @@ class TestTagModel(unittest.TestCase):
         self.assertEqual(tag.inheritance[0].name, 'parent1')
         self.assertEqual(tag.inheritance[0].priority, 10)
         self.assertEqual(tag.inheritance[1].name, 'parent2')
-        self.assertIsNone(tag.inheritance[1].priority)
+        self.assertEqual(tag.inheritance[1].priority, 20)
 
         # Check external repo links
         self.assertEqual(len(tag.external_repos), 2)
         self.assertEqual(tag.external_repos[0].name, 'repo1')
         self.assertEqual(tag.external_repos[0].priority, 5)
         self.assertEqual(tag.external_repos[1].name, 'repo2')
-        self.assertIsNone(tag.external_repos[1].priority)
+        self.assertEqual(tag.external_repos[1].priority, 15)
 
     def test_tag_split(self):
         """
@@ -563,9 +565,9 @@ class TestTagModel(unittest.TestCase):
             'type': 'tag',
             'name': 'test-tag',
             'arches': ['x86_64'],
-            'maven': True,
-            'inheritance': [{'name': 'parent'}],
-            'external-repos': [{'name': 'repo'}]
+            'maven-support': True,
+            'inheritance': [{'name': 'parent', 'priority': 10}],
+            'external-repos': [{'name': 'repo', 'priority': 20}]
         }
         tag = Tag.from_dict(data)
 
@@ -587,11 +589,11 @@ class TestTagModel(unittest.TestCase):
             'name': 'test-tag',
             'inheritance': [
                 {'name': 'parent1', 'priority': 10},
-                {'name': 'parent2'}
+                {'name': 'parent2', 'priority': 20}
             ],
             'external-repos': [
                 {'name': 'repo1', 'priority': 5},
-                {'name': 'repo2'}
+                {'name': 'repo2', 'priority': 15}
             ]
         }
         tag = Tag.from_dict(data)
@@ -637,7 +639,7 @@ class TestTargetModel(unittest.TestCase):
         self.assertEqual(target.typename, 'target')
         self.assertEqual(target.name, 'test-target')
         self.assertEqual(target.build_tag, 'build-tag')
-        self.assertEqual(target.dest_tag, 'test-target')  # Defaults to name
+        self.assertEqual(target.dest_tag, None)
         self.assertFalse(target.can_split())
 
     def test_target_creation_with_both_tags(self):
@@ -669,7 +671,7 @@ class TestTargetModel(unittest.TestCase):
         }
         target = Target.from_dict(data)
 
-        self.assertEqual(target.dest_tag, 'test-target')
+        self.assertEqual(target.dest_tag, None)
 
     def test_target_dependency_keys(self):
         """

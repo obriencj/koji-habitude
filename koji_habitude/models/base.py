@@ -11,7 +11,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: AI Generated with Human Rework
 
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from typing import (
     Any, ClassVar, Dict, List, Optional, Protocol,
@@ -81,6 +81,8 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
 
     # this is the record of the `from_dict` call if it was used
     _data: Optional[Dict[str, Any]] = None
+
+    model_config = ConfigDict(validate_by_alias=True, validate_by_name=True)
 
 
     def model_post_init(self, __context: Any):

@@ -9,11 +9,95 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
 
-from typing import ClassVar, List
+from dataclasses import dataclass
+from typing import ClassVar, List, Optional
 
+from koji import MultiCallSession, VirtualCall
 from pydantic import Field
 
 from .base import BaseKojiObject, BaseKey
+from .change import ChangeReport, Change
+
+
+@dataclass
+class ChannelCreate(Change):
+    name: str
+    description: Optional[str] = None
+
+    def impl_apply(self, session: MultiCallSession):
+        return session.createChannel(self.name, self.description)
+
+
+@dataclass
+class ChannelSetDescription(Change):
+    name: str
+    description: Optional[str] = None
+
+    def impl_apply(self, session: MultiCallSession):
+        return session.editChannel(self.name, description=self.description)
+
+
+@dataclass
+class ChannelAddHost(Change):
+    name: str
+    host: str
+
+    def impl_apply(self, session: MultiCallSession):
+        return session.addHostToChannel(self.host, self.name)
+
+
+@dataclass
+class ChannelRemoveHost(Change):
+    name: str
+    host: str
+
+    def impl_apply(self, session: MultiCallSession):
+        return session.removeHostFromChannel(self.host, self.name)
+
+
+class ChannelChangeReport(ChangeReport):
+    """
+    Change report for channel objects.
+    """
+
+    def create_channel(self):
+        self.add(ChannelCreate(self.obj.name, self.obj.description))
+
+    def set_description(self):
+        self.add(ChannelSetDescription(self.obj.name, self.obj.description))
+
+    def add_host(self, host: str):
+        self.add(ChannelAddHost(self.obj.name, host))
+
+    def remove_host(self, host: str):
+        self.add(ChannelRemoveHost(self.obj.name, host))
+
+
+    def impl_read(self, session: MultiCallSession):
+        self._channelinfo: VirtualCall = session.getChannel(self.obj.name, strict=False)
+        self._hosts: VirtualCall = session.listHosts(channelID=self.obj.name)
+
+
+    def impl_compare(self):
+        info = self._channelinfo.result
+        if not info:
+            self.create_channel()
+            for host in self.obj.hosts:
+                self.add_host(host)
+            return
+
+        if self.obj.description is not None and info['description'] != self.obj.description:
+            self.set_description()
+
+        hosts = {host['name']: host for host in self._hosts.result}
+        for host in self.obj.hosts:
+            if host not in hosts:
+                self.add_host(host)
+
+        if self.obj.exact_hosts:
+            for host in hosts:
+                if host not in self.obj.hosts:
+                    self.remove_host(host)
 
 
 class Channel(BaseKojiObject):
@@ -24,7 +108,9 @@ class Channel(BaseKojiObject):
     typename: ClassVar[str] = "channel"
     _can_split: ClassVar[bool] = True
 
-    hosts: List[str] = [] # = Field(alias='hosts', default_factory=list)
+    description: Optional[str] = Field(alias='description', default=None)
+    hosts: List[str] = Field(alias='hosts', default_factory=list)
+    exact_hosts: bool = Field(alias='exact-hosts', default=False)
 
 
     def dependency_keys(self) -> List[BaseKey]:
@@ -34,6 +120,10 @@ class Channel(BaseKojiObject):
         """
 
         return [('host', host) for host in self.hosts]
+
+
+    def change_report(self) -> ChannelChangeReport:
+        return ChannelChangeReport(self)
 
 
 # The end.

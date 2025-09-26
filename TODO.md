@@ -49,6 +49,25 @@ This document tracks planned features and improvements for koji-habitude.
 - [ ] Add multicall support for efficient koji operations
 - [ ] Test CLI commands with real data files
 
+**Processor Module** (New architecture component):
+- [ ] Implement model methods for koji integration (`fetch_koji_state`, `diff_against_koji`, `apply_to_koji`)
+- [ ] Complete Processor class implementation with multicall integration
+- [ ] Implement DiffOnlyProcessor for dry-run operations
+- [ ] Add error handling and recovery for partial failures
+- [ ] Implement change tracking and reporting
+- [ ] Add progress reporting and status updates
+- [ ] Test Processor with mock koji sessions
+- [ ] Add unit tests for Processor and DiffOnlyProcessor classes
+
+**Workflow Orchestration** (High-level coordination):
+- [ ] Implement Workflow class for end-to-end process coordination
+- [ ] Add missing object validation before processing
+- [ ] Implement progress reporting and TUI integration
+- [ ] Add error handling and rollback capabilities
+- [ ] Create workflow configuration and options
+- [ ] Add workflow testing with integration scenarios
+- [ ] Document workflow usage and best practices
+
 **Infrastructure**:
 - [ ] Set up continuous integration testing
 - [ ] Add type hints throughout codebase
@@ -138,6 +157,15 @@ data files and comprehensive test suites (274 total tests).
 - [ ] Test multicall result processing
 - [ ] Mock koji responses for testing
 
+**Processor Testing**:
+- [ ] Test Processor class with mock koji sessions
+- [ ] Test DiffOnlyProcessor dry-run functionality
+- [ ] Test chunking behavior with various chunk sizes
+- [ ] Test error handling for partial failures
+- [ ] Test multicall integration and promise resolution
+- [ ] Test change tracking and reporting accuracy
+- [ ] Test progress reporting and status updates
+
 **Integration Testing**:
 - [ ] Test end-to-end workflows with real data
 - [ ] Test CLI commands with various data combinations
@@ -195,6 +223,73 @@ koji-habitude validate --type tag /path/to/data
 # Diff only targets and their dependencies
 koji-habitude diff --type target /path/to/data
 ```
+
+## 📚 Documentation
+
+**Goal**: Comprehensive documentation for users and developers.
+
+**Current Status**: Basic Sphinx documentation structure exists with some content, but needs expansion and improvement.
+
+### ✅ Completed Documentation Infrastructure
+
+- [x] Configure project for building docs using Sphinx (setup.cfg with sphinx testenv)
+- [x] Create documentation stubs (docs/ directory with basic structure)
+- [x] Set up Sphinx configuration (docs/conf.py with autodoc, intersphinx)
+- [x] Create overview documentation (docs/overview.rst from README.md)
+- [x] Add Makefile targets for documentation building (docs, preview-docs, clean-docs)
+- [x] Configure automatic overview regeneration from README.md
+- [x] Set up basic API reference structure (docs/koji_habitude.rst)
+
+### 🚧 Documentation Content Needs
+
+**API Documentation**:
+- [ ] Complete API reference for all modules (loader, models, namespace, resolver, solver, templates)
+- [ ] Add comprehensive docstrings to all public functions and classes
+- [ ] Document CLI command options and usage examples
+- [ ] Add type hints documentation and examples
+- [ ] Document error handling and exception types
+
+**User Documentation**:
+- [ ] Create comprehensive user guide with step-by-step tutorials
+- [ ] Add YAML format specification and examples
+- [ ] Document template system with advanced examples
+- [ ] Create troubleshooting guide for common issues
+- [ ] Add performance tuning and best practices guide
+
+**Developer Documentation**:
+- [ ] Document architecture and design decisions
+- [ ] Create developer setup and contribution guide
+- [ ] Document testing strategy and how to add tests
+- [ ] Add code style and conventions documentation
+- [ ] Document dependency resolution algorithms
+
+**Examples and Tutorials**:
+- [ ] Create complete example configurations
+- [ ] Add tutorial for setting up a new koji instance
+- [ ] Document common use cases and patterns
+- [ ] Add migration guide from manual koji management
+- [ ] Create troubleshooting scenarios with solutions
+
+### 📋 Documentation Infrastructure Improvements
+
+- [ ] Add sphinx-autodoc-typehints for better type documentation
+- [ ] Configure sphinx extensions for better cross-referencing
+- [ ] Add documentation versioning strategy
+- [ ] Set up automated documentation deployment
+- [ ] Add documentation testing to CI pipeline
+- [ ] Create documentation style guide
+- [ ] Add spell checking for documentation
+- [ ] Configure documentation search functionality
+
+### 📖 Documentation Quality
+
+- [ ] Review and improve existing docstrings for clarity
+- [ ] Ensure all public APIs have comprehensive documentation
+- [ ] Add inline code examples to docstrings
+- [ ] Standardize documentation format across all modules
+- [ ] Add parameter and return value documentation
+- [ ] Document side effects and important behaviors
+- [ ] Add "See Also" sections for related functionality
 
 ## 🔮 Future Considerations
 

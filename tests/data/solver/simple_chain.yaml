@@ -13,6 +13,7 @@ name: tag2
 arches: [x86_64]
 inheritance:
   - name: tag3
+    priority: 10
 
 ---
 type: tag
@@ -20,5 +21,6 @@ name: tag1
 arches: [x86_64]
 inheritance:
   - name: tag2
+    priority: 10
 
 # The end.

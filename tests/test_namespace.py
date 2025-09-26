@@ -8,6 +8,8 @@ License: GNU General Public License v3
 AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
+# Vibe-Coding State: AI Generated
+
 import logging
 import unittest
 from unittest.mock import Mock, patch
@@ -597,7 +599,7 @@ class TestNamespaceToObjectMethods(unittest.TestCase):
             'type': 'tag',
             'name': 'test-tag',
             'parent': 'parent-tag',
-            'external-repos': [{'name': 'repo1'}, {'name': 'repo2'}],
+            'external-repos': [{'name': 'repo1', 'priority': 15}, {'name': 'repo2', 'priority': 25}],
             'custom_field': 'custom_value'
         }
 
@@ -607,7 +609,7 @@ class TestNamespaceToObjectMethods(unittest.TestCase):
         self.assertEqual(obj.name, 'test-tag')
         # Additional data should be preserved in the data dict
         self.assertEqual(obj.data['parent'], 'parent-tag')
-        self.assertEqual(obj.data['external-repos'], [{'name': 'repo1'}, {'name': 'repo2'}])
+        self.assertEqual(obj.data['external-repos'], [{'name': 'repo1', 'priority': 15}, {'name': 'repo2', 'priority': 25}])
         self.assertEqual(obj.data['custom_field'], 'custom_value')
 
     def test_to_object_with_file_metadata(self):
@@ -804,7 +806,7 @@ class TestNamespaceFeedMethods(unittest.TestCase):
                 {'name': 'base-tag', 'priority': 10},
                 {'name': 'extra-tag', 'priority': 20}
             ],
-            'external-repos': [{'name': 'repo1'}, {'name': 'repo2'}],
+            'external-repos': [{'name': 'repo1', 'priority': 15}, {'name': 'repo2', 'priority': 25}],
             'custom_field': 'custom_value'
         }
 
@@ -817,7 +819,7 @@ class TestNamespaceFeedMethods(unittest.TestCase):
         # Check that all data is preserved
         self.assertEqual(obj.data['description'], 'A complex tag with lots of data')
         self.assertEqual(obj.data['inheritance'], [{'name': 'base-tag', 'priority': 10}, {'name': 'extra-tag', 'priority': 20}])
-        self.assertEqual(obj.data['external-repos'], [{'name': 'repo1'}, {'name': 'repo2'}])
+        self.assertEqual(obj.data['external-repos'], [{'name': 'repo1', 'priority': 15}, {'name': 'repo2', 'priority': 25}])
         self.assertEqual(obj.data['custom_field'], 'custom_value')
 
     def test_feedall_raw_from_nested_sample(self):

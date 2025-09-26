@@ -8,6 +8,8 @@ License: GNU General Public License v3
 AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
+# Vibe-Coding State: AI Generated
+
 import unittest
 from pathlib import Path
 from unittest.mock import Mock
@@ -286,7 +288,7 @@ class TestResolverIntegration(unittest.TestCase):
         tag_data = {
             'name': 'child-tag',
             'type': 'tag',
-            'inheritance': [{'name': 'parent-tag'}]
+            'inheritance': [{'name': 'parent-tag', 'priority': 10}]
         }
         child_tag = Tag.from_dict(tag_data)
         self.namespace.add(child_tag)

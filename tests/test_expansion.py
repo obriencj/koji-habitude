@@ -9,10 +9,13 @@ License: GNU General Public License v3
 AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
+# Vibe-Coding State: AI Generated
+
 from pathlib import Path
 from unittest import TestCase
 
 from jinja2.exceptions import TemplateSyntaxError
+from pydantic import ValidationError
 
 from koji_habitude.loader import YAMLLoader
 from koji_habitude.models import Group, Tag, Target
@@ -302,7 +305,7 @@ class TestExpansionErrorHandling(TestCase):
         self.ns.feedall_raw(documents)
 
         # Should fail during expansion when trying to use generated template
-        with self.assertRaises(Exception):
+        with self.assertRaises(ValidationError):
             self.ns.expand()
 
 
