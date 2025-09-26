@@ -25,7 +25,7 @@ class PermissionCreate(Change):
     description: Optional[str]
 
     def impl_apply(self, session: ClientSession):
-        currentuser = session._currentuser['id']
+        currentuser = vars(session)['_currentuser']['id']
         # there's no way to create a permission on its own, you have to grant it to someone
         # and then revoke it. We record the logged in user as _currentuser when we use the
         # `koji_habituse.koji.session` call.
@@ -68,7 +68,7 @@ class PermissionChangeReport(ChangeReport):
             return
 
         if info['description'] != self.obj.description:
-            self.set_description(info['description'])
+            self.set_description()
 
 
 class Permission(BaseKojiObject):
@@ -83,5 +83,6 @@ class Permission(BaseKojiObject):
 
     def change_report(self) -> PermissionChangeReport:
         return PermissionChangeReport(self)
+
 
 # The end.
