@@ -15,16 +15,18 @@ models for all Koji object types (8 CORE_MODELS) - Pydantic validation
 with field constraints and proper error handling - Dependency resolution
 architecture (Resolver and Solver modules) - Tiered execution system
 with automatic splitting for cross-dependencies - Comprehensive unit
-test coverage (274 tests across 8 test files) - Template expansion and
-YAML processing
+test coverage (349 tests across 17 test files) - Template expansion and
+YAML processing - Processor module with state machine for
+synchronization - Change tracking and reporting system - Multicall
+integration for efficient Koji operations
 
-**🚧 In Progress:** - Koji client integration for actual synchronization
-- Object diffing logic implementation - Multicall support for efficient
-Koji operations
+**🚧 In Progress:** - CLI command body implementation (``sync`` and
+``validate`` commands are stubs) - CLI testing (currently missing test
+coverage for CLI module)
 
 **📋 Next Steps:** - Implement ``sync`` and ``validate`` command bodies
-- Add CLI testing (currently missing test_cli.py) - Performance
-optimization and error handling improvements
+- Add CLI testing (currently 0% test coverage for CLI module) -
+Performance optimization and error handling improvements
 
 Overview
 --------
@@ -53,8 +55,16 @@ CLI
 ---
 
 koji-habitude is built using
-`Click <https://click.palletsprojects.com/>`__ and provides four main
+`Click <https://click.palletsprojects.com/>`__ and provides five main
 commands:
+
+**✅ Fully Implemented:** - ``list-templates`` - List and inspect
+available templates - ``expand`` - Expand templates and output final
+YAML
+
+**🚧 Command Structure Only (stubs):** - ``sync`` - Synchronize with
+Koji hub - ``validate`` - Validate configuration files - ``diff`` - Show
+differences (alias for ``sync --dry-run``)
 
 Synchronize with Koji Hub
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -62,6 +72,8 @@ Synchronize with Koji Hub
 .. code:: bash
 
    koji-habitude sync [OPTIONS] DATA [DATA...]
+
+**⚠️ Note**: This command is currently a stub and not yet implemented.
 
 **Options:** - ``DATA``: directories or files to work with -
 ``--templates PATH``: location to find templates that are not available
@@ -73,6 +85,8 @@ in ``DATA`` - ``--profile PROFILE``: Koji profile to use for connection
 
    koji-habitude diff [OPTIONS] DATA [DATA...]
 
+**⚠️ Note**: This command is currently a stub and not yet implemented.
+
 A convenience alias for ``koji-habitude sync --dry-run``
 
 List Available Templates
@@ -82,8 +96,14 @@ List Available Templates
 
    koji-habitude list-templates [OPTIONS] PATH [PATH...]
 
-Shows all templates found in the given locations with their
-configuration details.
+**✅ Fully Implemented**: Shows all templates found in the given
+locations with their configuration details.
+
+**Options:** - ``PATH``: directories containing template files -
+``--templates PATH``: load only templates from the given paths -
+``--yaml``: show expanded templates as YAML - ``--full``: show full
+template details including file locations and trace information -
+``--select NAME``: select specific templates by name
 
 Validate Configuration
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -91,6 +111,8 @@ Validate Configuration
 .. code:: bash
 
    koji-habitude validate [OPTIONS] DATA [DATA...]
+
+**⚠️ Note**: This command is currently a stub and not yet implemented.
 
 Validates templates and data files without connecting to koji, checking
 for: - Template syntax and structure - Circular dependencies - Missing
@@ -103,16 +125,17 @@ Expand Templates and Data
 
    koji-habitude expand [OPTIONS] DATA [DATA...]
 
+**✅ Fully Implemented**: Expands templates and data files into final
+YAML output.
+
 **Options:** - ``DATA``: directories or files to work with -
 ``--templates PATH``: location to find templates that are not available
-in ``DATA`` - ``--profile PROFILE``: Koji profile to use for connection
-(optional) - ``--offline``: Run in offline mode (no koji connection)
+in ``DATA``
 
-Expands templates and data files into final YAML output. This command
-loads templates from the specified locations, processes the data files
-through template expansion, and outputs the final YAML content to
-stdout. Useful for previewing the results of template expansion before
-applying changes.
+This command loads templates from the specified locations, processes the
+data files through template expansion, and outputs the final YAML
+content to stdout. Useful for previewing the results of template
+expansion before applying changes.
 
 YAML Format
 -----------
@@ -230,6 +253,51 @@ The system handles complex dependency scenarios including circular
 references and cross-tier dependencies through sophisticated graph
 algorithms.
 
+Architecture
+------------
+
+koji-habitude implements a sophisticated architecture for managing koji
+object synchronization:
+
+Core Components
+~~~~~~~~~~~~~~~
+
+- **Template System**: Jinja2-based template expansion with recursive
+  processing
+- **Dependency Resolution**: Resolver and Solver modules for intelligent
+  ordering
+- **Processor Module**: State machine-driven synchronization engine
+- **Change Tracking**: Comprehensive reporting of modifications and
+  differences
+
+Processor Module
+~~~~~~~~~~~~~~~~
+
+The ``Processor`` class is the core synchronization engine that manages
+the read/compare/apply cycle:
+
+- **State Machine**: ``ProcessorState`` enum manages processing phases
+  (READY_CHUNK → READY_READ → READY_COMPARE → READY_APPLY)
+- **Chunking**: Processes objects in configurable chunks for memory
+  efficiency
+- **Multicall Integration**: Uses koji’s multicall API for efficient
+  batch operations
+- **Change Tracking**: ``ChangeReport`` system tracks all modifications
+- **Dry-Run Support**: ``DiffOnlyProcessor`` for previewing changes
+  without applying them
+
+Data Flow
+~~~~~~~~~
+
+1. **Loading**: YAML files loaded via ``MultiLoader`` and ``YAMLLoader``
+2. **Expansion**: Templates expanded recursively through
+   ``ExpanderNamespace``
+3. **Resolution**: Dependencies resolved via ``Resolver`` and ``Solver``
+4. **Processing**: Objects processed in dependency order via
+   ``Processor``
+5. **Synchronization**: Changes applied to koji hub with multicall
+   optimization
+
 Requirements
 ------------
 
@@ -239,6 +307,8 @@ Requirements
 - `PyYAML <https://pyyaml.org/>`__ for configuration parsing
 - `Jinja2 <https://jinja.palletsprojects.com/>`__ for template
   processing
+- `Pydantic <https://pydantic-docs.helpmanual.io/>`__ for data
+  validation
 
 Installation
 ------------

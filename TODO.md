@@ -78,7 +78,7 @@ This document tracks planned features and improvements for koji-habitude.
 **Goal**: Comprehensive test coverage for core functionality.
 
 **Current Status**: Extensive test coverage exists for core modules with 42 test
-data files and comprehensive test suites (274 total tests).
+data files and comprehensive test suites (349 total tests).
 
 **Test Data Structure**:
 - `tests/data/templates/` - Template definition test files
@@ -96,6 +96,17 @@ data files and comprehensive test suites (274 total tests).
 - `test_namespace.py`: 53 tests (namespace handling, object resolution)
 - `test_resolver.py`: 27 tests (dependency resolution algorithms)
 - `test_solver.py`: 58 tests (tiered execution, splitting logic)
+- `test_processor.py`: 9 tests (processor state machine and basic functionality)
+- `test_processor_models/`: 75 tests (processor model behavior testing)
+  - `test_channel.py`: 9 tests (channel processor behavior)
+  - `test_external_repo.py`: 5 tests (external repo processor behavior)
+  - `test_group.py`: 8 tests (group processor behavior)
+  - `test_host.py`: 10 tests (host processor behavior)
+  - `test_multicall.py`: 3 tests (multicall mocking and execution)
+  - `test_permission.py`: 7 tests (permission processor behavior)
+  - `test_tag.py`: 10 tests (tag processor behavior)
+  - `test_target.py`: 3 tests (target processor behavior)
+  - `test_user.py`: 10 tests (user processor behavior)
 
 ### ✅ Completed Test Coverage
 
@@ -135,15 +146,44 @@ data files and comprehensive test suites (274 total tests).
 - [x] Test MultiLoader functionality (test_loader.py)
 - [x] Test error handling for malformed files (test_loader.py)
 
+### 📊 Current Coverage Status
+
+**Overall Coverage**: 85% (1,681 statements, 253 missing)
+
+**High Coverage Modules** (90%+):
+- `koji_habitude/__init__.py`: 100% (3 statements)
+- `koji_habitude/models/channel.py`: 100% (69 statements)
+- `koji_habitude/models/external_repo.py`: 100% (69 statements)
+- `koji_habitude/models/host.py`: 100% (110 statements)
+- `koji_habitude/models/permission.py`: 100% (40 statements)
+- `koji_habitude/models/target.py`: 100% (44 statements)
+- `koji_habitude/models/user.py`: 100% (113 statements)
+- `koji_habitude/resolver.py`: 100% (56 statements)
+- `koji_habitude/models/base.py`: 95% (62 statements, 3 missing)
+- `koji_habitude/models/group.py`: 95% (104 statements, 5 missing)
+- `koji_habitude/solver.py`: 94% (85 statements, 5 missing)
+- `koji_habitude/models/tag.py`: 91% (222 statements, 20 missing)
+
+**Medium Coverage Modules** (70-89%):
+- `koji_habitude/namespace.py`: 88% (138 statements, 17 missing)
+- `koji_habitude/processor.py`: 86% (133 statements, 18 missing)
+- `koji_habitude/templates.py`: 77% (142 statements, 33 missing)
+- `koji_habitude/loader.py`: 70% (96 statements, 29 missing)
+- `koji_habitude/models/change.py`: 80% (70 statements, 14 missing)
+
+**Low Coverage Modules** (<70%):
+- `koji_habitude/cli.py`: 0% (106 statements, 106 missing)
+- `koji_habitude/koji.py`: 92% (36 statements, 3 missing)
+
 ### 🚧 Missing Test Coverage
 
-**CLI Testing**:
+**CLI Testing** (0% coverage - 106 missing statements):
 - [ ] Test CLI command parsing and options
 - [ ] Test CLI error handling and user feedback
 - [ ] Test CLI integration with core modules
 - [ ] Test CLI help text and documentation
 
-**Dependency Resolution Testing**:
+**Dependency Resolution Testing** (100% coverage):
 - [x] Test Resolver module with various dependency scenarios (test_resolver.py - 27 tests)
 - [x] Test Solver module tiered execution (test_solver.py - 58 tests)
 - [x] Test Node-based dependency graph construction (test_solver.py)
@@ -157,13 +197,14 @@ data files and comprehensive test suites (274 total tests).
 - [ ] Test multicall result processing
 - [ ] Mock koji responses for testing
 
-**Processor Testing**:
-- [ ] Test Processor class with mock koji sessions
-- [ ] Test DiffOnlyProcessor dry-run functionality
+**Processor Testing** (86% coverage - 18 missing statements):
+- [x] Test Processor class basic functionality and state machine (test_processor.py)
+- [x] Test DiffOnlyProcessor dry-run functionality (test_processor.py)
+- [x] Test processor model behavior for all CORE_MODELS (test_processor_models/)
+- [x] Test multicall integration and promise resolution (test_multicall.py)
+- [x] Test change tracking and reporting accuracy (test_processor_models/)
 - [ ] Test chunking behavior with various chunk sizes
 - [ ] Test error handling for partial failures
-- [ ] Test multicall integration and promise resolution
-- [ ] Test change tracking and reporting accuracy
 - [ ] Test progress reporting and status updates
 
 **Integration Testing**:
@@ -171,6 +212,39 @@ data files and comprehensive test suites (274 total tests).
 - [ ] Test CLI commands with various data combinations
 - [ ] Test performance with large datasets
 - [ ] Test error recovery and rollback scenarios
+
+### 🎯 Priority Areas for Test Coverage Improvement
+
+**High Priority** (Major impact on coverage):
+1. **CLI Module** (0% coverage, 106 statements): Critical for user interaction
+   - Test all CLI commands and their options
+   - Test error handling and user feedback
+   - Test integration with core modules
+   - Test help text and documentation
+
+2. **Loader Module** (70% coverage, 29 missing statements): Core functionality
+   - Test error handling for malformed files
+   - Test edge cases in file discovery
+   - Test MultiLoader error scenarios
+
+3. **Templates Module** (77% coverage, 33 missing statements): Template processing
+   - Test Jinja2 error handling
+   - Test template validation edge cases
+   - Test external file loading scenarios
+
+**Medium Priority** (Moderate impact):
+4. **Processor Module** (86% coverage, 18 missing statements): Already well tested
+   - Test chunking behavior
+   - Test error handling for partial failures
+   - Test progress reporting
+
+5. **Namespace Module** (88% coverage, 17 missing statements): Good coverage
+   - Test edge cases in object resolution
+   - Test error handling scenarios
+
+**Low Priority** (Minor impact):
+6. **Models/Change Module** (80% coverage, 14 missing statements): Good coverage
+7. **Koji Module** (92% coverage, 3 missing statements): Nearly complete
 
 ## ⚡ FakeHub Support
 
@@ -309,9 +383,10 @@ Items that may be added later:
 architecture:
 - ✅ **CLI Framework**: Complete and functional with all commands available
 - ✅ **Data Models**: All CORE_MODELS implemented with Pydantic validation
-- ✅ **Unit Testing**: Comprehensive test coverage for models (50 test cases)
+- ✅ **Unit Testing**: Comprehensive test coverage with 349 tests (85% coverage)
 - ✅ **Dependency Resolution**: Resolver and Solver modules implemented for
   tiered execution
+- ✅ **Processor Module**: Complete processor implementation with model behavior testing
 - 🚧 **Integration**: Ready for koji client integration and command body
   implementation
 
