@@ -187,7 +187,7 @@ class Processor:
 
         This step:
         1. Creates empty change reports for each object via obj.change_report()
-        2. Calls load() on each report to fetch current koji state via multicall
+        2. Calls read() on each report to fetch current koji state via multicall
         3. Stores the populated reports for use in step_compare()
 
         After this step, change reports contain current koji data but no changes yet.
@@ -209,7 +209,7 @@ class Processor:
 
                 # create and load the change report for this object
                 change_report = obj.change_report()
-                change_report.load(self.koji_session)
+                change_report.read(mc)
 
                 # store it in our change reports
                 self.change_reports[obj.key()] = change_report
