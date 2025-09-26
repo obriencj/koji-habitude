@@ -19,7 +19,7 @@ define checkfor
 endef
 
 
-.PHONY: build flake8 mypy twine test clean help tidy purge quicktest docs overview clean-docs preview-docs coverage
+.PHONY: build flake8 mypy twine test clean help tidy purge quicktest docs overview clean-docs preview-docs coverage docs-gen
 
 # Default target
 help:
@@ -35,6 +35,7 @@ help:
 	@echo "  clean   - Tidy up, then clean build artifacts"
 	@echo "  purge   - Clean up, then purge tox environments"
 	@echo "  docs    - Build sphinx docs"
+	@echo "  docs-gen - Generate schema documentation from Pydantic models"
 	@echo "  overview - Rebuild the overview from README.md"
 	@echo "  clean-docs - Remove built docs"
 	@echo "  preview-docs - Build and hosts docs locally"
@@ -81,6 +82,9 @@ clean:  tidy
 purge:  clean
 	@rm -rf .tox/
 
+
+docs-gen:	## Generate schema documentation from Pydantic models
+	$(TOX) -qe docs-gen
 
 docs: clean-docs docs/overview.rst	## Build sphinx docs
 	$(TOX) -qe sphinx

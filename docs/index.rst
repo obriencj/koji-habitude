@@ -2,8 +2,8 @@
    :maxdepth: 2
 
    overview
+   yaml_format
    koji_habitude
-   koji_habitude/cli
    koji_habitude/loader
    koji_habitude/models
    koji_habitude/namespace
