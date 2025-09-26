@@ -92,7 +92,7 @@ class TagAddGroup(Change):
     group: str
 
     def impl_apply(self, session: MultiCallSession):
-        return session.addTagGroup(self.name, self.group)
+        return session.groupListAdd(self.name, self.group)
 
 
 @dataclass
@@ -101,7 +101,7 @@ class TagRemoveGroup(Change):
     group: str
 
     def impl_apply(self, session: MultiCallSession):
-        return session.removeTagGroup(self.name, self.group)
+        return session.groupListRemove(self.name, self.group)
 
 
 @dataclass
@@ -111,7 +111,7 @@ class TagAddGroupPackage(Change):
     package: str
 
     def impl_apply(self, session: MultiCallSession):
-        return session.groupListAdd(self.name, self.group, self.package)
+        return session.groupPackageListAdd(self.name, self.group, self.package)
 
 
 @dataclass
@@ -121,7 +121,7 @@ class TagRemoveGroupPackage(Change):
     package: str
 
     def impl_apply(self, session: MultiCallSession):
-        return session.groupListRemove(self.name, self.group, self.package)
+        return session.groupPackageListRemove(self.name, self.group, self.package)
 
 
 @dataclass
@@ -134,14 +134,14 @@ class TagAddInheritance(Change):
         data = [{'name': self.parent, 'priority': self.priority}]
         return session.setInheritanceData(self.name, data)
 
+
 @dataclass
 class TagRemoveInheritance(Change):
     name: str
     parent: str
 
     def impl_apply(self, session: MultiCallSession):
-        data = [{'name': self.parent, 'priority': self.priority,
-                'delete link': True}]
+        data = [{'name': self.parent, 'delete link': True}]
         return session.setInheritanceData(self.name, data)
 
 
@@ -282,7 +282,7 @@ class TagChangeReport(ChangeReport):
 
 class InheritanceLink(BaseModel):
     name: str = Field(alias='name')
-    priority: Optional[int] = Field(alias='priority', default=None)
+    priority: int = Field(alias='priority')
 
 
 class Tag(BaseKojiObject):
@@ -302,6 +302,22 @@ class Tag(BaseKojiObject):
     groups: Dict[str, List[str]] = Field(alias='groups', default_factory=dict)
     inheritance: List[InheritanceLink] = Field(alias='inheritance', default_factory=list)
     external_repos: List[InheritanceLink] = Field(alias='external-repos', default_factory=list)
+
+
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+
+        seen: Dict[int, InheritanceLink] = {}
+
+        for parent in self.inheritance:
+            if parent.priority in seen:
+                raise ValueError(f"Duplicate priority {parent.priority} for tag {parent.name}")
+            seen[parent.priority] = parent
+
+        for parent in self.external_repos:
+            if parent.priority in seen:
+                raise ValueError(f"Duplicate priority {parent.priority} for external repo {parent.name}")
+            seen[parent.priority] = parent
 
 
     def split(self) -> 'Tag':
