@@ -24,8 +24,17 @@ class TagCreate(Change):
     locked: bool
     permission: Optional[str]
     arches: List[str]
-    maven: bool
+    maven_support: bool
     maven_include_all: bool
+
+    def impl_apply(self, session: ClientSession):
+        return session.createTag(
+            self.name,
+            locked=self.locked,
+            perm=self.permission,
+            arches=' '.join(self.arches),
+            maven_support=self.maven_support,
+            maven_include_all=self.maven_include_all)
 
 
 @dataclass
@@ -163,7 +172,7 @@ class TagChangeReport(ChangeReport):
             locked=self.obj.locked,
             permission=self.obj.permission,
             arches=self.obj.arches,
-            maven=self.obj.maven,
+            maven_support=self.obj.maven_support,
             maven_include_all=self.obj.maven_include_all))
 
     def set_tag_locked(self):
@@ -176,7 +185,7 @@ class TagChangeReport(ChangeReport):
         self.add(TagSetArches(self.obj.name, self.obj.arches))
 
     def set_tag_maven(self):
-        self.add(TagSetMaven(self.obj.name, self.obj.maven, self.obj.maven_include_all))
+        self.add(TagSetMaven(self.obj.name, self.obj.maven_support, self.obj.maven_include_all))
 
     def set_tag_extras(self):
         self.add(TagSetExtras(self.obj.name, self.obj.extras))
@@ -189,6 +198,10 @@ class TagChangeReport(ChangeReport):
 
     def add_group_package(self, group: str, package: str):
         self.add(TagAddGroupPackage(self.obj.name, group, package))
+
+    def add_group_packages(self, group: str, packages: List[str]):
+        for package in packages:
+            self.add_group_package(group, package)
 
     def remove_group_package(self, group: str, package: str):
         self.add(TagRemoveGroupPackage(self.obj.name, group, package))
