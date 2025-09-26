@@ -12,6 +12,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from typing import List, Optional, Dict
+import logging
 
 from koji import ClientSession, MultiCallSession, VirtualCall, read_config
 from koji_cli.lib import activate_session
@@ -23,6 +24,9 @@ __all__ = (
     'session',
     'multicall',
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 def session(profile: str = 'koji', authenticate: bool = False) -> ClientSession:
@@ -77,7 +81,7 @@ class ReportingMulticall(MultiCallSession):
 
 def multicall(
     session: ClientSession,
-    call_log: List[VirtualCall]) -> ReportingMulticall:
+    associations: Optional[Dict[BaseKey, List[VirtualCall]]] = None) -> ReportingMulticall:
 
     """
     Create a multicall session that will record the calls made to it
@@ -85,7 +89,7 @@ def multicall(
 
     Args:
         session: The koji session to create the multicall session from
-        call_log: The list that calls will be appended into
+        associations: Dict of BaseKey to list of VirtualCall objects
 
     Usage:
     ```python
@@ -103,7 +107,7 @@ def multicall(
     """
 
     # note that we make the call log mandatory here.
-    return ReportingMulticall(session, call_log)
+    return ReportingMulticall(session, associations=associations)
 
 
 # The end.
