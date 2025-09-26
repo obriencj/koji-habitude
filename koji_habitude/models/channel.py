@@ -74,19 +74,19 @@ class ChannelChangeReport(ChangeReport):
 
 
     def impl_read(self, session: MultiCallSession):
-        self._channelinfo: VirtualCall = session.getChannel(self.name, strict=False)
-        self._hosts: VirtualCall = session.listHosts(channelID=self.name)
+        self._channelinfo: VirtualCall = session.getChannel(self.obj.name, strict=False)
+        self._hosts: VirtualCall = session.listHosts(channelID=self.obj.name)
 
 
     def impl_compare(self):
         info = self._channelinfo.result
         if not info:
             self.create_channel()
-            for host in self._hosts.result:
-                self.add_host(host['name'])
+            for host in self.obj.hosts:
+                self.add_host(host)
             return
 
-        if info['description'] != self.description:
+        if self.obj.description is not None and info['description'] != self.obj.description:
             self.set_description()
 
         hosts = {host['name']: host for host in self._hosts.result}
