@@ -30,8 +30,10 @@ def create_test_koji_session():
     Returns:
         Real koji ClientSession with mocked _callMethod
     """
-    # Use the real session function - _callMethod is patched in tests
-    return session('koji', authenticate=False)
+
+    sess = session('koji', authenticate=False)
+    vars(sess)['_currentuser'] = {'id': 1234, 'name': 'testuser'}
+    return sess
 
 
 def create_empty_solver() -> Solver:
