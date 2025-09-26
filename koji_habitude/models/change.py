@@ -36,14 +36,17 @@ class ChangeReportState(Enum):
     LOADED = 'loaded'
     COMPARING = 'comparing'
     COMPARED = 'compared'
+    APPLYING = 'applying'
     APPLIED = 'applied'
     ERROR = 'error'
 
 
 class Change:
-    def __init__(self, obj: Base):
-        self.obj = obj
-        self.key = obj.key()
+
+    def __init__(self):
+        self._result = None
+
+    def __post_init__(self):
         self._result = None
 
     def impl_apply(self, session: ClientSession) -> VirtualCall:
@@ -102,8 +105,8 @@ class ChangeReport:
 
 
     def add(self, change: Change) -> None:
-        if self.state != ChangeReportState.LOADING:
-            raise ChangeReportError(f"Change report is not loading: {self.state}")
+        if self.state != ChangeReportState.COMPARING:
+            raise ChangeReportError(f"Change report is not comparing: {self.state}")
         self.changes.append(change)
 
 
