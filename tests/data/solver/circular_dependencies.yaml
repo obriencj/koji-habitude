@@ -7,6 +7,7 @@ name: tag-a
 arches: [x86_64]
 inheritance:
   - name: tag-b
+    priority: 10
 
 ---
 type: tag
@@ -14,6 +15,7 @@ name: tag-b
 arches: [x86_64]
 inheritance:
   - name: tag-c
+    priority: 10
 
 ---
 type: tag
@@ -21,6 +23,7 @@ name: tag-c
 arches: [x86_64]
 inheritance:
   - name: tag-a
+    priority: 10
 
 # This creates a circular dependency: tag-a -> tag-b -> tag-c -> tag-a
 # The solver should be able to split one of these tags to break the cycle

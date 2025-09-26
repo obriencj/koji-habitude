@@ -17,7 +17,9 @@ name: myproject-base
 arches: [x86_64]
 external-repos:
   - name: epel-9
+    priority: 10
   - name: rpmfusion-free
+    priority: 20
 
 ---
 type: tag
@@ -25,5 +27,6 @@ name: myproject-build
 arches: [x86_64]
 inheritance:
   - name: myproject-base
+    priority: 10
 
 # The end.

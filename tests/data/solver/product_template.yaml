@@ -43,12 +43,14 @@ content: |
     name: {{ g.basetag }}-candidate
     inheritance:
       - name: {{ g.basetag }}
+        priority: 10
 
     ---
     type: tag
     name: {{ g.basetag }}-released
     inheritance:
       - name: {{ g.basetag }}
+        priority: 10
 
     ---
     type: tag

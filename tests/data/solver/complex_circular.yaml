@@ -13,7 +13,9 @@ name: tag-1
 arches: [x86_64]
 inheritance:
   - name: tag-2
+    priority: 10
   - name: base-tag
+    priority: 20
 
 ---
 type: tag
@@ -21,6 +23,7 @@ name: tag-2
 arches: [x86_64]
 inheritance:
   - name: tag-3
+    priority: 10
 
 ---
 type: tag
@@ -28,6 +31,7 @@ name: tag-3
 arches: [x86_64]
 inheritance:
   - name: tag-1
+    priority: 10
 
 ---
 type: tag
@@ -35,6 +39,7 @@ name: tag-4
 arches: [x86_64]
 inheritance:
   - name: tag-5
+    priority: 10
 
 ---
 type: tag
@@ -42,6 +47,7 @@ name: tag-5
 arches: [x86_64]
 inheritance:
   - name: tag-4
+    priority: 10
 
 # This creates:
 # - Circular dependency: tag-1 -> tag-2 -> tag-3 -> tag-1
