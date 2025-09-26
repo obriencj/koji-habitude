@@ -37,9 +37,13 @@ def session(profile: str = 'koji', authenticate: bool = False) -> ClientSession:
     conf = read_config(profile)
     server = conf["server"]
     session = ClientSession(server, opts=conf)
+
     if authenticate:
         activate_session(session)
         vars(session)['_currentuser'] = session.getLoggedInUser()
+    else:
+        vars(session)['_currentuser'] = {'id': -1, 'name': 'anonymous'}
+
     return session
 
 
