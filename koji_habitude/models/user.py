@@ -10,7 +10,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import ClassVar, List
+from typing import ClassVar, List, Any
 
 from koji import ClientSession, VirtualCall
 from pydantic import Field
@@ -68,7 +68,7 @@ class UserAddToGroup(Change):
     group: str
 
     def impl_apply(self, session: ClientSession):
-        return session.addGroupMember(self.name, self.group, strict=False)
+        return session.addGroupMember(self.group, self.name, strict=False)
 
 
 @dataclass
@@ -76,8 +76,8 @@ class UserRemoveFromGroup(Change):
     name: str
     group: str
 
-    def _apply(self, session: ClientSession):
-        return session.dropGroupMember(self.name, self.group)
+    def impl_apply(self, session: ClientSession):
+        return session.dropGroupMember(self.group, self.name)
 
 
 class UserChangeReport(ChangeReport):
@@ -144,8 +144,8 @@ class UserChangeReport(ChangeReport):
                 self.grant_permission(perm)
 
         if self.obj.exact_permissions:
-            for perm in self.obj.permissions:
-                if perm not in perms:
+            for perm in perms:
+                if perm not in self.obj.permissions:
                     self.revoke_permission(perm)
 
 
@@ -158,7 +158,7 @@ class User(BaseKojiObject):
     _can_split: ClassVar[bool] = True
 
     groups: List[str] = Field(alias='groups', default_factory=list)
-    exact_groups: bool = Field(alias='exact-groups', default=False)
+    exact_groups: bool = Field(validation_alias='exact-groups', default=False)
 
     permissions: List[str] = Field(alias='permissions', default_factory=list)
     exact_permissions: bool = Field(alias='exact-permissions', default=False)
