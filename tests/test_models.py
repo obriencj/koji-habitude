@@ -377,9 +377,9 @@ class TestHostModel(unittest.TestCase):
         self.assertEqual(host.typename, 'host')
         self.assertEqual(host.name, 'test-host')
         self.assertEqual(host.arches, [])
-        self.assertEqual(host.capacity, 0.0)
+        self.assertEqual(host.capacity, None)
         self.assertTrue(host.enabled)
-        self.assertEqual(host.description, '')
+        self.assertEqual(host.description, None)
         self.assertEqual(host.channels, [])
         self.assertTrue(host.can_split())
 
