@@ -527,11 +527,11 @@ class TestTagModel(unittest.TestCase):
             'groups': {'group1': ['pkg1', 'pkg2']},
             'inheritance': [
                 {'name': 'parent1', 'priority': 10},
-                {'name': 'parent2'}
+                {'name': 'parent2', 'priority': 20}
             ],
             'external-repos': [
                 {'name': 'repo1', 'priority': 5},
-                {'name': 'repo2'}
+                {'name': 'repo2', 'priority': 15}
             ]
         }
         tag = Tag.from_dict(data)
@@ -547,14 +547,14 @@ class TestTagModel(unittest.TestCase):
         self.assertEqual(tag.inheritance[0].name, 'parent1')
         self.assertEqual(tag.inheritance[0].priority, 10)
         self.assertEqual(tag.inheritance[1].name, 'parent2')
-        self.assertIsNone(tag.inheritance[1].priority)
+        self.assertEqual(tag.inheritance[1].priority, 20)
 
         # Check external repo links
         self.assertEqual(len(tag.external_repos), 2)
         self.assertEqual(tag.external_repos[0].name, 'repo1')
         self.assertEqual(tag.external_repos[0].priority, 5)
         self.assertEqual(tag.external_repos[1].name, 'repo2')
-        self.assertIsNone(tag.external_repos[1].priority)
+        self.assertEqual(tag.external_repos[1].priority, 15)
 
     def test_tag_split(self):
         """
@@ -566,8 +566,8 @@ class TestTagModel(unittest.TestCase):
             'name': 'test-tag',
             'arches': ['x86_64'],
             'maven-support': True,
-            'inheritance': [{'name': 'parent'}],
-            'external-repos': [{'name': 'repo'}]
+            'inheritance': [{'name': 'parent', 'priority': 10}],
+            'external-repos': [{'name': 'repo', 'priority': 20}]
         }
         tag = Tag.from_dict(data)
 
@@ -589,11 +589,11 @@ class TestTagModel(unittest.TestCase):
             'name': 'test-tag',
             'inheritance': [
                 {'name': 'parent1', 'priority': 10},
-                {'name': 'parent2'}
+                {'name': 'parent2', 'priority': 20}
             ],
             'external-repos': [
                 {'name': 'repo1', 'priority': 5},
-                {'name': 'repo2'}
+                {'name': 'repo2', 'priority': 15}
             ]
         }
         tag = Tag.from_dict(data)

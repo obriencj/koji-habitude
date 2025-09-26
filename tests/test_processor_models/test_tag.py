@@ -172,9 +172,9 @@ class TestProcessorTagBehavior(MulticallMocking, TestCase):
         self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
         self.queue_client_response('createTag', create_mock)
         self.queue_client_response('editTag2', set_extras_mock)
-        self.queue_client_response('addTagGroup', add_group_mock)
-        self.queue_client_response('groupListAdd', add_group_pkg1_mock)
-        self.queue_client_response('groupListAdd', add_group_pkg2_mock)
+        self.queue_client_response('groupListAdd', add_group_mock)
+        self.queue_client_response('groupPackageListAdd', add_group_pkg1_mock)
+        self.queue_client_response('groupPackageListAdd', add_group_pkg2_mock)
         self.queue_client_response('setInheritanceData', add_inheritance_mock)
         self.queue_client_response('addExternalRepoToTag', add_external_repo_mock)
 
@@ -435,8 +435,8 @@ class TestProcessorTagBehavior(MulticallMocking, TestCase):
         self.queue_client_response('getTagGroups', get_groups_mock)
         self.queue_client_response('getInheritanceData', get_inheritance_mock)
         self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
-        self.queue_client_response('addTagGroup', add_group_mock)
-        self.queue_client_response('groupListAdd', add_group_pkg_mock)
+        self.queue_client_response('groupListAdd', add_group_mock)
+        self.queue_client_response('groupPackageListAdd', add_group_pkg_mock)
 
         processor = Processor(
             koji_session=mock_session,

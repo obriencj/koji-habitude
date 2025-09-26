@@ -98,7 +98,7 @@ class TestProcessorTargetBehavior(MulticallMocking, TestCase):
 
         # Verify the calls were made correctly
         get_target_mock.assert_called_once_with('existing-target', strict=False)
-        edit_mock.assert_called_once_with('existing-target', 'new-build-tag', 'new-dest-tag')
+        edit_mock.assert_called_once_with('existing-target', 'existing-target', 'new-build-tag', 'new-dest-tag')
 
 
     def test_processor_summary(self):

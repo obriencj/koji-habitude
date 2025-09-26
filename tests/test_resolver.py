@@ -288,7 +288,7 @@ class TestResolverIntegration(unittest.TestCase):
         tag_data = {
             'name': 'child-tag',
             'type': 'tag',
-            'inheritance': [{'name': 'parent-tag'}]
+            'inheritance': [{'name': 'parent-tag', 'priority': 10}]
         }
         child_tag = Tag.from_dict(tag_data)
         self.namespace.add(child_tag)
