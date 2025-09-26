@@ -17,7 +17,7 @@ from typing import List, Any, Dict
 from koji_habitude.processor import Processor, DiffOnlyProcessor, ProcessorState, ProcessorSummary
 from koji_habitude.solver import Solver
 from koji_habitude.models import Base, BaseKey
-from koji_habitude.koji import session, multicall
+from koji_habitude.koji import session
 
 
 def create_test_koji_session():
@@ -94,15 +94,10 @@ class ProcessorTestBase(TestCase):
 
         # Store the original _callMethod implementations
         self.original_client_callmethod = None
-        self.original_multicall_callmethod = None
 
         # Mock for ClientSession._callMethod
         self.client_callmethod_patcher = patch('koji.ClientSession._callMethod')
         self.client_callmethod_mock = self.client_callmethod_patcher.start()
-
-        # Mock for MultiCallSession._callMethod
-        self.multicall_callmethod_patcher = patch('koji.MultiCallSession._callMethod')
-        self.multicall_callmethod_mock = self.multicall_callmethod_patcher.start()
 
         # Mock for koji_cli.lib.activate_session
         self.activate_session_patcher = patch('koji_cli.lib.activate_session')
@@ -114,7 +109,6 @@ class ProcessorTestBase(TestCase):
 
         # Additional koji mocks that may be needed:
         # - koji.ClientSession (for session creation)
-        # - koji.MultiCallSession (for multicall creation)
         # - koji_cli.lib.activate_session (already mocked above)
         # - koji_cli.lib.get_session (if used)
         # - koji_cli.lib.get_profile_info (if used)
@@ -122,7 +116,6 @@ class ProcessorTestBase(TestCase):
 
         # Default behavior - return empty results
         self.client_callmethod_mock.return_value = {}
-        self.multicall_callmethod_mock.return_value = Mock()
         self.activate_session_mock.return_value = None
         self.read_config_mock.return_value = {}
 
@@ -137,8 +130,6 @@ class ProcessorTestBase(TestCase):
         """Clean up the _callMethod mocks."""
         if hasattr(self, 'client_callmethod_patcher'):
             self.client_callmethod_patcher.stop()
-        if hasattr(self, 'multicall_callmethod_patcher'):
-            self.multicall_callmethod_patcher.stop()
         if hasattr(self, 'activate_session_patcher'):
             self.activate_session_patcher.stop()
         if hasattr(self, 'read_config_patcher'):
@@ -146,20 +137,17 @@ class ProcessorTestBase(TestCase):
 
 
     def configure_koji_responses(self, client_responses: Dict[str, Any] = None,
-                                multicall_responses: Dict[str, Any] = None,
                                 config_responses: Dict[str, Any] = None):
         """
         Configure what koji API calls should return.
 
         Args:
             client_responses: Dict mapping method names to return values for ClientSession calls
-            multicall_responses: Dict mapping method names to return values for MultiCallSession calls
             config_responses: Dict mapping profile names to config dicts for koji.read_config
 
         Example:
             self.configure_koji_responses(
                 client_responses={'getTag': {'name': 'test-tag', 'arches': 'x86_64'}},
-                multicall_responses={'getTag': Mock()},
                 config_responses={'koji': {'server': 'http://test-koji.example.com'}}
             )
         """
@@ -167,11 +155,6 @@ class ProcessorTestBase(TestCase):
             def client_side_effect(method_name, *args, **kwargs):
                 return client_responses.get(method_name, {})
             self.client_callmethod_mock.side_effect = client_side_effect
-
-        if multicall_responses:
-            def multicall_side_effect(method_name, *args, **kwargs):
-                return multicall_responses.get(method_name, Mock())
-            self.multicall_callmethod_mock.side_effect = multicall_side_effect
 
         if config_responses:
             def config_side_effect(profile_name, *args, **kwargs):
