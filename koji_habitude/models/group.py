@@ -81,7 +81,7 @@ class GroupRemovePermission(Change):
 class GroupChangeReport(ChangeReport):
 
     def create_group(self):
-        self.add(GroupCreate(self.obj.name, self.obj.enabled))
+        self.add(GroupCreate(self.obj.name))
 
     def enable_group(self):
         self.add(GroupEnable(self.obj.name))
@@ -120,9 +120,22 @@ class GroupChangeReport(ChangeReport):
 
         if info['enabled'] != self.obj.enabled:
             self.enable_group()
-        if info['permissions'] != self.obj.permissions:
-            self.add_permission(info['permissions'])
-            self.remove_permission(self.obj.permissions)
+
+        members = { m['name']: m for m in self._members.result }
+        for member in self.obj.members:
+            if member not in members:
+                self.add_member(member)
+        for member in members:
+            if member not in self.obj.members:
+                self.remove_member(member)
+
+        permissions = self._permissions.result
+        for permission in self.obj.permissions:
+            if permission not in permissions:
+                self.add_permission(permission)
+        for permission in permissions:
+            if permission not in self.obj.permissions:
+                self.remove_permission(permission)
 
 
 class Group(BaseKojiObject):
@@ -133,6 +146,7 @@ class Group(BaseKojiObject):
     typename: ClassVar[str] = "group"
     _can_split: ClassVar[bool] = True
 
+    enabled: bool = Field(alias='enabled', default=True)
     members: List[str] = Field(alias='members', default_factory=list)
     permissions: List[str] = Field(alias='permissions', default_factory=list)
 
@@ -155,6 +169,10 @@ class Group(BaseKojiObject):
             deps.append(('permission', permission))
 
         return deps
+
+
+    def change_report(self) -> GroupChangeReport:
+        return GroupChangeReport(self)
 
 
 # The end.
