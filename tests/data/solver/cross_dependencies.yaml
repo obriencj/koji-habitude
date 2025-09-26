@@ -48,6 +48,6 @@ inheritance:
     priority: 10
 external-repos:
   - name: epel-9
-    priority: 10
+    priority: 20
 
 # The end.
