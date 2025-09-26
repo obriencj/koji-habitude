@@ -39,7 +39,7 @@ def session(profile: str = 'koji', authenticate: bool = False) -> ClientSession:
     session = ClientSession(server, opts=conf)
     if authenticate:
         activate_session(session)
-        session._currentuser = session.getLoggedInUser()
+        vars(session)['_currentuser'] = session.getLoggedInUser()
     return session
 
 
@@ -107,7 +107,9 @@ def multicall(
     """
 
     # note that we make the call log mandatory here.
-    return ReportingMulticall(session, associations=associations)
+    mc = ReportingMulticall(session, associations=associations)
+    vars(mc)['_currentuser'] = vars(session)['_currentuser']
+    return mc
 
 
 # The end.
