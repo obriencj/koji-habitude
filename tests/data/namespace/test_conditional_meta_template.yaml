@@ -33,9 +33,11 @@ content: |
       - aarch64
     inheritance:
       - name: {{ "{{" }} product {{ "}}" }}-{{ "{{" }} version {{ "}}" }}-dest
+        type: tag
         priority: 10
       {% if use_override %}
       - name: {{ "{{" }} product {{ "}}" }}-{{ "{{" }} version {{ "}}" }}-override
+        type: tag
         priority: 5
       {% endif %}
 ---

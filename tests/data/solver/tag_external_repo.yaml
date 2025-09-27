@@ -15,10 +15,12 @@ url: "https://mirrors.rpmfusion.org/mirrorlist?path=free/fedora/"
 type: tag
 name: myproject-base
 arches: [x86_64]
-external-repos:
+inheritance:
   - name: epel-9
+    type: external-repo
     priority: 10
   - name: rpmfusion-free
+    type: external-repo
     priority: 20
 
 ---
@@ -27,6 +29,7 @@ name: myproject-build
 arches: [x86_64]
 inheritance:
   - name: myproject-base
+    type: tag
     priority: 10
 
 # The end.

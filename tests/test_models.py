@@ -526,12 +526,10 @@ class TestTagModel(unittest.TestCase):
             'extras': {'key1': 'value1', 'key2': 'value2'},
             'groups': {'group1': ['pkg1', 'pkg2']},
             'inheritance': [
-                {'name': 'parent1', 'priority': 10},
-                {'name': 'parent2', 'priority': 20}
-            ],
-            'external-repos': [
-                {'name': 'repo1', 'priority': 5},
-                {'name': 'repo2', 'priority': 15}
+                {'name': 'parent1', 'type': 'tag', 'priority': 10},
+                {'name': 'parent2', 'type': 'tag', 'priority': 20},
+                {'name': 'repo1', 'type': 'external-repo', 'priority': 30},
+                {'name': 'repo2', 'type': 'external-repo', 'priority': 40}
             ]
         }
         tag = Tag.from_dict(data)
@@ -554,19 +552,28 @@ class TestTagModel(unittest.TestCase):
         self.assertEqual(group1.packages[1].type, 'package')
         self.assertEqual(group1.packages[1].block, False)
 
-        # Check inheritance links
-        self.assertEqual(len(tag.inheritance), 2)
-        self.assertEqual(tag.inheritance[0].name, 'parent1')
-        self.assertEqual(tag.inheritance[0].priority, 10)
-        self.assertEqual(tag.inheritance[1].name, 'parent2')
-        self.assertEqual(tag.inheritance[1].priority, 20)
+        # Check inheritance links (unified list)
+        self.assertEqual(len(tag.inheritance), 4)
 
-        # Check external repo links
-        self.assertEqual(len(tag.external_repos), 2)
-        self.assertEqual(tag.external_repos[0].name, 'repo1')
-        self.assertEqual(tag.external_repos[0].priority, 5)
-        self.assertEqual(tag.external_repos[1].name, 'repo2')
-        self.assertEqual(tag.external_repos[1].priority, 15)
+        # Check parent tags (filtered by type)
+        parent_tags = tag.parent_tags
+        self.assertEqual(len(parent_tags), 2)
+        self.assertEqual(parent_tags[0].name, 'parent1')
+        self.assertEqual(parent_tags[0].type, 'tag')
+        self.assertEqual(parent_tags[0].priority, 10)
+        self.assertEqual(parent_tags[1].name, 'parent2')
+        self.assertEqual(parent_tags[1].type, 'tag')
+        self.assertEqual(parent_tags[1].priority, 20)
+
+        # Check external repo links (filtered by type)
+        external_repos = tag.external_repos
+        self.assertEqual(len(external_repos), 2)
+        self.assertEqual(external_repos[0].name, 'repo1')
+        self.assertEqual(external_repos[0].type, 'external-repo')
+        self.assertEqual(external_repos[0].priority, 30)
+        self.assertEqual(external_repos[1].name, 'repo2')
+        self.assertEqual(external_repos[1].type, 'external-repo')
+        self.assertEqual(external_repos[1].priority, 40)
 
     def test_tag_split(self):
         """
@@ -578,8 +585,10 @@ class TestTagModel(unittest.TestCase):
             'name': 'test-tag',
             'arches': ['x86_64'],
             'maven-support': True,
-            'inheritance': [{'name': 'parent', 'priority': 10}],
-            'external-repos': [{'name': 'repo', 'priority': 20}]
+            'inheritance': [
+                {'name': 'parent', 'type': 'tag', 'priority': 10},
+                {'name': 'repo', 'type': 'external-repo', 'priority': 30}
+            ]
         }
         tag = Tag.from_dict(data)
 
@@ -587,8 +596,10 @@ class TestTagModel(unittest.TestCase):
         self.assertIsInstance(split_tag, Tag)
         self.assertEqual(split_tag.name, 'test-tag')
         self.assertEqual(split_tag.arches, ['x86_64'])
-        # Inheritance and external repos should not be included in split (dependency data)
+        # Inheritance should not be included in split (dependency data)
         self.assertEqual(split_tag.inheritance, [])
+        # Properties should return empty lists when inheritance is empty
+        self.assertEqual(split_tag.parent_tags, [])
         self.assertEqual(split_tag.external_repos, [])
 
     def test_tag_dependency_keys(self):
@@ -600,12 +611,10 @@ class TestTagModel(unittest.TestCase):
             'type': 'tag',
             'name': 'test-tag',
             'inheritance': [
-                {'name': 'parent1', 'priority': 10},
-                {'name': 'parent2', 'priority': 20}
-            ],
-            'external-repos': [
-                {'name': 'repo1', 'priority': 5},
-                {'name': 'repo2', 'priority': 15}
+                {'name': 'parent1', 'type': 'tag', 'priority': 10},
+                {'name': 'parent2', 'type': 'tag', 'priority': 20},
+                {'name': 'repo1', 'type': 'external-repo', 'priority': 30},
+                {'name': 'repo2', 'type': 'external-repo', 'priority': 40}
             ]
         }
         tag = Tag.from_dict(data)
@@ -629,6 +638,149 @@ class TestTagModel(unittest.TestCase):
 
         deps = tag.dependency_keys()
         self.assertEqual(deps, [])
+
+    def test_tag_inheritance_property_filtering(self):
+        """
+        Test that parent_tags and external_repos properties correctly filter inheritance by type.
+        """
+
+        data = {
+            'type': 'tag',
+            'name': 'test-tag',
+            'inheritance': [
+                {'name': 'parent1', 'type': 'tag', 'priority': 10},
+                {'name': 'repo1', 'type': 'external-repo', 'priority': 30},
+                {'name': 'parent2', 'type': 'tag', 'priority': 20},
+                {'name': 'repo2', 'type': 'external-repo', 'priority': 40}
+            ]
+        }
+        tag = Tag.from_dict(data)
+
+        # Check that all inheritance items are present
+        self.assertEqual(len(tag.inheritance), 4)
+
+        # Check parent_tags property filters correctly
+        parent_tags = tag.parent_tags
+        self.assertEqual(len(parent_tags), 2)
+        self.assertEqual(parent_tags[0].name, 'parent1')
+        self.assertEqual(parent_tags[0].type, 'tag')
+        self.assertEqual(parent_tags[1].name, 'parent2')
+        self.assertEqual(parent_tags[1].type, 'tag')
+
+        # Check external_repos property filters correctly
+        external_repos = tag.external_repos
+        self.assertEqual(len(external_repos), 2)
+        self.assertEqual(external_repos[0].name, 'repo1')
+        self.assertEqual(external_repos[0].type, 'external-repo')
+        self.assertEqual(external_repos[1].name, 'repo2')
+        self.assertEqual(external_repos[1].type, 'external-repo')
+
+    def test_tag_inheritance_simple_string_list(self):
+        """
+        Test Tag creation with inheritance as a simple list of strings.
+        Strings should be converted to tag inheritance with incrementing priorities.
+        """
+
+        data = {
+            'type': 'tag',
+            'name': 'test-tag',
+            'inheritance': ['parent1', 'parent2', 'parent3']
+        }
+        tag = Tag.from_dict(data)
+
+        # Check that inheritance was converted to full objects
+        self.assertEqual(len(tag.inheritance), 3)
+
+        # Check first parent (priority 0)
+        self.assertEqual(tag.inheritance[0].name, 'parent1')
+        self.assertEqual(tag.inheritance[0].type, 'tag')
+        self.assertEqual(tag.inheritance[0].priority, 0)
+
+        # Check second parent (priority 10)
+        self.assertEqual(tag.inheritance[1].name, 'parent2')
+        self.assertEqual(tag.inheritance[1].type, 'tag')
+        self.assertEqual(tag.inheritance[1].priority, 10)
+
+        # Check third parent (priority 20)
+        self.assertEqual(tag.inheritance[2].name, 'parent3')
+        self.assertEqual(tag.inheritance[2].type, 'tag')
+        self.assertEqual(tag.inheritance[2].priority, 20)
+
+        # Check parent_tags property returns all items (all are type 'tag')
+        parent_tags = tag.parent_tags
+        self.assertEqual(len(parent_tags), 3)
+        self.assertEqual([p.name for p in parent_tags], ['parent1', 'parent2', 'parent3'])
+
+        # Check external_repos property returns empty (no external repos)
+        external_repos = tag.external_repos
+        self.assertEqual(len(external_repos), 0)
+
+    def test_tag_inheritance_mixed_string_and_dict_list(self):
+        """
+        Test Tag creation with inheritance mixing strings and dict objects.
+        Strings should be converted to tag inheritance, dicts should be used as-is.
+        """
+
+        data = {
+            'type': 'tag',
+            'name': 'test-tag',
+            'inheritance': [
+                'parent1',  # String - should become tag with priority 0
+                {'name': 'parent2', 'type': 'tag', 'priority': 50},  # Dict with explicit priority
+                'parent3',  # String - should become tag with priority 10
+                {'name': 'repo1', 'type': 'external-repo', 'priority': 25}  # Dict with different type
+            ]
+        }
+        tag = Tag.from_dict(data)
+
+        # Check that inheritance was processed correctly
+        self.assertEqual(len(tag.inheritance), 4)
+
+        # Check string conversion (parent1)
+        self.assertEqual(tag.inheritance[0].name, 'parent1')
+        self.assertEqual(tag.inheritance[0].type, 'tag')
+        self.assertEqual(tag.inheritance[0].priority, 0)
+
+        # Check dict with explicit priority (parent2)
+        self.assertEqual(tag.inheritance[1].name, 'parent2')
+        self.assertEqual(tag.inheritance[1].type, 'tag')
+        self.assertEqual(tag.inheritance[1].priority, 50)
+
+        # Check string conversion (parent3) - priority should increment from max existing
+        self.assertEqual(tag.inheritance[2].name, 'parent3')
+        self.assertEqual(tag.inheritance[2].type, 'tag')
+        self.assertEqual(tag.inheritance[2].priority, 60)  # 50 + 10
+
+        # Check dict with different type (repo1)
+        self.assertEqual(tag.inheritance[3].name, 'repo1')
+        self.assertEqual(tag.inheritance[3].type, 'external-repo')
+        self.assertEqual(tag.inheritance[3].priority, 25)
+
+        # Check property filtering
+        parent_tags = tag.parent_tags
+        self.assertEqual(len(parent_tags), 3)
+        self.assertEqual([p.name for p in parent_tags], ['parent1', 'parent2', 'parent3'])
+
+        external_repos = tag.external_repos
+        self.assertEqual(len(external_repos), 1)
+        self.assertEqual(external_repos[0].name, 'repo1')
+
+    def test_tag_inheritance_empty_list(self):
+        """
+        Test Tag creation with empty inheritance list.
+        """
+
+        data = {
+            'type': 'tag',
+            'name': 'test-tag',
+            'inheritance': []
+        }
+        tag = Tag.from_dict(data)
+
+        # Check that inheritance is empty
+        self.assertEqual(len(tag.inheritance), 0)
+        self.assertEqual(len(tag.parent_tags), 0)
+        self.assertEqual(len(tag.external_repos), 0)
 
     def test_tag_groups_dict_format(self):
         """
