@@ -294,7 +294,7 @@ class TagChangeReport(ChangeReport):
             for group_name, group in self.obj.groups.items():
                 self.add_group(group)
                 self.add_group_packages(group_name, group.packages)
-            for parent in self.obj.inheritance:
+            for parent in self.obj.parent_tags:
                 self.add_inheritance(parent)
             for repo in self.obj.external_repos:
                 self.add_external_repo(repo)
