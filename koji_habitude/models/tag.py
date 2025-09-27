@@ -12,9 +12,9 @@ from dataclasses import dataclass
 from typing import Any, ClassVar, Dict, List, Optional, Sequence, Union, Literal
 
 from koji import MultiCallSession, VirtualCall
-from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
+from pydantic import Field, field_validator, model_validator
 
-from .base import BaseKey, BaseKojiObject
+from .base import BaseKey, BaseKojiObject, SubModel
 from .change import Change, ChangeReport
 
 
@@ -319,14 +319,8 @@ class TagChangeReport(ChangeReport):
     def _compare_inheritance(self):
         # Helper function to compare inheritance
 
-        # TODO: at some point we want to merge inheritance and external repos
-        # into a single list, and use the same fancy field validation as we do
-        # for groups to allow for both string and dictionary formats, where
-        # external repos are differentiated by having a 'type' key of
-        # 'external-repo'
-
         koji_inher = {parent['name']: parent for parent in self._inheritance.result}
-        inher = {parent.name: parent for parent in self.obj.inheritance}
+        inher = {parent.name: parent for parent in self.obj.parent_tags}
 
         for name, parent in koji_inher.items():
             if name not in inher:
@@ -350,6 +344,9 @@ class TagChangeReport(ChangeReport):
 
     def _compare_groups(self):
         # Helper function to compare groups and their package content
+
+        # TODO: we'll need to actually invoke addGroupReq vs. Package for these.
+        # depending on the type. for now we just assume package for all.
 
         koji_groups = {group['name']: group for group in self._groups.result}
         for group_name, group in self.obj.groups.items():
@@ -394,10 +391,6 @@ class TagChangeReport(ChangeReport):
                     self.remove_group(group_name)
 
 
-class SubModel(BaseModel):
-    model_config = ConfigDict(validate_by_alias=True, validate_by_name=True)
-
-
 class TagGroupPackage(SubModel):
 
     name: str = Field(alias='name')
@@ -417,7 +410,8 @@ class TagGroupPackage(SubModel):
 
         if isinstance(data, str):
             if data.startswith('@'):
-                data = data[1:]
+                # data = data[1:]
+                # we don't use the @ prefix anymore, but we keep it for backwards compatibility
                 tp = 'group'
             else:
                 tp = 'package'
@@ -470,7 +464,7 @@ class Tag(BaseKojiObject):
     groups: Dict[str, TagGroup] = Field(alias='groups', default_factory=dict)
     exact_groups: bool = Field(alias='exact-groups', default=False)
     inheritance: List[InheritanceLink] = Field(alias='inheritance', default_factory=list)
-    external_repos: List[InheritanceLink] = Field(alias='external-repos', default_factory=list)
+
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
@@ -530,6 +524,54 @@ class Tag(BaseKojiObject):
         return fixed
 
 
+    @field_validator('inheritance', mode='before')
+    @classmethod
+    def convert_inheritance_from_simplified(cls, data: Any) -> Any:
+
+        priorities = set()
+        priority_increment = 10
+
+        if isinstance(data, list):
+            fixed: List[Dict[str, Any]] = []
+
+            priority = 0
+            for item in data:
+
+                if isinstance(item, str):
+                    item = {'name': item, 'type': 'tag', 'priority': priority}
+                    fixed.append(item)
+                    priorities.add(priority)
+                    priority += priority_increment
+
+                elif isinstance(item, dict):
+                    priority = item.setdefault('priority', priority)
+                    priorities.add(priority)
+
+                    priority = max(priorities)
+                    offset = priority_increment - (priority % priority_increment)
+                    priority += offset
+
+                    fixed.append(item)
+
+                else:
+                    # this will raise a validation error later on
+                    fixed.append(item)
+
+            data = fixed
+
+        return data
+
+
+    @property
+    def parent_tags(self) -> List[InheritanceLink]:
+        return [parent for parent in self.inheritance if parent.type == 'tag']
+
+
+    @property
+    def external_repos(self) -> List[InheritanceLink]:
+        return [parent for parent in self.inheritance if parent.type == 'external-repo']
+
+
     def split(self) -> 'Tag':
         return Tag(name=self.name, arches=self.arches)
 
@@ -550,7 +592,7 @@ class Tag(BaseKojiObject):
             deps.append(('permission', self.permission))
 
         # Check for inheritance dependencies
-        for parent in self.inheritance:
+        for parent in self.parent_tags:
             deps.append(('tag', parent.name))
 
         # Check for external repository dependencies
