@@ -14,9 +14,14 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 from pydantic import BaseModel, Field, ConfigDict
 
 from typing import (
+    TYPE_CHECKING,
     Any, ClassVar, Dict, List, Optional, Protocol,
     Sequence, Tuple, Type, TypeAlias,
 )
+
+
+if TYPE_CHECKING:
+    from .change import ChangeReport
 
 
 __all__ = (
@@ -185,24 +190,8 @@ class BaseKojiObject(BaseObject):
             raise TypeError(f"Cannot split {self.typename}")
 
 
-    def diff(
-            self,
-            koji_data: Optional[Dict[str, Any]]) -> Sequence[Dict[str, Any]]:
-
-        """
-        Compare with koji data and return update calls.
-
-        TODO: This is left as a stub for future implementation.
-
-        Args:
-            koji_data: Current state from koji instance, or None if not found
-
-        Returns:
-            List of koji API calls needed to update the object
-        """
-
-        # TODO: Implement object diffing logic
-        return ()
+    def change_report(self) -> 'ChangeReport':
+        raise NotImplementedError(f"Subclasses of BaseKojiObject must implement change_report")
 
 
 # The end.
