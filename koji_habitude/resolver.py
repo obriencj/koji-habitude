@@ -19,15 +19,45 @@ License v3 AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: AI Assisted, Mostly Human
 
 
+from dataclasses import dataclass
 from typing import ClassVar, Dict, List, Optional, Sequence, Tuple
 
 from pydantic import BaseModel, Field
 
-from .models import Base, BaseKey
+from koji import MultiCallSession, VirtualCall
+from .models import Base, BaseKey, ChangeReport, Change
 from .namespace import Namespace
 
 
-class MissingObject:
+@dataclass
+class MissingChange(Change):
+    """
+    A change for a missing object.
+    """
+    key: BaseKey
+
+    def impl_apply(self, session: MultiCallSession) -> VirtualCall:
+        res = VirtualCall(self.key)
+        res.result = None
+        return res
+
+    def explain(self) -> str:
+        return f"Missing object: {self.key}"
+
+
+class MissingChangeReport(ChangeReport):
+    """
+    A change report for a missing object.
+    """
+
+    def impl_read(self, session: MultiCallSession) -> Callable[[MultiCallSession], None] | None:
+        return None
+
+    def impl_compare(self) -> None:
+        self.add(MissingChange(self.obj.key()))
+
+
+class MissingObject(Base):
     """
     A placeholder for a dependency that should exist.
     """
@@ -52,6 +82,9 @@ class MissingObject:
 
     def dependency_keys(self) -> Sequence[BaseKey]:
         return ()
+
+    def change_report(self) -> ChangeReport:
+        return ChangeReport(missing=self.key())
 
 
 class Report(BaseModel):

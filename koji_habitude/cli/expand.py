@@ -1,0 +1,62 @@
+"""
+koji_habitude.cli.expand
+
+Expand templates and data files into YAML output.
+
+Author: Christopher O'Brien <obriencj@gmail.com>
+License: GNU General Public License v3
+AI-Assistant: Claude 3.5 Sonnet via Cursor
+"""
+
+
+import click
+
+from ..loader import MultiLoader, YAMLLoader, pretty_yaml_all
+from ..namespace import Namespace, TemplateNamespace, ExpanderNamespace
+
+
+@click.command()
+@click.argument('data', metavar='DATA', nargs=-1, required=True)
+@click.option(
+    '--templates', 'templates', metavar='PATH', multiple=True,
+    help="Location to find templates that are not available in DATA")
+@click.option(
+    '--validate', 'validate', is_flag=True, default=False,
+    help="Validate the expanded templates and data files")
+def expand(data, templates=None, validate=False):
+    """
+    Expand templates and data files into YAML output.
+
+    Loads templates from --templates locations, then processes DATA files
+    through template expansion and outputs the final YAML content.
+
+    DATA can be directories or files containing YAML object definitions.
+    """
+
+    # Load templates into TemplateNamespace
+    template_ns = TemplateNamespace()
+    if templates:
+        ml = MultiLoader([YAMLLoader])
+        template_ns.feedall_raw(ml.load(templates))
+        template_ns.expand()
+
+    namespace = Namespace() if validate else ExpanderNamespace()
+    namespace._ns._templates.update(template_ns._templates)
+
+    # Load and process data files
+    ml = MultiLoader([YAMLLoader])
+    namespace.feedall_raw(ml.load(data))
+    namespace.expand()
+
+    # Output all objects as YAML
+    if validate:
+        # if we're validating, let pydantic provide the fully validated objects
+        results = (obj.to_dict() for obj in namespace.values())
+    else:
+        # if we're not validating, use the raw data
+        results = (obj.data for obj in namespace.values())
+
+    pretty_yaml_all(results)
+
+
+# The end.

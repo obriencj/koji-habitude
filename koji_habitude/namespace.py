@@ -183,6 +183,46 @@ class Namespace:
         self.max_depth: int = 100
 
 
+    def keys(self) -> Iterator[BaseKey]:
+        """
+        Return an iterator over the keys in the namespace.
+        """
+
+        return self._ns.keys()
+
+
+    def items(self) -> Iterator[Tuple[BaseKey, Base]]:
+        """
+        Return an iterator over the items in the namespace.
+        """
+
+        return self._ns.items()
+
+
+    def values(self) -> Iterator[Base]:
+        """
+        Return an iterator over the values in the namespace.
+        """
+
+        return self._ns.values()
+
+
+    def get(self, key: BaseKey, default: Any = None) -> Base | None:
+        """
+        Return the object in the namespace with the given key.
+        """
+
+        return self._ns.get(key, default)
+
+
+    def templates(self) -> Iterator[Template]:
+        """
+        Return an iterator over the templates in the namespace.
+        """
+
+        return self._templates.values()
+
+
     def to_object(self, objdict: Dict[str, Any]) -> Base:
         """
         Convert a dictionary into a Base object instance. Types are resolved

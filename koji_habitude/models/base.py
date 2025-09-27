@@ -65,6 +65,9 @@ class Base(Protocol):
     def from_dict(cls, data: Dict[str, Any]) -> 'Base':
         ...
 
+    def to_dict(self) -> Dict[str, Any]:
+        ...
+
 
 class SubModel(BaseModel):
     """
@@ -113,6 +116,12 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
         obj = cls.model_validate(data)
         obj._data = data
         return obj
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Return a dictionary representation of this object.
+        """
+        return self.model_dump()
 
     @property
     def data(self) -> Dict[str, Any] | None:
