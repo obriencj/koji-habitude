@@ -204,11 +204,11 @@ When a test fails due to a bug in production code:
 1. **DO NOT** modify the test to make it pass
 2. **DO NOT** mock around the bug
 3. **DO NOT** write tests that expect the bug to exist
-4. **DO** report the bug to the programmer
-5. **DO** let the programmer fix the production code
-6. **DO** verify the test passes after the bug is fixed
+4. **DO NOT** automatically attempt to fix the bug yourself. STOP PROCESSING and ALERT to the BUG.
+5. **DO** report the bug to the programmer
+6. **DO** let the programmer fix the production code
+7. **DO** verify the test passes after the bug is fixed
 
-**The test failure is the test working correctly - it found a bug.**
 
 ## Test Writing Philosophy
 
@@ -236,7 +236,8 @@ When a test fails due to a bug in production code:
 - **Tests should fail when code is broken**
 - **Tests should pass when code works correctly**
 - **Tests should document intended behavior, not current bugs**
-- **If you find a bug, fix the implementation, not the test**
+- **If you find a bug, alert the programmer**
+- **Let the programmer fix the bug, do not hack the test**
 
 ## Test Coverage Requirements
 
