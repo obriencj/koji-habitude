@@ -106,9 +106,10 @@ class TestProcessorTagBehavior(MulticallMocking, TestCase):
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
         get_tag_mock.assert_called_once_with('new-tag', strict=False)
-        get_groups_mock.assert_called_once_with('new-tag', inherit=False)
-        get_inheritance_mock.assert_called_once_with('new-tag')
-        get_external_repos_mock.assert_called_once_with(tag_info='new-tag')
+        # When tag doesn't exist, deferred calls are not made
+        get_groups_mock.assert_not_called()
+        get_inheritance_mock.assert_not_called()
+        get_external_repos_mock.assert_not_called()
         create_mock.assert_called_once()
         set_extras_mock.assert_called_once_with('new-tag', extra={})
 
@@ -190,14 +191,15 @@ class TestProcessorTagBehavior(MulticallMocking, TestCase):
 
         # Verify all calls were made
         get_tag_mock.assert_called_once_with('complex-tag', strict=False)
-        get_groups_mock.assert_called_once_with('complex-tag', inherit=False)
-        get_inheritance_mock.assert_called_once_with('complex-tag')
-        get_external_repos_mock.assert_called_once_with(tag_info='complex-tag')
+        # When tag doesn't exist, deferred calls are not made
+        get_groups_mock.assert_not_called()
+        get_inheritance_mock.assert_not_called()
+        get_external_repos_mock.assert_not_called()
         create_mock.assert_called_once()
         set_extras_mock.assert_called_once_with('complex-tag', extra={'key': 'value'})
-        add_group_mock.assert_called_once_with('complex-tag', 'build')
-        add_group_pkg1_mock.assert_called_once_with('complex-tag', 'build', 'package1')
-        add_group_pkg2_mock.assert_called_once_with('complex-tag', 'build', 'package2')
+        add_group_mock.assert_called_once_with('complex-tag', 'build', description=None, block=False, force=True)
+        add_group_pkg1_mock.assert_called_once_with('complex-tag', 'build', 'package1', block=False, force=True)
+        add_group_pkg2_mock.assert_called_once_with('complex-tag', 'build', 'package2', block=False, force=True)
         add_inheritance_mock.assert_called_once()
         add_external_repo_mock.assert_called_once_with('complex-tag', 'external-repo', 5)
 
@@ -449,8 +451,9 @@ class TestProcessorTagBehavior(MulticallMocking, TestCase):
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
         get_tag_mock.assert_called_once_with('existing-tag', strict=False)
-        add_group_mock.assert_called_once_with('existing-tag', 'build')
-        add_group_pkg_mock.assert_called_once_with('existing-tag', 'build', 'package1')
+        get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
+        add_group_mock.assert_called_once_with('existing-tag', 'build', description=None, block=False, force=True)
+        add_group_pkg_mock.assert_called_once_with('existing-tag', 'build', 'package1', block=False, force=True)
 
     def test_tag_add_inheritance(self):
         """Test adding inheritance to an existing tag."""
@@ -595,7 +598,7 @@ class TestProcessorTagBehavior(MulticallMocking, TestCase):
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
         get_tag_mock.assert_called_once_with('existing-tag', strict=False)
-        get_groups_mock.assert_called_once_with('existing-tag', inherit=False)
+        get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
         get_inheritance_mock.assert_called_once_with('existing-tag')
         get_external_repos_mock.assert_called_once_with(tag_info='existing-tag')
 
