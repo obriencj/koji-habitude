@@ -473,12 +473,7 @@ class Tag(BaseKojiObject):
 
         for parent in self.inheritance:
             if parent.priority in seen:
-                raise ValueError(f"Duplicate priority {parent.priority} for tag {parent.name}")
-            seen[parent.priority] = parent
-
-        for parent in self.external_repos:
-            if parent.priority in seen:
-                raise ValueError(f"Duplicate priority {parent.priority} for external repo {parent.name}")
+                raise ValueError(f"Duplicate priority {parent.priority} for {parent.type} {parent.name}")
             seen[parent.priority] = parent
 
 
