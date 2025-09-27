@@ -21,8 +21,7 @@ from . import create_test_koji_session, create_solver_with_objects, MulticallMoc
 def create_test_tag(name: str, locked: bool = False, permission: str = None,
                    arches: list = None, maven_support: bool = False,
                    maven_include_all: bool = False, extras: dict = None,
-                   groups: dict = None, inheritance: list = None,
-                   external_repos: list = None) -> Tag:
+                   groups: dict = None, inheritance: list = None) -> Tag:
     """
     Create a test tag with the specified parameters.
 
@@ -35,8 +34,7 @@ def create_test_tag(name: str, locked: bool = False, permission: str = None,
         maven_include_all: Whether maven include all is enabled (default False)
         extras: Extra tag data (default empty dict)
         groups: Tag groups dict (default empty dict)
-        inheritance: List of inheritance links (default empty list)
-        external_repos: List of external repo links (default empty list)
+        inheritance: List of inheritance links with type field (default empty list)
 
     Returns:
         Tag object for testing
@@ -51,15 +49,14 @@ def create_test_tag(name: str, locked: bool = False, permission: str = None,
         extras=extras or {},
         groups=groups or {},
         inheritance=inheritance or [],
-        external_repos=external_repos or [],
         filename='test.yaml',
         lineno=1
     )
 
 
-def create_inheritance_link(name: str, priority: int = None) -> InheritanceLink:
+def create_inheritance_link(name: str, priority: int = None, type: str = 'tag') -> InheritanceLink:
     """Create an inheritance link for testing."""
-    return InheritanceLink(name=name, priority=priority)
+    return InheritanceLink(name=name, priority=priority, type=type)
 
 
 class TestProcessorTagLifecycle(MulticallMocking, TestCase):
@@ -120,8 +117,10 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
 
     def test_creation_with_complex_settings(self):
         """Test creating a tag with all settings."""
-        inheritance = [create_inheritance_link('parent-tag', 10)]
-        external_repos = [create_inheritance_link('external-repo', 5)]
+        inheritance = [
+            create_inheritance_link('parent-tag', 10, 'tag'),
+            create_inheritance_link('external-repo', 5, 'external-repo')
+        ]
         groups = {'build': ['package1', 'package2']}
 
         tag = create_test_tag(
@@ -133,8 +132,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
             maven_include_all=True,
             extras={'key': 'value'},
             groups=groups,
-            inheritance=inheritance,
-            external_repos=external_repos
+            inheritance=inheritance
         )
         solver = create_solver_with_objects([tag])
         mock_session = create_test_koji_session()
@@ -1039,8 +1037,8 @@ class TestProcessorTagDependencies(MulticallMocking, TestCase):
 
     def test_add_external_repo(self):
         """Test adding external repository to an existing tag."""
-        external_repos = [create_inheritance_link('external-repo', 5)]
-        tag = create_test_tag('existing-tag', external_repos=external_repos)
+        inheritance = [create_inheritance_link('external-repo', 5, 'external-repo')]
+        tag = create_test_tag('existing-tag', inheritance=inheritance)
         solver = create_solver_with_objects([tag])
         mock_session = create_test_koji_session()
 
