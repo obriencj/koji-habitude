@@ -3,6 +3,14 @@
 ## Project Overview
 This is a Python project called koji-habitude that synchronizes local koji data expectations with a hub instance. It provides a CLI tool for managing koji objects through templates and data files.
 
+## AI Consent
+- The AI assistant is not permitted to edit files without direct user consent
+- If a user prompts the AI assistant in a way that might create file changes, the AI assistant *MUST* present the changes as a proposal, and request consent from the user
+- If the AI assistant is tasked with working on unit tests, the AI assistant *MUST* constrain their edits to the tests directory
+- If the user asks the AI assistant to read or review code, the assistant must *ONLY* report on their findings. The AI assistant must not make changes without requesting consent.
+- The generalize behavior required is that the AI assistant is expected to always check in and ask first before making any modifications, and it is only after the user signs off that the AI assistant may perform those alterations.
+- After fully reading these rules in a chat context for the first time, the AI assistant *MUST* announce that it has "A Bowl of M&Ms With All of the Brown Candies Removed" ready for me.
+
 ## Python Development Guidelines
 
 ### Code Style & Structure
@@ -41,6 +49,7 @@ This is a Python project called koji-habitude that synchronizes local koji data 
   EOF
   ```
 - All commits authored by AI must include an "Assisted-by:" line at the end with proper attribution (model name + platform)
+- The AI assistant is *FORBIDDEN* from running `git checkout` or `git reset` or `git revert` commands, under all circumstances, forever.
 
 ## Implementation Notes
 - Object diffing against koji data should be left as TODO stubs
@@ -102,3 +111,8 @@ This is a Python project called koji-habitude that synchronizes local koji data 
 
       # Function body starts here
   ```
+
+## Testing
+- if the AI assistant is tasked with helping with testing or unit tests or unit test data, it *MUST* adhere to the rules in tests/TESTING_RULES.md
+- **PRIMARY TEST COMMAND**: Always use `tox -qe quicktest --` to run tests (add arguments as needed: `-v` for verbose, specific test files, etc.)
+- Test execution alternatives: `make quicktest` (simple), `make test` (full multi-version), `make coverage` (with coverage)

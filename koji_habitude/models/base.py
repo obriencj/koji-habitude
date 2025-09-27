@@ -14,9 +14,14 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 from pydantic import BaseModel, Field, ConfigDict
 
 from typing import (
+    TYPE_CHECKING,
     Any, ClassVar, Dict, List, Optional, Protocol,
     Sequence, Tuple, Type, TypeAlias,
 )
+
+
+if TYPE_CHECKING:
+    from .change import ChangeReport
 
 
 __all__ = (
@@ -59,6 +64,14 @@ class Base(Protocol):
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Base':
         ...
+
+
+class SubModel(BaseModel):
+    """
+    A base model for submodels that need to be validated by alias and name.
+    """
+
+    model_config = ConfigDict(validate_by_alias=True, validate_by_name=True)
 
 
 # we need this to enable our inheritance of both the BaseModel from pydantic and
@@ -150,6 +163,9 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
         """
         return ()
 
+    def change_report(self) -> 'ChangeReport':
+        raise NotImplementedError(f"Subclasses of BaseObject must implement change_report")
+
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}({self.typename}, {self.name})>"
 
@@ -183,26 +199,5 @@ class BaseKojiObject(BaseObject):
             return type(self)(name=self.name)
         else:
             raise TypeError(f"Cannot split {self.typename}")
-
-
-    def diff(
-            self,
-            koji_data: Optional[Dict[str, Any]]) -> Sequence[Dict[str, Any]]:
-
-        """
-        Compare with koji data and return update calls.
-
-        TODO: This is left as a stub for future implementation.
-
-        Args:
-            koji_data: Current state from koji instance, or None if not found
-
-        Returns:
-            List of koji API calls needed to update the object
-        """
-
-        # TODO: Implement object diffing logic
-        return ()
-
 
 # The end.

@@ -40,6 +40,7 @@ content: |
     - x86_64
   inheritance:
     - name: stage1-build
+      type: tag
       priority: 10
 ---
 # Define stage3 template
@@ -54,6 +55,7 @@ content: |
     - x86_64
   inheritance:
     - name: stage2-build
+      type: tag
       priority: 10
 ---
 # Define final stage template

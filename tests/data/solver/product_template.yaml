@@ -34,8 +34,10 @@ content: |
     arches: [{{ ", ".join(arches) }}]
     inheritance:
       - name: {{ g.basetag }}-candidate
+        type: tag
         priority: 5
       - name: {{ g.basetag }}-released
+        type: tag
         priority: 10
 
     ---
@@ -43,6 +45,7 @@ content: |
     name: {{ g.basetag }}-candidate
     inheritance:
       - name: {{ g.basetag }}
+        type: tag
         priority: 10
 
     ---
@@ -50,6 +53,7 @@ content: |
     name: {{ g.basetag }}-released
     inheritance:
       - name: {{ g.basetag }}
+        type: tag
         priority: 10
 
     ---
