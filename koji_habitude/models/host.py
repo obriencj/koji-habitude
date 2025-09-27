@@ -201,8 +201,8 @@ class Host(BaseKojiObject):
         return [('channel', channel) for channel in self.channels]
 
 
-    def change_report(host: 'Host') -> HostChangeReport:
-        return HostChangeReport(host)
+    def change_report(self) -> HostChangeReport:
+        return HostChangeReport(self)
 
 
 # The end.

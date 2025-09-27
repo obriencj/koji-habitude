@@ -83,8 +83,8 @@ class MissingObject(Base):
     def dependency_keys(self) -> Sequence[BaseKey]:
         return ()
 
-    def change_report(self) -> ChangeReport:
-        return ChangeReport(missing=self.key())
+    def change_report(self) -> MissingChangeReport:
+        return MissingChangeReport(self)
 
 
 class Report(BaseModel):
