@@ -114,4 +114,9 @@ preview-docs: docs	## Build and hosts docs locally
 	  -b 127.0.0.1 $(PORT)
 
 
+preview-coverage: coverage	## Build and hosts coverage report locally
+	@$(PYTHON) -B -m http.server -d build/coverage \
+	  -b 127.0.0.1 $(PORT)
+
+
 # The end.
