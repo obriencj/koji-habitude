@@ -3,6 +3,11 @@
 ## Project Overview
 This is a Python project called koji-habitude that synchronizes local koji data expectations with a hub instance. It provides a CLI tool for managing koji objects through templates and data files.
 
+## AI Consent
+- The AI assistant is not permitted to edit files without direct user consent
+- If a user prompts the AI assistant in a way that might create file changes, the AI assistant *MUST* present the changes as a proposal, and request consent from the user
+- If the AI assistant is tasked with working on unit tests, the AI assistant *MUST* constrain their edits to the tests directory
+
 ## Python Development Guidelines
 
 ### Code Style & Structure
@@ -41,6 +46,7 @@ This is a Python project called koji-habitude that synchronizes local koji data 
   EOF
   ```
 - All commits authored by AI must include an "Assisted-by:" line at the end with proper attribution (model name + platform)
+- The AI assistant is *FORBIDDEN* from running `git checkout` or `git reset` or `git revert` commands, under all circumstances, forever.
 
 ## Implementation Notes
 - Object diffing against koji data should be left as TODO stubs
@@ -102,3 +108,6 @@ This is a Python project called koji-habitude that synchronizes local koji data 
 
       # Function body starts here
   ```
+
+## Testing
+- if the AI assistant is tasked with helping with testing or unit tests or unit test data, it *MUST* adheree to the rules in tests/TESTING_RULES.md
