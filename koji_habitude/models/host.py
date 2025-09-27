@@ -10,9 +10,9 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import ClassVar, List, Sequence, Optional
+from typing import ClassVar, List, Sequence, Optional, Any
 
-from koji import MultiCallSession, VirtualCall
+from koji import MultiCallSession, VirtualCall, ClientSession
 from pydantic import Field
 
 from .base import BaseKojiObject, BaseKey
@@ -132,7 +132,7 @@ class HostChangeReport(ChangeReport):
         self.add(HostRemoveChannel(self.obj.name, channel))
 
     def impl_read(self, session: MultiCallSession):
-        self._hostinfo: VirtualCall = session.getHost(self.obj.name)
+        self._hostinfo: VirtualCall = session.getHost(self.obj.name, strict=False)
 
     def impl_compare(self):
         info = self._hostinfo.result
@@ -203,6 +203,10 @@ class Host(BaseKojiObject):
 
     def change_report(self) -> HostChangeReport:
         return HostChangeReport(self)
+
+    @classmethod
+    def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
+        return session.getHost(key[1], strict=False)
 
 
 # The end.

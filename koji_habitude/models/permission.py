@@ -10,13 +10,26 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import ClassVar, Optional
+from functools import partial
+from typing import ClassVar, Optional, Any
 
-from koji import MultiCallSession, VirtualCall
+from koji import MultiCallSession, VirtualCall, ClientSession
 from pydantic import Field
 
-from .base import BaseKojiObject
+from .base import BaseKojiObject, BaseKey
 from .change import Change, ChangeReport
+from ..koji import call_processor
+
+
+def getPermission(session: ClientSession, name: str):
+
+    def filter_for_perm(perms):
+        for perm in perms:
+            if perm['name'] == name:
+                return perm
+        return None
+
+    return call_processor(filter_for_perm, session.getAllPerms)
 
 
 @dataclass
@@ -65,7 +78,7 @@ class PermissionChangeReport(ChangeReport):
 
 
     def impl_read(self, session: MultiCallSession):
-        self._permissioninfo: VirtualCall = session.getPermission(self.obj.name)
+        self._permissioninfo: VirtualCall = getPermission(session, self.obj.name)
 
 
     def impl_compare(self):
@@ -90,6 +103,10 @@ class Permission(BaseKojiObject):
 
     def change_report(self) -> PermissionChangeReport:
         return PermissionChangeReport(self)
+
+    @classmethod
+    def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
+        return getPermission(session, key[1])
 
 
 # The end.

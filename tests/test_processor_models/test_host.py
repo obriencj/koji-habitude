@@ -81,7 +81,7 @@ class TestProcessorHostBehavior(MulticallMocking, TestCase):
         self.assertTrue(result)  # Should process 1 object
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_host_mock.assert_called_once_with('new-host')
+        get_host_mock.assert_called_once_with('new-host', strict=False)
         create_mock.assert_called_once()
 
         expected_calls = [
@@ -120,7 +120,7 @@ class TestProcessorHostBehavior(MulticallMocking, TestCase):
         self.assertTrue(result)  # Should process 1 object
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_host_mock.assert_called_once_with('new-host')
+        get_host_mock.assert_called_once_with('new-host', strict=False)
         create_mock.assert_called_once()
 
         expected_calls = [
@@ -162,7 +162,7 @@ class TestProcessorHostBehavior(MulticallMocking, TestCase):
         self.assertTrue(result)  # Should process 1 object
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_host_mock.assert_called_once_with('existing-host')
+        get_host_mock.assert_called_once_with('existing-host', strict=False)
         set_arches_mock.assert_called_once_with('existing-host', arches='x86_64 aarch64')
 
     def test_host_update_capacity(self):
@@ -198,7 +198,7 @@ class TestProcessorHostBehavior(MulticallMocking, TestCase):
         self.assertTrue(result)  # Should process 1 object
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_host_mock.assert_called_once_with('existing-host')
+        get_host_mock.assert_called_once_with('existing-host', strict=False)
         set_capacity_mock.assert_called_once_with('existing-host', capacity=4.0)
 
     def test_host_update_enabled_status(self):
@@ -234,7 +234,7 @@ class TestProcessorHostBehavior(MulticallMocking, TestCase):
         self.assertTrue(result)  # Should process 1 object
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_host_mock.assert_called_once_with('existing-host')
+        get_host_mock.assert_called_once_with('existing-host', strict=False)
         set_enabled_mock.assert_called_once_with('existing-host', enabled=False)
 
     def test_host_update_description(self):
@@ -270,7 +270,7 @@ class TestProcessorHostBehavior(MulticallMocking, TestCase):
         self.assertTrue(result)  # Should process 1 object
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_host_mock.assert_called_once_with('existing-host')
+        get_host_mock.assert_called_once_with('existing-host', strict=False)
         set_description_mock.assert_called_once_with('existing-host', description='New description')
 
     def test_host_add_missing_channels(self):
@@ -310,7 +310,7 @@ class TestProcessorHostBehavior(MulticallMocking, TestCase):
         self.assertTrue(result)  # Should process 1 object
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_host_mock.assert_called_once_with('existing-host')
+        get_host_mock.assert_called_once_with('existing-host', strict=False)
         add_channel1_mock.assert_called_once_with('existing-host', 'build')
         add_channel2_mock.assert_called_once_with('existing-host', 'test')
 
@@ -347,7 +347,7 @@ class TestProcessorHostBehavior(MulticallMocking, TestCase):
         self.assertTrue(result)  # Should process 1 object
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_host_mock.assert_called_once_with('existing-host')
+        get_host_mock.assert_called_once_with('existing-host', strict=False)
         remove_channel_mock.assert_called_once_with('existing-host', 'extra-channel')
 
     def test_host_no_changes_needed(self):
@@ -380,7 +380,7 @@ class TestProcessorHostBehavior(MulticallMocking, TestCase):
         self.assertTrue(result)  # Should process 1 object
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_host_mock.assert_called_once_with('existing-host')
+        get_host_mock.assert_called_once_with('existing-host', strict=False)
 
     def test_processor_summary_with_multiple_hosts(self):
         """Test that the processor summary is correct with multiple hosts."""
@@ -434,8 +434,8 @@ class TestProcessorHostBehavior(MulticallMocking, TestCase):
         self.assertEqual(summary.state, ProcessorState.EXHAUSTED)
 
         # Verify all calls were made
-        get_host1_mock.assert_called_once_with('host1')
-        get_host2_mock.assert_called_once_with('host2')
+        get_host1_mock.assert_called_once_with('host1', strict=False)
+        get_host2_mock.assert_called_once_with('host2', strict=False)
         create1_mock.assert_called_once()
         create2_mock.assert_called_once()
 

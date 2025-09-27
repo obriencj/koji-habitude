@@ -45,7 +45,7 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
         mock_session = create_test_koji_session()
 
         get_permission_mock = Mock()
-        get_permission_mock.return_value = None
+        get_permission_mock.return_value = []
 
         # Mock the current user for permission creation
         mock_session._currentuser = {'id': 12345}
@@ -56,7 +56,7 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
         revoke_mock = Mock()
         revoke_mock.return_value = None
 
-        self.queue_client_response('getPermission', get_permission_mock)
+        self.queue_client_response('getAllPerms', get_permission_mock)
         self.queue_client_response('grantPermission', grant_mock)
         self.queue_client_response('revokePermission', revoke_mock)
 
@@ -70,7 +70,7 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
         self.assertTrue(result)  # Should process 1 object
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_permission_mock.assert_called_once_with('new-permission')
+        get_permission_mock.assert_called_once_with()
         grant_mock.assert_called_once_with(12345, 'new-permission', description='Test permission description')
         revoke_mock.assert_called_once_with(12345, 'new-permission')
 
@@ -81,7 +81,7 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
         mock_session = create_test_koji_session()
 
         get_permission_mock = Mock()
-        get_permission_mock.return_value = None
+        get_permission_mock.return_value = []
 
         # Mock the current user for permission creation
         mock_session._currentuser = {'id': 12345}
@@ -92,7 +92,7 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
         revoke_mock = Mock()
         revoke_mock.return_value = None
 
-        self.queue_client_response('getPermission', get_permission_mock)
+        self.queue_client_response('getAllPerms', get_permission_mock)
         self.queue_client_response('grantPermission', grant_mock)
         self.queue_client_response('revokePermission', revoke_mock)
 
@@ -106,7 +106,7 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
         self.assertTrue(result)  # Should process 1 object
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_permission_mock.assert_called_once_with('new-permission')
+        get_permission_mock.assert_called_once_with()
         grant_mock.assert_called_once_with(12345, 'new-permission', description=None)
         revoke_mock.assert_called_once_with(12345, 'new-permission')
 
@@ -118,15 +118,15 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
 
         # Mock the getPermission call to return existing permission with different description
         get_permission_mock = Mock()
-        get_permission_mock.return_value = {
+        get_permission_mock.return_value = [{
             'name': 'existing-permission',
             'description': 'Old description'
-        }
+        }]
 
         edit_mock = Mock()
         edit_mock.return_value = None
 
-        self.queue_client_response('getPermission', get_permission_mock)
+        self.queue_client_response('getAllPerms', get_permission_mock)
         self.queue_client_response('editPermission', edit_mock)
 
         processor = Processor(
@@ -139,7 +139,7 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
         self.assertTrue(result)  # Should process 1 object
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_permission_mock.assert_called_once_with('existing-permission')
+        get_permission_mock.assert_called_once_with()
         edit_mock.assert_called_once_with('existing-permission', description='New description')
 
     def test_permission_no_changes_needed(self):
@@ -150,12 +150,12 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
 
         # Mock the getPermission call to return permission that already matches desired state
         get_permission_mock = Mock()
-        get_permission_mock.return_value = {
+        get_permission_mock.return_value = [{
             'name': 'existing-permission',
             'description': 'Same description'  # Already matches
-        }
+        }]
 
-        self.queue_client_response('getPermission', get_permission_mock)
+        self.queue_client_response('getAllPerms', get_permission_mock)
 
         processor = Processor(
             koji_session=mock_session,
@@ -167,7 +167,7 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
         self.assertTrue(result)  # Should process 1 object
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_permission_mock.assert_called_once_with('existing-permission')
+        get_permission_mock.assert_called_once_with()
 
     def test_permission_update_description_from_none(self):
         """Test updating a permission that has no description to have one."""
@@ -177,15 +177,15 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
 
         # Mock the getPermission call to return permission with no description
         get_permission_mock = Mock()
-        get_permission_mock.return_value = {
+        get_permission_mock.return_value = [{
             'name': 'existing-permission',
             'description': None  # No current description
-        }
+        }]
 
         edit_mock = Mock()
         edit_mock.return_value = None
 
-        self.queue_client_response('getPermission', get_permission_mock)
+        self.queue_client_response('getAllPerms', get_permission_mock)
         self.queue_client_response('editPermission', edit_mock)
 
         processor = Processor(
@@ -198,7 +198,7 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
         self.assertTrue(result)  # Should process 1 object
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_permission_mock.assert_called_once_with('existing-permission')
+        get_permission_mock.assert_called_once_with()
         edit_mock.assert_called_once_with('existing-permission', description='New description')
 
     def test_permission_remove_description(self):
@@ -209,15 +209,15 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
 
         # Mock the getPermission call to return permission with a description
         get_permission_mock = Mock()
-        get_permission_mock.return_value = {
+        get_permission_mock.return_value = [{
             'name': 'existing-permission',
             'description': 'Old description'  # Has current description
-        }
+        }]
 
         edit_mock = Mock()
         edit_mock.return_value = None
 
-        self.queue_client_response('getPermission', get_permission_mock)
+        self.queue_client_response('getAllPerms', get_permission_mock)
         self.queue_client_response('editPermission', edit_mock)
 
         processor = Processor(
@@ -230,7 +230,7 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
         self.assertTrue(result)  # Should process 1 object
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_permission_mock.assert_called_once_with('existing-permission')
+        get_permission_mock.assert_called_once_with()
         edit_mock.assert_called_once_with('existing-permission', description=None)
 
     def test_processor_summary_with_multiple_permissions(self):
@@ -244,10 +244,10 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
 
         # Mock getPermission calls to return None (permissions don't exist)
         get_perm1_mock = Mock()
-        get_perm1_mock.return_value = None
+        get_perm1_mock.return_value = []
 
         get_perm2_mock = Mock()
-        get_perm2_mock.return_value = None
+        get_perm2_mock.return_value = []
 
         # Mock the current user for permission creation
         mock_session._currentuser = {'id': 12345}
@@ -267,11 +267,11 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
         revoke2_mock.return_value = None
 
         # Queue responses for both permissions
-        self.queue_client_response('getPermission', get_perm1_mock)
+        self.queue_client_response('getAllPerms', get_perm1_mock)
         self.queue_client_response('grantPermission', grant1_mock)
         self.queue_client_response('revokePermission', revoke1_mock)
 
-        self.queue_client_response('getPermission', get_perm2_mock)
+        self.queue_client_response('getAllPerms', get_perm2_mock)
         self.queue_client_response('grantPermission', grant2_mock)
         self.queue_client_response('revokePermission', revoke2_mock)
 
@@ -288,8 +288,8 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
         self.assertEqual(summary.state, ProcessorState.EXHAUSTED)
 
         # Verify all calls were made
-        get_perm1_mock.assert_called_once_with('perm1')
-        get_perm2_mock.assert_called_once_with('perm2')
+        get_perm1_mock.assert_called_once_with()
+        get_perm2_mock.assert_called_once_with()
         grant1_mock.assert_called_once_with(12345, 'perm1', description='First permission')
         grant2_mock.assert_called_once_with(12345, 'perm2', description='Second permission')
         revoke1_mock.assert_called_once_with(12345, 'perm1')
