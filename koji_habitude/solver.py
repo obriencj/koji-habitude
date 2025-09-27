@@ -101,9 +101,6 @@ class Solver:
                 assert depnode is not None
                 node.add_dependency(depnode)
 
-        # allows resolver to process any items it needed to create
-        return self.resolver.prepare()
-
 
     def report(self) -> Report:
         if self.remaining is None:

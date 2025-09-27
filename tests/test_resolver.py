@@ -14,7 +14,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock
 
-from koji_habitude.resolver import OfflineResolver, MissingObject, Report
+from koji_habitude.resolver import Resolver, MissingObject, Report
 from koji_habitude.namespace import Namespace
 from koji_habitude.models import Tag, User, ExternalRepo, Target
 
@@ -85,8 +85,8 @@ class TestReport(unittest.TestCase):
         self.assertEqual(report.missing[0], ('tag', 'new-tag'))
 
 
-class TestOfflineResolver(unittest.TestCase):
-    """Test the OfflineResolver class."""
+class TestResolver(unittest.TestCase):
+    """Test the Resolver class."""
 
     def setUp(self):
         """Set up test fixtures."""
@@ -99,7 +99,7 @@ class TestOfflineResolver(unittest.TestCase):
             ('user', 'existing-user'): User(name='existing-user', type='user'),
         }
 
-        self.resolver = OfflineResolver(self.namespace)
+        self.resolver = Resolver(self.namespace)
 
     def test_resolver_initialization(self):
         """Test resolver initialization."""
@@ -204,12 +204,6 @@ class TestOfflineResolver(unittest.TestCase):
         self.assertEqual(split_obj.name, 'test-tag')
         self.assertEqual(split_obj.arches, ['x86_64'])
 
-    def test_prepare_does_nothing(self):
-        """Test that prepare() does nothing in base resolver."""
-        # Should not raise any exceptions
-        result = self.resolver.prepare()
-        self.assertIsNone(result)
-
     def test_report_returns_created_missing_objects(self):
         """Test that report() returns missing objects that were created."""
         # Create some missing objects
@@ -237,10 +231,10 @@ class TestOfflineResolver(unittest.TestCase):
         """Test resolver behavior with None namespace."""
 
         with self.assertRaises(ValueError):
-            OfflineResolver(None)
+            Resolver(None)
 
 
-class TestOfflineResolverIntegration(unittest.TestCase):
+class TestResolverIntegration(unittest.TestCase):
     """Test resolver integration with real namespace and models."""
 
     def setUp(self):
@@ -257,7 +251,7 @@ class TestOfflineResolverIntegration(unittest.TestCase):
         self.namespace.add(Tag.from_dict(tag_data))
         self.namespace.add(User.from_dict(user_data))
 
-        self.resolver = OfflineResolver(self.namespace)
+        self.resolver = Resolver(self.namespace)
 
     def test_resolve_with_real_namespace(self):
         """Test resolving objects from a real namespace."""

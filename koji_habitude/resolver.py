@@ -91,13 +91,11 @@ class Resolver:
 
     def __init__(
             self,
-            session: ClientSession,
             namespace: Namespace):
 
         if namespace is None:
             raise ValueError("namespace is required")
 
-        self.session: ClientSession = session
         self.namespace: Namespace = namespace
         self._missing: Dict[BaseKey, Base] = {}
 
@@ -144,11 +142,6 @@ class Resolver:
         return obj.split()
 
 
-    def prepare(self) -> None:
-        # The default Offline implementation does nothing
-        pass
-
-
     def report(self) -> Report:
         # The default Offline implementation does nothing
         missing = []
@@ -159,20 +152,6 @@ class Resolver:
             else:
                 missing.append(key)
         return Report(missing=missing, found=found)
-
-
-class OfflineResolver(Resolver):
-    """
-    An OnlineResolver is a Resolver that does not check the koji instance to verify that
-    the dependency exists.
-    """
-
-    def __init__(self, namespace: Namespace):
-        super().__init__(None, namespace)
-
-
-    def prepare(self) -> None:
-        pass
 
 
 # The end.
