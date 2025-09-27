@@ -6,7 +6,7 @@ name: gnutella
 type: gnutella-version
 version: "1.0"
 platforms:
-  - fedora-40,
+  - fedora-40
   - almalinux-9
 
 ---

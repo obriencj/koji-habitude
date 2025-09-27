@@ -16,7 +16,7 @@ from types import MappingProxyType
 
 
 from .base import Base, BaseKojiObject, BaseObject, BaseKey
-from .change import ChangeReport
+from .change import ChangeReport, Change
 from .channel import Channel
 from .external_repo import ExternalRepo
 from .group import Group
@@ -36,6 +36,7 @@ __all__ = (
     'BaseKey',
     'BaseKojiObject',
     'ChangeReport',
+    'Change',
 
     'Channel',
     'ExternalRepo',

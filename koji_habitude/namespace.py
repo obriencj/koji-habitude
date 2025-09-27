@@ -13,12 +13,12 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: AI Assisted, Mostly Human
 
 
-import logging
 from enum import Enum, auto
-from typing import Any, Dict, Iterator, List, Optional, Sequence, Type, Mapping
+import logging
+from typing import Any, Dict, Iterator, List, Mapping, Optional, Sequence, Tuple, Type
 
+from .models import Base, BaseKey, BaseObject, CORE_MODELS
 from .templates import Template, TemplateCall
-from .models import CORE_MODELS, Base, BaseObject, BaseKey
 
 
 __all__ = (

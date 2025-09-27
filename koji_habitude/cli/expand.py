@@ -48,7 +48,7 @@ def expand(data, templates=None, validate=False, select=[]):
         template_ns.feedall_raw(ml.load(templates))
         template_ns.expand()
 
-    namespace._ns._templates.update(template_ns._templates)
+    namespace._templates.update(template_ns._templates)
 
     # Load and process data files
     ml = MultiLoader([YAMLLoader])

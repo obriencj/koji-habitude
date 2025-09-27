@@ -33,16 +33,16 @@ content: |
     arches: [ {{ ", ".join(arches) }} ]
 
     inheritance:
-      - tag: {{ g.basetag }}-overrides
+      - name: {{ g.basetag }}-overrides
         priority: 0
 
-      - tag: {{ g.basetag }}-candidate
+      - name: {{ g.basetag }}-candidate
         priority: 5
 
-      - tag: {{ g.basetag }}-released
+      - name: {{ g.basetag }}-released
         priority: 10
 
-      - tag: {{ platform }}-build-base
+      - name: {{ platform }}-build-base
         priority: 100
 
     ---
@@ -50,21 +50,21 @@ content: |
     name: {{ g.basetag }}-overrides
     permission: {{ name }}-taggers
     inheritance:
-      {{ g.basetag }}
+      - {{ g.basetag }}
 
     ---
     type: tag
     name: {{ g.basetag }}-candidate
     permission: {{ name }}-taggers
     inheritance:
-      {{ g.basetag }}
+      - {{ g.basetag }}
 
     ---
     type: tag
     name: {{ g.basetag }}-released
     permission: trusted
     inheritance:
-      {{ g.basetag }}
+      - {{ g.basetag }}
 
     ---
     type: tag

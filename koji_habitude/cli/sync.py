@@ -15,10 +15,10 @@ import click
 @click.command()
 @click.argument('data', nargs=-1, required=True)
 @click.option(
-    '--templates', 'templates', metavar='PATH', multiple=True,
+    '--templates', metavar='PATH', multiple=True,
     help="Location to find templates that are not available in DATA")
 @click.option(
-    '--profile', profile='koji',
+    '--profile', default='koji',
     help="Koji profile to use for connection")
 def sync(data, templates=None, profile='koji'):
     """

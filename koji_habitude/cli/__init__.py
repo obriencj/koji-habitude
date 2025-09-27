@@ -12,7 +12,6 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: AI Generated with Human Rework
 
 
-import sys
 from typing import List
 
 import click
@@ -45,9 +44,6 @@ main.add_command(diff)
 main.add_command(list_templates)
 main.add_command(expand)
 
-
-if __name__ == '__main__':
-    sys.exit(main())
 
 
 # The end.

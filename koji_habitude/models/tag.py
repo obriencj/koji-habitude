@@ -596,7 +596,10 @@ class Tag(BaseKojiObject):
         priorities = set()
         priority_increment = 10
 
-        if isinstance(data, list):
+        if isinstance(data, str):
+            data = [{'name': data, 'type': 'tag', 'priority': 0}]
+
+        elif isinstance(data, list):
             fixed: List[Dict[str, Any]] = []
 
             priority = 0

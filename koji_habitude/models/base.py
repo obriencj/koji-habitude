@@ -121,7 +121,7 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
         """
         Return a dictionary representation of this object.
         """
-        return self.model_dump()
+        return self.model_dump(by_alias=True)
 
     @property
     def data(self) -> Dict[str, Any] | None:
@@ -134,7 +134,7 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
         """
         Return the key of this object as a tuple of (typename, name)
         """
-        return (self.typename, self.name)
+        return (self.yaml_type or self.typename, self.name)
 
     def filepos(self) -> Tuple[Optional[str], Optional[int]]:
         """
@@ -208,5 +208,6 @@ class BaseKojiObject(BaseObject):
             return type(self)(name=self.name)
         else:
             raise TypeError(f"Cannot split {self.typename}")
+
 
 # The end.
