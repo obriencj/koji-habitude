@@ -766,7 +766,7 @@ class TestTagModel(unittest.TestCase):
         self.assertEqual(build_group.packages[0].block, False)
 
         # Second package (@ prefix)
-        self.assertEqual(build_group.packages[1].name, 'group1')
+        self.assertEqual(build_group.packages[1].name, '@group1')
         self.assertEqual(build_group.packages[1].type, 'group')
         self.assertEqual(build_group.packages[1].block, False)
 
@@ -776,7 +776,7 @@ class TestTagModel(unittest.TestCase):
         self.assertEqual(build_group.packages[2].block, False)
 
         # Fourth package (@ prefix)
-        self.assertEqual(build_group.packages[3].name, 'group2')
+        self.assertEqual(build_group.packages[3].name, '@group2')
         self.assertEqual(build_group.packages[3].type, 'group')
         self.assertEqual(build_group.packages[3].block, False)
 
