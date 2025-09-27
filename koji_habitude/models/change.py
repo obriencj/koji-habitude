@@ -15,7 +15,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from enum import Enum
-from typing import Any, Optional, List
+from typing import Any, Callable, Optional, List
 
 from koji import MultiCallSession, VirtualCall
 
@@ -81,16 +81,27 @@ class ChangeReport:
         return iter(self.changes)
 
 
-    def read(self, session: MultiCallSession) -> None:
+    def read(self, session: MultiCallSession) -> Callable[[MultiCallSession], None] | None:
         if self.state != ChangeReportState.PENDING:
             raise ChangeReportError(f"Change report is not pending: {self.state}")
 
         self.state = ChangeReportState.LOADING
-        self.impl_read(session)
-        self.state = ChangeReportState.LOADED
+        defer  = self.impl_read(session)
+
+        if defer and callable(defer):
+            def read_defer(session: MultiCallSession) -> None:
+                if self.state != ChangeReportState.LOADING:
+                    raise ChangeReportError(f"Change report is not loading: {self.state}")
+                self.state = ChangeReportState.LOADED
+                return defer(session)
+
+            return read_defer
+        else:
+            self.state = ChangeReportState.LOADED
+            return None
 
 
-    def impl_read(self, session: MultiCallSession) -> None:
+    def impl_read(self, session: MultiCallSession) -> Callable[[MultiCallSession], None] | None:
         raise NotImplementedError("Subclasses of ChangeReport must implement impl_read")
 
 

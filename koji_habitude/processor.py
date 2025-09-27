@@ -201,6 +201,7 @@ class Processor:
             return
         logger.debug(f"Fetching koji state for {len(self.current_chunk)} objects")
 
+        deferred_calls = []
         with multicall(self.koji_session, associations=self.read_logs) as mc:
             for obj in self.current_chunk:
 
@@ -209,10 +210,22 @@ class Processor:
 
                 # create and load the change report for this object
                 change_report = obj.change_report()
-                change_report.read(mc)
+                defer = change_report.read(mc)
+                if defer and callable(defer):
+                    # we allow the change report to return a callable to
+                    # indicate it would have follow-up queries to perform.
+                    # Generally these follow a pattern of doing the initial
+                    # object check, and then follup calls only if it does.
+                    deferred_calls.append((obj.key(), defer))
 
                 # store it in our change reports
                 self.change_reports[obj.key()] = change_report
+
+        if deferred_calls:
+            with multicall(self.koji_session, associations=self.read_logs) as mc:
+                for key, call in deferred_calls:
+                    mc.associate(key)
+                    call(mc)
 
         self.state = ProcessorState.READY_COMPARE
 

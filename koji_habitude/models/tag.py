@@ -9,10 +9,10 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
 from dataclasses import dataclass
-from typing import Any, ClassVar, Dict, List, Optional, Sequence, Union
+from typing import Any, ClassVar, Dict, List, Optional, Sequence, Union, Literal
 
 from koji import MultiCallSession, VirtualCall
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 
 from .base import BaseKey, BaseKojiObject
 from .change import Change, ChangeReport
@@ -88,17 +88,35 @@ class TagSetExtras(Change):
 
 @dataclass
 class TagAddGroup(Change):
-    name: str
-    group: str
+    name: str  # the tag name
+    group: 'TagGroup'
 
     def impl_apply(self, session: MultiCallSession):
-        return session.groupListAdd(self.name, self.group)
+        return session.groupListAdd(
+            self.name, self.group.name,
+            description=self.group.description,
+            block=self.group.block,
+            force=True)
+
+
+@dataclass
+class TagUpdateGroup(Change):
+    name: str  # the tag name
+    group: 'TagGroup'
+
+    def impl_apply(self, session: MultiCallSession):
+        # same method is used for adding and editing groups
+        return session.groupListAdd(
+            self.name, self.group.name,
+            description=self.group.description,
+            block=self.group.block,
+            force=True)
 
 
 @dataclass
 class TagRemoveGroup(Change):
-    name: str
-    group: str
+    name: str   # the tag name
+    group: str  # the group name
 
     def impl_apply(self, session: MultiCallSession):
         return session.groupListRemove(self.name, self.group)
@@ -106,19 +124,36 @@ class TagRemoveGroup(Change):
 
 @dataclass
 class TagAddGroupPackage(Change):
-    name: str
-    group: str
-    package: str
+    name: str     # the tag name
+    group: str    # the group name
+    package: 'TagGroupPackage'
 
     def impl_apply(self, session: MultiCallSession):
-        return session.groupPackageListAdd(self.name, self.group, self.package)
+        return session.groupPackageListAdd(
+            self.name, self.group, self.package.name,
+            block=self.package.block,
+            force=True)
+
+
+@dataclass
+class TagUpdateGroupPackage(Change):
+    name: str     # the tag name
+    group: str    # the group name
+    package: 'TagGroupPackage'
+
+    def impl_apply(self, session: MultiCallSession):
+        # same method is used for adding and updating packages
+        return session.groupPackageListAdd(
+            self.name, self.group, self.package.name,
+            block=self.package.block,
+            force=True)
 
 
 @dataclass
 class TagRemoveGroupPackage(Change):
-    name: str
-    group: str
-    package: str
+    name: str     # the tag name
+    group: str    # the group name
+    package: str  # the package name
 
     def impl_apply(self, session: MultiCallSession):
         return session.groupPackageListRemove(self.name, self.group, self.package)
@@ -190,18 +225,35 @@ class TagChangeReport(ChangeReport):
     def set_tag_extras(self):
         self.add(TagSetExtras(self.obj.name, self.obj.extras))
 
-    def add_group(self, group: str):
+    def add_group(self, group: 'TagGroup'):
         self.add(TagAddGroup(self.obj.name, group))
+
+    def update_group(self, group: 'TagGroup'):
+        self.add(TagUpdateGroup(self.obj.name, group))
 
     def remove_group(self, group: str):
         self.add(TagRemoveGroup(self.obj.name, group))
 
-    def add_group_package(self, group: str, package: str):
+    def add_group_package(self, group: str, package: 'TagGroupPackage'):
         self.add(TagAddGroupPackage(self.obj.name, group, package))
 
-    def add_group_packages(self, group: str, packages: List[str]):
+    def update_group_package(self, group: str, package: 'TagGroupPackage'):
+        self.add(TagUpdateGroupPackage(self.obj.name, group, package))
+
+    def remove_group_package(self, group: str, package: str):
+        self.add(TagRemoveGroupPackage(self.obj.name, group, package))
+
+    def add_group_packages(self, group: str, packages: List['TagGroupPackage']):
         for package in packages:
             self.add_group_package(group, package)
+
+    def update_group_packages(self, group: str, packages: List['TagGroupPackage']):
+        for package in packages:
+            self.update_group_package(group, package)
+
+    def remove_group_packages(self, group: str, packages: List[str]):
+        for package in packages:
+            self.remove_group_package(group, package)
 
     def remove_group_package(self, group: str, package: str):
         self.add(TagRemoveGroupPackage(self.obj.name, group, package))
@@ -209,29 +261,39 @@ class TagChangeReport(ChangeReport):
     def add_inheritance(self, parent: 'InheritanceLink'):
         self.add(TagAddInheritance(self.obj.name, parent.name, parent.priority))
 
-    def remove_inheritance(self, parent: 'InheritanceLink'):
-        self.add(TagRemoveInheritance(self.obj.name, parent.name))
+    def remove_inheritance(self, parent: str):
+        self.add(TagRemoveInheritance(self.obj.name, parent))
 
     def add_external_repo(self, repo: 'InheritanceLink'):
         self.add(TagAddExternalRepo(self.obj.name, repo.name, repo.priority))
 
-    def remove_external_repo(self, repo: 'InheritanceLink'):
-        self.add(TagRemoveExternalRepo(self.obj.name, repo.name))
+    def remove_external_repo(self, repo: str):
+        self.add(TagRemoveExternalRepo(self.obj.name, repo))
 
     def impl_read(self, session: MultiCallSession):
         self._taginfo: VirtualCall = session.getTag(self.obj.name, strict=False)
-        self._groups: VirtualCall = session.getTagGroups(self.obj.name, inherit=False)
-        self._inheritance: VirtualCall = session.getInheritanceData(self.obj.name)
-        self._external_repos: VirtualCall = session.getTagExternalRepos(tag_info=self.obj.name)
+        self._groups: VirtualCall = None
+        self._inheritance: VirtualCall = None
+        self._external_repos: VirtualCall = None
+
+        return self._impl_read_defer
+
+    def _impl_read_defer(self, session: MultiCallSession):
+        if self._taginfo.result is None:
+            return
+
+        self._groups = session.getTagGroups(self.obj.name, inherit=False, incl_blocked=True)
+        self._inheritance = session.getInheritanceData(self.obj.name)
+        self._external_repos = session.getTagExternalRepos(tag_info=self.obj.name)
 
     def impl_compare(self):
         info = self._taginfo.result
         if info is None:
             self.create_tag()
             self.set_tag_extras()
-            for group_name, group_packages in self.obj.groups.items():
-                self.add_group(group_name)
-                self.add_group_packages(group_name, group_packages)
+            for group_name, group in self.obj.groups.items():
+                self.add_group(group)
+                self.add_group_packages(group_name, group.packages)
             for parent in self.obj.inheritance:
                 self.add_inheritance(parent)
             for repo in self.obj.external_repos:
@@ -250,41 +312,97 @@ class TagChangeReport(ChangeReport):
         if info['extras'] != self.obj.extras:
             self.set_tag_extras()
 
-        groups = {group['name']: group for group in self._groups.result}
-        for group_name, group_packages in self.obj.groups.items():
-            if group_name not in groups:
-                self.add_group(group_name)
-                self.add_group_packages(group_name, group_packages)
-            else:
-                pkglist = groups[group_name]['packagelist']
-                to_add = [pkg['package'] for pkg in pkglist if pkg['package'] not in group_packages]
-                self.add_group_packages(group_name, to_add)
-        # TODO: remove packages if exact_groups is True
+        self._compare_groups()
+        self._compare_inheritance()
 
-        inher = {parent['name']: parent for parent in self._inheritance.result}
-        for name, parent in inher.items():
-            if name not in self.obj.inheritance:
+
+    def _compare_inheritance(self):
+        # Helper function to compare inheritance
+
+        # TODO: at some point we want to merge inheritance and external repos
+        # into a single list, and use the same fancy field validation as we do
+        # for groups to allow for both string and dictionary formats, where
+        # external repos are differentiated by having a 'type' key of
+        # 'external-repo'
+
+        koji_inher = {parent['name']: parent for parent in self._inheritance.result}
+        inher = {parent.name: parent for parent in self.obj.inheritance}
+
+        for name, parent in koji_inher.items():
+            if name not in inher:
                 self.remove_inheritance(name)
 
-        for parent in self.obj.inheritance:
-            if parent.name not in inher:
+        for name, parent in inher.items():
+            if name not in koji_inher:
                 self.add_inheritance(parent)
 
-        ext_repos = {repo['name']: repo for repo in self._external_repos.result}
-        for name, repo in ext_repos.items():
-            if name not in self.obj.external_repos:
+        koji_ext_repos = {repo['name']: repo for repo in self._external_repos.result}
+        ext_repos = {repo.name: repo for repo in self.obj.external_repos}
+
+        for name, repo in koji_ext_repos.items():
+            if name not in ext_repos:
                 self.remove_external_repo(name)
 
-        for repo in self.obj.external_repos:
-            if repo.name not in ext_repos:
+        for name, repo in ext_repos.items():
+            if name not in koji_ext_repos:
                 self.add_external_repo(repo)
 
 
-class TagGroupPackage(BaseModel):
+    def _compare_groups(self):
+        # Helper function to compare groups and their package content
+
+        koji_groups = {group['name']: group for group in self._groups.result}
+        for group_name, group in self.obj.groups.items():
+            if group_name not in koji_groups:
+                self.add_group(group)
+                self.add_group_packages(group_name, group.packages)
+                continue
+
+            koji_group = koji_groups[group_name]
+            if group.block != koji_group['blocked'] or \
+               group.description != koji_group['description']:
+                self.update_group(group)
+
+            to_add : List[TagGroupPackage] = []
+            to_update : List[TagGroupPackage] = []
+
+            koji_pkgs = {pkg['package']: pkg for pkg in koji_group['packagelist']}
+            for pkg in group.packages:
+                if pkg.name not in koji_pkgs:
+                    to_add.append(pkg)
+                elif pkg.block != koji_pkgs[pkg.name]['blocked']:
+                    to_update.append(pkg)
+
+            if to_add:
+                self.add_group_packages(group_name, to_add)
+
+            if to_update:
+                self.update_group_packages(group_name, to_update)
+
+            if group.exact_packages:
+                to_remove : List[str] = []
+                pkgs = {pkg.name: pkg for pkg in group.packages}
+                for pkg_name in koji_pkgs:
+                    if pkg_name not in pkgs:
+                        to_remove.append(pkg_name)
+                if to_remove:
+                    self.remove_group_packages(group_name, to_remove)
+
+        if self.obj.exact_groups:
+            for group_name in koji_groups:
+                if group_name not in self.obj.groups:
+                    self.remove_group(group_name)
+
+
+class SubModel(BaseModel):
+    model_config = ConfigDict(validate_by_alias=True, validate_by_name=True)
+
+
+class TagGroupPackage(SubModel):
 
     name: str = Field(alias='name')
     type: str = Field(alias='type', default='package')
-    block: bool = Field(alias='block', default=False)
+    block: bool = Field(alias='blocked', default=False)
 
     @model_validator(mode='before')
     @classmethod
@@ -311,15 +429,28 @@ class TagGroupPackage(BaseModel):
         return data
 
 
-class TagGroup(BaseModel):
+class TagGroup(SubModel):
     name: str = Field(alias='name')
-    block: bool = Field(alias='block', default=False)
+    description: Optional[str] = Field(alias='description', default=None)
+    block: bool = Field(alias='blocked', default=False)
     packages: List[TagGroupPackage] = Field(alias='packages', default_factory=list)
+    exact_packages: bool = Field(alias='exact-packages', default=False)
 
 
-class InheritanceLink(BaseModel):
+class InheritanceLink(SubModel):
     name: str = Field(alias='name')
     priority: int = Field(alias='priority')
+    type: Literal['tag', 'external-repo'] = Field(alias='type', default='tag')
+    maxdepth: Optional[int] = Field(alias='max-depth', default=None)
+    noconfig: bool = Field(alias='no-config', default=False)
+    pkgfilter: Optional[str] = Field(alias='pkg-filter', default=None)
+
+    @field_validator('pkgfilter', mode='before')
+    @classmethod
+    def convert_pkgfilter_from_simplified(cls, data: Any) -> Any:
+        if isinstance(data, list):
+            return f"^({'|'.join(data)})$"
+        return data
 
 
 class Tag(BaseKojiObject):
@@ -330,16 +461,16 @@ class Tag(BaseKojiObject):
     typename: ClassVar[str] = "tag"
     _can_split: ClassVar[bool] = True
 
-    locked: bool = Field(alias='locked', default=False)
+    locked: bool = Field(alias='lock', default=False)
     permission: Optional[str] = Field(alias='permission', default=None)
     arches: List[str] = Field(alias='arches', default_factory=list)
     maven_support: bool = Field(alias='maven-support', default=False)
     maven_include_all: bool = Field(alias='maven-include-all', default=False)
     extras: Dict[str, Any] = Field(alias='extras', default_factory=dict)
     groups: Dict[str, TagGroup] = Field(alias='groups', default_factory=dict)
+    exact_groups: bool = Field(alias='exact-groups', default=False)
     inheritance: List[InheritanceLink] = Field(alias='inheritance', default_factory=list)
     external_repos: List[InheritanceLink] = Field(alias='external-repos', default_factory=list)
-
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
