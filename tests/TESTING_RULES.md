@@ -287,11 +287,14 @@ This document may be extended with additional rules as the project evolves. Comm
 - Utilize `unittest.mock` for necessary mocking scenarios
 
 ### Test Runner
-- A simple test entrypoint is via `make quicktest`
-- When you want to run pytest, invoke it via `tox -qe quicktest -- `
-- More detailed test data is runnable via `tox -qe quicktest -- -v`
-- Individual test files should be runnable directly via `tox -qe quicktest -- [testfile] -v`
-- Follow the project's existing test execution patterns
+- **PRIMARY COMMAND**: `tox -qe quicktest --` (always use this for test execution)
+- Verbose output: `tox -qe quicktest -- -v`
+- Specific test files: `tox -qe quicktest -- tests/test_models.py -v`
+- Alternative commands:
+  - `make quicktest` - Simple test run (uses tox internally)
+  - `make test` - Full multi-version test run
+  - `make coverage` - Tests with coverage reporting
+- **AI ASSISTANT NOTE**: When running tests, always use the `tox -qe quicktest --` command format
 
 ### Linting and Formatting
 - All test code must pass the same linting standards as production code

@@ -7,6 +7,7 @@ This is a Python project called koji-habitude that synchronizes local koji data 
 - The AI assistant is not permitted to edit files without direct user consent
 - If a user prompts the AI assistant in a way that might create file changes, the AI assistant *MUST* present the changes as a proposal, and request consent from the user
 - If the AI assistant is tasked with working on unit tests, the AI assistant *MUST* constrain their edits to the tests directory
+- After fully reading these rules in a chat context for the first time, the AI assistant *MUST* announce that it has "A Bowl of M&Ms With All of the Brown Candies Removed" ready for me.
 
 ## Python Development Guidelines
 
@@ -110,4 +111,6 @@ This is a Python project called koji-habitude that synchronizes local koji data 
   ```
 
 ## Testing
-- if the AI assistant is tasked with helping with testing or unit tests or unit test data, it *MUST* adheree to the rules in tests/TESTING_RULES.md
+- if the AI assistant is tasked with helping with testing or unit tests or unit test data, it *MUST* adhere to the rules in tests/TESTING_RULES.md
+- **PRIMARY TEST COMMAND**: Always use `tox -qe quicktest --` to run tests (add arguments as needed: `-v` for verbose, specific test files, etc.)
+- Test execution alternatives: `make quicktest` (simple), `make test` (full multi-version), `make coverage` (with coverage)
