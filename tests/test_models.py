@@ -540,7 +540,19 @@ class TestTagModel(unittest.TestCase):
         self.assertTrue(tag.maven_support)
         self.assertTrue(tag.maven_include_all)
         self.assertEqual(tag.extras, {'key1': 'value1', 'key2': 'value2'})
-        self.assertEqual(tag.groups, {'group1': ['pkg1', 'pkg2']})
+
+        # Check groups structure (now TagGroup objects instead of simple lists)
+        self.assertEqual(len(tag.groups), 1)
+        self.assertIn('group1', tag.groups)
+        group1 = tag.groups['group1']
+        self.assertEqual(group1.name, 'group1')
+        self.assertEqual(len(group1.packages), 2)
+        self.assertEqual(group1.packages[0].name, 'pkg1')
+        self.assertEqual(group1.packages[0].type, 'package')
+        self.assertEqual(group1.packages[0].block, False)
+        self.assertEqual(group1.packages[1].name, 'pkg2')
+        self.assertEqual(group1.packages[1].type, 'package')
+        self.assertEqual(group1.packages[1].block, False)
 
         # Check inheritance links
         self.assertEqual(len(tag.inheritance), 2)
@@ -617,6 +629,209 @@ class TestTagModel(unittest.TestCase):
 
         deps = tag.dependency_keys()
         self.assertEqual(deps, [])
+
+    def test_tag_groups_dict_format(self):
+        """
+        Test Tag creation with groups in dict format: {'group_name': ['pkg1', 'pkg2']}
+        """
+
+        data = {
+            'type': 'tag',
+            'name': 'test-tag',
+            'groups': {'build': ['package1', 'package2'], 'srpm': ['source1']}
+        }
+        tag = Tag.from_dict(data)
+
+        # Check groups structure
+        self.assertEqual(len(tag.groups), 2)
+
+        # Check build group
+        self.assertIn('build', tag.groups)
+        build_group = tag.groups['build']
+        self.assertEqual(build_group.name, 'build')
+        self.assertEqual(len(build_group.packages), 2)
+        self.assertEqual(build_group.packages[0].name, 'package1')
+        self.assertEqual(build_group.packages[0].type, 'package')
+        self.assertEqual(build_group.packages[0].block, False)
+        self.assertEqual(build_group.packages[1].name, 'package2')
+        self.assertEqual(build_group.packages[1].type, 'package')
+        self.assertEqual(build_group.packages[1].block, False)
+
+        # Check srpm group
+        self.assertIn('srpm', tag.groups)
+        srpm_group = tag.groups['srpm']
+        self.assertEqual(srpm_group.name, 'srpm')
+        self.assertEqual(len(srpm_group.packages), 1)
+        self.assertEqual(srpm_group.packages[0].name, 'source1')
+        self.assertEqual(srpm_group.packages[0].type, 'package')
+        self.assertEqual(srpm_group.packages[0].block, False)
+
+    def test_tag_groups_list_format(self):
+        """
+        Test Tag creation with groups in list format: [{'name': 'group', 'packages': ['pkg']}]
+        """
+
+        data = {
+            'type': 'tag',
+            'name': 'test-tag',
+            'groups': [
+                {'name': 'build', 'packages': ['package1', 'package2']},
+                {'name': 'srpm', 'packages': ['source1']}
+            ]
+        }
+        tag = Tag.from_dict(data)
+
+        # Check groups structure
+        self.assertEqual(len(tag.groups), 2)
+
+        # Check build group
+        self.assertIn('build', tag.groups)
+        build_group = tag.groups['build']
+        self.assertEqual(build_group.name, 'build')
+        self.assertEqual(len(build_group.packages), 2)
+        self.assertEqual(build_group.packages[0].name, 'package1')
+        self.assertEqual(build_group.packages[1].name, 'package2')
+
+        # Check srpm group
+        self.assertIn('srpm', tag.groups)
+        srpm_group = tag.groups['srpm']
+        self.assertEqual(srpm_group.name, 'srpm')
+        self.assertEqual(len(srpm_group.packages), 1)
+        self.assertEqual(srpm_group.packages[0].name, 'source1')
+
+    def test_tag_groups_dict_with_package_objects(self):
+        """
+        Test Tag creation with groups containing package objects with type and block.
+        """
+
+        data = {
+            'type': 'tag',
+            'name': 'test-tag',
+            'groups': {
+                'build': {
+                    'packages': [
+                        'package1',  # Simple string
+                        {'name': 'package2', 'type': 'package', 'block': False},
+                        {'name': '@group1', 'type': 'group', 'block': True}
+                    ]
+                }
+            }
+        }
+        tag = Tag.from_dict(data)
+
+        # Check groups structure
+        self.assertEqual(len(tag.groups), 1)
+
+        # Check build group
+        build_group = tag.groups['build']
+        self.assertEqual(build_group.name, 'build')
+        self.assertEqual(len(build_group.packages), 3)
+
+        # First package (simple string)
+        self.assertEqual(build_group.packages[0].name, 'package1')
+        self.assertEqual(build_group.packages[0].type, 'package')
+        self.assertEqual(build_group.packages[0].block, False)
+
+        # Second package (explicit dict)
+        self.assertEqual(build_group.packages[1].name, 'package2')
+        self.assertEqual(build_group.packages[1].type, 'package')
+        self.assertEqual(build_group.packages[1].block, False)
+
+        # Third package (group with @ prefix - name should keep the @ when specified explicitly)
+        self.assertEqual(build_group.packages[2].name, '@group1')
+        self.assertEqual(build_group.packages[2].type, 'group')
+        self.assertEqual(build_group.packages[2].block, True)
+
+    def test_tag_groups_string_package_with_at_prefix(self):
+        """
+        Test Tag creation with string packages that have @ prefix (indicating group type).
+        """
+
+        data = {
+            'type': 'tag',
+            'name': 'test-tag',
+            'groups': {
+                'build': ['package1', '@group1', 'package2', '@group2']
+            }
+        }
+        tag = Tag.from_dict(data)
+
+        # Check groups structure
+        build_group = tag.groups['build']
+        self.assertEqual(len(build_group.packages), 4)
+
+        # First package (no @ prefix)
+        self.assertEqual(build_group.packages[0].name, 'package1')
+        self.assertEqual(build_group.packages[0].type, 'package')
+        self.assertEqual(build_group.packages[0].block, False)
+
+        # Second package (@ prefix)
+        self.assertEqual(build_group.packages[1].name, 'group1')
+        self.assertEqual(build_group.packages[1].type, 'group')
+        self.assertEqual(build_group.packages[1].block, False)
+
+        # Third package (no @ prefix)
+        self.assertEqual(build_group.packages[2].name, 'package2')
+        self.assertEqual(build_group.packages[2].type, 'package')
+        self.assertEqual(build_group.packages[2].block, False)
+
+        # Fourth package (@ prefix)
+        self.assertEqual(build_group.packages[3].name, 'group2')
+        self.assertEqual(build_group.packages[3].type, 'group')
+        self.assertEqual(build_group.packages[3].block, False)
+
+    def test_tag_groups_duplicate_group_names_error(self):
+        """
+        Test that duplicate group names in list format raise an error.
+        """
+
+        data = {
+            'type': 'tag',
+            'name': 'test-tag',
+            'groups': [
+                {'name': 'build', 'packages': ['package1']},
+                {'name': 'build', 'packages': ['package2']}  # Duplicate name
+            ]
+        }
+
+        with self.assertRaises(TypeError) as context:
+            Tag.from_dict(data)
+
+        self.assertIn('Duplicate group build', str(context.exception))
+
+    def test_tag_groups_invalid_string_in_dict_error(self):
+        """
+        Test that string values in dict format raise an error.
+        """
+
+        data = {
+            'type': 'tag',
+            'name': 'test-tag',
+            'groups': {
+                'build': 'package1'  # String instead of list/dict
+            }
+        }
+
+        with self.assertRaises(ValueError) as context:
+            Tag.from_dict(data)
+
+        self.assertIn('Group build must be a dictionary or list', str(context.exception))
+
+    def test_tag_groups_invalid_data_type_error(self):
+        """
+        Test that invalid data types for groups raise an error.
+        """
+
+        data = {
+            'type': 'tag',
+            'name': 'test-tag',
+            'groups': 'invalid'  # String instead of dict/list
+        }
+
+        with self.assertRaises(ValueError) as context:
+            Tag.from_dict(data)
+
+        self.assertIn('Groups must be a dictionary or list', str(context.exception))
 
 
 class TestTargetModel(unittest.TestCase):
