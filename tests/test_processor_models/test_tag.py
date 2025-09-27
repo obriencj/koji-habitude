@@ -686,5 +686,385 @@ class TestProcessorTagBehavior(MulticallMocking, TestCase):
         set_extras1_mock.assert_called_once_with('tag1', extra={})
         set_extras2_mock.assert_called_once_with('tag2', extra={})
 
+    def test_tag_update_existing_group(self):
+        """Test updating an existing group's properties."""
+        groups = {'build': ['package1']}
+        tag = create_test_tag('existing-tag', groups=groups)
+        solver = create_solver_with_objects([tag])
+        mock_session = create_test_koji_session()
+
+        # Mock the getTag call to return existing tag
+        get_tag_mock = Mock()
+        get_tag_mock.return_value = {
+            'name': 'existing-tag',
+            'locked': False,
+            'permission': None,
+            'arches': [],
+            'maven_support': False,
+            'maven_include_all': False,
+            'extras': {}
+        }
+
+        # Mock existing group with different properties
+        get_groups_mock = Mock()
+        get_groups_mock.return_value = [{
+            'name': 'build',
+            'description': 'Old description',
+            'blocked': True,  # Different from our desired state
+            'packagelist': [{'package': 'package1', 'blocked': False}]
+        }]
+
+        get_inheritance_mock = Mock()
+        get_inheritance_mock.return_value = []
+
+        get_external_repos_mock = Mock()
+        get_external_repos_mock.return_value = []
+
+        update_group_mock = Mock()
+        update_group_mock.return_value = None
+
+        self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('getTagGroups', get_groups_mock)
+        self.queue_client_response('getInheritanceData', get_inheritance_mock)
+        self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
+        self.queue_client_response('groupListAdd', update_group_mock)
+
+        processor = Processor(
+            koji_session=mock_session,
+            stream_origin=solver,
+            chunk_size=10
+        )
+
+        result = processor.step()
+        self.assertTrue(result)
+        self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
+
+        get_tag_mock.assert_called_once_with('existing-tag', strict=False)
+        get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
+        # Should update group because block status differs
+        update_group_mock.assert_called_once_with('existing-tag', 'build', description=None, block=False, force=True)
+
+    def test_tag_remove_group(self):
+        """Test removing a group from an existing tag."""
+        # Tag with no groups (desired state)
+        tag = create_test_tag('existing-tag', groups={})
+        # Set exact_groups to True so removal happens
+        tag.exact_groups = True
+        solver = create_solver_with_objects([tag])
+        mock_session = create_test_koji_session()
+
+        # Mock the getTag call to return existing tag
+        get_tag_mock = Mock()
+        get_tag_mock.return_value = {
+            'name': 'existing-tag',
+            'locked': False,
+            'permission': None,
+            'arches': [],
+            'maven_support': False,
+            'maven_include_all': False,
+            'extras': {}
+        }
+
+        # Mock existing group that should be removed
+        get_groups_mock = Mock()
+        get_groups_mock.return_value = [{
+            'name': 'build',
+            'description': 'Build group',
+            'blocked': False,
+            'packagelist': []
+        }]
+
+        get_inheritance_mock = Mock()
+        get_inheritance_mock.return_value = []
+
+        get_external_repos_mock = Mock()
+        get_external_repos_mock.return_value = []
+
+        remove_group_mock = Mock()
+        remove_group_mock.return_value = None
+
+        self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('getTagGroups', get_groups_mock)
+        self.queue_client_response('getInheritanceData', get_inheritance_mock)
+        self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
+        self.queue_client_response('groupListRemove', remove_group_mock)
+
+        processor = Processor(
+            koji_session=mock_session,
+            stream_origin=solver,
+            chunk_size=10
+        )
+
+        result = processor.step()
+        self.assertTrue(result)
+        self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
+
+        get_tag_mock.assert_called_once_with('existing-tag', strict=False)
+        get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
+        # Should remove the group because exact_groups=True and group not in desired state
+        remove_group_mock.assert_called_once_with('existing-tag', 'build')
+
+    def test_tag_add_package_to_existing_group(self):
+        """Test adding a package to an existing group."""
+        groups = {'build': ['package1', 'package2']}
+        tag = create_test_tag('existing-tag', groups=groups)
+        solver = create_solver_with_objects([tag])
+        mock_session = create_test_koji_session()
+
+        # Mock the getTag call to return existing tag
+        get_tag_mock = Mock()
+        get_tag_mock.return_value = {
+            'name': 'existing-tag',
+            'locked': False,
+            'permission': None,
+            'arches': [],
+            'maven_support': False,
+            'maven_include_all': False,
+            'extras': {}
+        }
+
+        # Mock existing group with only one package
+        get_groups_mock = Mock()
+        get_groups_mock.return_value = [{
+            'name': 'build',
+            'description': None,
+            'blocked': False,
+            'packagelist': [{'package': 'package1', 'blocked': False}]
+        }]
+
+        get_inheritance_mock = Mock()
+        get_inheritance_mock.return_value = []
+
+        get_external_repos_mock = Mock()
+        get_external_repos_mock.return_value = []
+
+        add_group_pkg_mock = Mock()
+        add_group_pkg_mock.return_value = None
+
+        self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('getTagGroups', get_groups_mock)
+        self.queue_client_response('getInheritanceData', get_inheritance_mock)
+        self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
+        self.queue_client_response('groupPackageListAdd', add_group_pkg_mock)
+
+        processor = Processor(
+            koji_session=mock_session,
+            stream_origin=solver,
+            chunk_size=10
+        )
+
+        result = processor.step()
+        self.assertTrue(result)
+        self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
+
+        get_tag_mock.assert_called_once_with('existing-tag', strict=False)
+        get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
+        # Should add the missing package
+        add_group_pkg_mock.assert_called_once_with('existing-tag', 'build', 'package2', block=False, force=True)
+
+    def test_tag_update_package_in_group(self):
+        """Test updating a package's block status in an existing group."""
+        groups = {'build': [{'name': 'package1', 'block': True}]}
+        tag = create_test_tag('existing-tag', groups=groups)
+        solver = create_solver_with_objects([tag])
+        mock_session = create_test_koji_session()
+
+        # Mock the getTag call to return existing tag
+        get_tag_mock = Mock()
+        get_tag_mock.return_value = {
+            'name': 'existing-tag',
+            'locked': False,
+            'permission': None,
+            'arches': [],
+            'maven_support': False,
+            'maven_include_all': False,
+            'extras': {}
+        }
+
+        # Mock existing group with package that has different block status
+        get_groups_mock = Mock()
+        get_groups_mock.return_value = [{
+            'name': 'build',
+            'description': None,
+            'blocked': False,
+            'packagelist': [{'package': 'package1', 'blocked': False}]  # Currently not blocked
+        }]
+
+        get_inheritance_mock = Mock()
+        get_inheritance_mock.return_value = []
+
+        get_external_repos_mock = Mock()
+        get_external_repos_mock.return_value = []
+
+        update_group_pkg_mock = Mock()
+        update_group_pkg_mock.return_value = None
+
+        self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('getTagGroups', get_groups_mock)
+        self.queue_client_response('getInheritanceData', get_inheritance_mock)
+        self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
+        self.queue_client_response('groupPackageListAdd', update_group_pkg_mock)
+
+        processor = Processor(
+            koji_session=mock_session,
+            stream_origin=solver,
+            chunk_size=10
+        )
+
+        result = processor.step()
+        self.assertTrue(result)
+        self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
+
+        get_tag_mock.assert_called_once_with('existing-tag', strict=False)
+        get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
+        # Should update the package because block status differs
+        update_group_pkg_mock.assert_called_once_with('existing-tag', 'build', 'package1', block=True, force=True)
+
+    def test_tag_remove_package_from_group(self):
+        """Test removing a package from an existing group."""
+        groups = {'build': ['package1']}  # Only package1 desired
+        tag = create_test_tag('existing-tag', groups=groups)
+        # Set exact_packages to True so removal happens
+        tag.groups['build'].exact_packages = True
+        solver = create_solver_with_objects([tag])
+        mock_session = create_test_koji_session()
+
+        # Mock the getTag call to return existing tag
+        get_tag_mock = Mock()
+        get_tag_mock.return_value = {
+            'name': 'existing-tag',
+            'locked': False,
+            'permission': None,
+            'arches': [],
+            'maven_support': False,
+            'maven_include_all': False,
+            'extras': {}
+        }
+
+        # Mock existing group with extra package that should be removed
+        get_groups_mock = Mock()
+        get_groups_mock.return_value = [{
+            'name': 'build',
+            'description': None,
+            'blocked': False,
+            'packagelist': [
+                {'package': 'package1', 'blocked': False},
+                {'package': 'package2', 'blocked': False}  # Should be removed
+            ]
+        }]
+
+        get_inheritance_mock = Mock()
+        get_inheritance_mock.return_value = []
+
+        get_external_repos_mock = Mock()
+        get_external_repos_mock.return_value = []
+
+        remove_group_pkg_mock = Mock()
+        remove_group_pkg_mock.return_value = None
+
+        self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('getTagGroups', get_groups_mock)
+        self.queue_client_response('getInheritanceData', get_inheritance_mock)
+        self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
+        self.queue_client_response('groupPackageListRemove', remove_group_pkg_mock)
+
+        processor = Processor(
+            koji_session=mock_session,
+            stream_origin=solver,
+            chunk_size=10
+        )
+
+        result = processor.step()
+        self.assertTrue(result)
+        self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
+
+        get_tag_mock.assert_called_once_with('existing-tag', strict=False)
+        get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
+        # Should remove the extra package because exact_packages=True
+        remove_group_pkg_mock.assert_called_once_with('existing-tag', 'build', 'package2')
+
+    def test_tag_mixed_package_changes(self):
+        """Test applying multiple package changes in one operation."""
+        groups = {
+            'build': [
+                'package1',  # Keep existing
+                'package3',  # Add new
+                {'name': 'package4', 'block': True}  # Add new with block
+            ]
+        }
+        tag = create_test_tag('existing-tag', groups=groups)
+        # Set exact_packages to True so removals happen
+        tag.groups['build'].exact_packages = True
+        solver = create_solver_with_objects([tag])
+        mock_session = create_test_koji_session()
+
+        # Mock the getTag call to return existing tag
+        get_tag_mock = Mock()
+        get_tag_mock.return_value = {
+            'name': 'existing-tag',
+            'locked': False,
+            'permission': None,
+            'arches': [],
+            'maven_support': False,
+            'maven_include_all': False,
+            'extras': {}
+        }
+
+        # Mock existing group with packages that need various changes
+        get_groups_mock = Mock()
+        get_groups_mock.return_value = [{
+            'name': 'build',
+            'description': None,
+            'blocked': False,
+            'packagelist': [
+                {'package': 'package1', 'blocked': False},  # Keep as-is
+                {'package': 'package2', 'blocked': False},  # Remove (not in desired state)
+                {'package': 'package4', 'blocked': False}   # Update block status
+            ]
+        }]
+
+        get_inheritance_mock = Mock()
+        get_inheritance_mock.return_value = []
+
+        get_external_repos_mock = Mock()
+        get_external_repos_mock.return_value = []
+
+        add_group_pkg3_mock = Mock()
+        add_group_pkg3_mock.return_value = None
+
+        update_group_pkg4_mock = Mock()
+        update_group_pkg4_mock.return_value = None
+
+        remove_group_pkg2_mock = Mock()
+        remove_group_pkg2_mock.return_value = None
+
+        self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('getTagGroups', get_groups_mock)
+        self.queue_client_response('getInheritanceData', get_inheritance_mock)
+        self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
+        self.queue_client_response('groupPackageListAdd', add_group_pkg3_mock)
+        self.queue_client_response('groupPackageListAdd', update_group_pkg4_mock)
+        self.queue_client_response('groupPackageListRemove', remove_group_pkg2_mock)
+
+        processor = Processor(
+            koji_session=mock_session,
+            stream_origin=solver,
+            chunk_size=10
+        )
+
+        result = processor.step()
+        self.assertTrue(result)
+        self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
+
+        get_tag_mock.assert_called_once_with('existing-tag', strict=False)
+        get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
+
+        # Should add new package3
+        add_group_pkg3_mock.assert_called_once_with('existing-tag', 'build', 'package3', block=False, force=True)
+        # Should update package4 block status
+        update_group_pkg4_mock.assert_called_once_with('existing-tag', 'build', 'package4', block=True, force=True)
+        # Should remove package2
+        remove_group_pkg2_mock.assert_called_once_with('existing-tag', 'build', 'package2')
+
 
 # The end.
