@@ -66,6 +66,14 @@ class Base(Protocol):
         ...
 
 
+class SubModel(BaseModel):
+    """
+    A base model for submodels that need to be validated by alias and name.
+    """
+
+    model_config = ConfigDict(validate_by_alias=True, validate_by_name=True)
+
+
 # we need this to enable our inheritance of both the BaseModel from pydantic and
 # the Protocol from typing
 MetaModelProtocol: Type[type] = type("MetaModelProtocol", (type(BaseModel), type(Protocol)), {})
@@ -155,6 +163,9 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
         """
         return ()
 
+    def change_report(self) -> 'ChangeReport':
+        raise NotImplementedError(f"Subclasses of BaseObject must implement change_report")
+
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}({self.typename}, {self.name})>"
 
@@ -188,10 +199,5 @@ class BaseKojiObject(BaseObject):
             return type(self)(name=self.name)
         else:
             raise TypeError(f"Cannot split {self.typename}")
-
-
-    def change_report(self) -> 'ChangeReport':
-        raise NotImplementedError(f"Subclasses of BaseKojiObject must implement change_report")
-
 
 # The end.
