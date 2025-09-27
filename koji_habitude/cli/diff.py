@@ -15,69 +15,53 @@ from ..loader import MultiLoader, YAMLLoader
 from ..namespace import Namespace, TemplateNamespace
 from ..resolver import Resolver
 from ..solver import Solver
-from ..processor import DiffOnlyProcessor
+from ..processor import DiffOnlyProcessor, ProcessorSummary
 from ..koji import session
 
 
-def _run_diff(templates, profile, offline, show_unchanged, data):
+def run_summary(data, templates, profile) -> ProcessorSummary:
     """
-    Run the diff command to show what changes would be made.
+    Build a Processor and run it to get a summary of the changes
     """
-    try:
-        # Load templates if provided
-        template_ns = TemplateNamespace()
-        if templates:
-            ml = MultiLoader([YAMLLoader])
-            template_ns.feedall_raw(ml.load(templates))
-            template_ns.expand()
 
-        # Create regular Namespace with loaded templates
-        data_ns = Namespace()
-        data_ns._templates.update(template_ns._templates)
-
-        # Load and process data files
+    # Load templates if provided
+    template_ns = TemplateNamespace()
+    if templates:
         ml = MultiLoader([YAMLLoader])
-        data_ns.feedall_raw(ml.load(data))
-        data_ns.expand()
+        template_ns.feedall_raw(ml.load(templates))
+        template_ns.expand()
 
-        # Create resolver and solver
-        resolver = Resolver(data_ns)
-        solver = Solver(resolver)
-        solver.prepare()
+    # Create regular Namespace with loaded templates
+    data_ns = Namespace()
+    data_ns._templates.update(template_ns._templates)
 
-        koji_session = session(profile)
+    # Load and process data files
+    ml = MultiLoader([YAMLLoader])
+    data_ns.feedall_raw(ml.load(data))
+    data_ns.expand()
 
-        # Create and run DiffOnlyProcessor
-        processor = DiffOnlyProcessor(
-            koji_session=koji_session,
-            stream_origin=solver,
-            chunk_size=100
-        )
+    # Create resolver and solver
+    resolver = Resolver(data_ns)
+    solver = Solver(resolver)
+    solver.prepare()
 
-        processor = DiffOnlyProcessor(
-            koji_session=koji_session,
-            stream_origin=solver,
-            chunk_size=100
-        )
+    koji_session = session(profile)
 
-        summary = processor.run()
+    # Create and run DiffOnlyProcessor
+    processor = DiffOnlyProcessor(
+        koji_session=koji_session,
+        stream_origin=solver,
+        chunk_size=100
+    )
 
-        # Display results
-        _display_diff_results(summary, show_unchanged)
-
-        return 0
-
-    except Exception as e:
-        import traceback
-        click.echo(f"Error: {e}", err=True)
-        click.echo(traceback.format_exc(), err=True)
-        return 1
+    return processor.run()
 
 
-def _display_diff_results(summary, show_unchanged):
+def display_summary(summary, show_unchanged):
     """
-    Display the diff results with proper grouping and indentation.
+    Display the summary of the changes with proper grouping and indentation.
     """
+
     # Group change reports by object type
     by_type = {}
     unchanged_objects = []
@@ -136,31 +120,34 @@ def _display_diff_results(summary, show_unchanged):
 
 
 @click.command()
+@click.argument('data', nargs=-1, required=True)
 @click.option(
     '--templates', 'templates', metavar='PATH', multiple=True,
     help="Location to find templates that are not available in DATA")
 @click.option(
-    '--profile',
+    '--profile', default='koji',
     help="Koji profile to use for connection")
-@click.option(
-    '--offline', 'offline', is_flag=True,
-    help="Run in offline mode (no koji connection)")
 @click.option(
     '--show-unchanged', 'show_unchanged', is_flag=True, default=False,
     help="Show objects that don't need any changes")
-@click.argument('data', nargs=-1, required=True)
-def diff(templates, profile, offline, show_unchanged, data):
-
+def diff(data, templates=None, profile='koji', show_unchanged=False):
     """
     Show what changes would be made without applying them.
-
-    This is a convenience alias for 'sync --dry-run'.
 
     DATA can be directories or files containing YAML object definitions.
     """
 
-    # Call the diff functionality directly
-    return _run_diff(templates, profile, offline, show_unchanged, data)
+    try:
+        # Call the diff functionality directly
+        summary = run_summary(data, templates, profile)
+        display_summary(summary, show_unchanged)
+        return 0
+
+    except Exception as e:
+        import traceback
+        click.echo(f"Error: {e}", err=True)
+        click.echo(traceback.format_exc(), err=True)
+        return 1
 
 
 # The end.

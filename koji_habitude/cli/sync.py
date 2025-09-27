@@ -13,14 +13,14 @@ import click
 
 
 @click.command()
+@click.argument('data', nargs=-1, required=True)
 @click.option(
     '--templates', 'templates', metavar='PATH', multiple=True,
     help="Location to find templates that are not available in DATA")
 @click.option(
-    '--profile',
+    '--profile', profile='koji',
     help="Koji profile to use for connection")
-@click.argument('data', nargs=-1, required=True)
-def sync(templates, profile, data):
+def sync(data, templates=None, profile='koji'):
     """
     Synchronize local koji data expectations with hub instance.
 

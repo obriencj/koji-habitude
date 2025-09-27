@@ -23,7 +23,10 @@ from ..namespace import Namespace, TemplateNamespace, ExpanderNamespace
 @click.option(
     '--validate', 'validate', is_flag=True, default=False,
     help="Validate the expanded templates and data files")
-def expand(data, templates=None, validate=False):
+@click.option(
+    "--select", "-S", "select", metavar="NAME", multiple=True,
+    help="Filter results to only include types")
+def expand(data, templates=None, validate=False, select=[]):
     """
     Expand templates and data files into YAML output.
 
@@ -33,6 +36,11 @@ def expand(data, templates=None, validate=False):
     DATA can be directories or files containing YAML object definitions.
     """
 
+    namespace = Namespace() if validate else ExpanderNamespace()
+    for typename in select:
+        if typename not in namespace.typemap:
+            raise ValueError(f"Type {typename} not present in namespace")
+
     # Load templates into TemplateNamespace
     template_ns = TemplateNamespace()
     if templates:
@@ -40,7 +48,6 @@ def expand(data, templates=None, validate=False):
         template_ns.feedall_raw(ml.load(templates))
         template_ns.expand()
 
-    namespace = Namespace() if validate else ExpanderNamespace()
     namespace._ns._templates.update(template_ns._templates)
 
     # Load and process data files
@@ -48,13 +55,18 @@ def expand(data, templates=None, validate=False):
     namespace.feedall_raw(ml.load(data))
     namespace.expand()
 
+    if select:
+        results = (obj for obj in namespace.values() if obj.typename in select)
+    else:
+        results = namespace.values()
+
     # Output all objects as YAML
     if validate:
         # if we're validating, let pydantic provide the fully validated objects
-        results = (obj.to_dict() for obj in namespace.values())
+        results = (obj.to_dict() for obj in results)
     else:
         # if we're not validating, use the raw data
-        results = (obj.data for obj in namespace.values())
+        results = (obj.data for obj in results)
 
     pretty_yaml_all(results)
 

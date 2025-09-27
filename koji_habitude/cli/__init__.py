@@ -17,6 +17,7 @@ from typing import List
 
 import click
 
+
 from .sync import sync
 from .diff import diff
 from .templates import list_templates
