@@ -12,7 +12,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from pydantic import BaseModel, Field, ConfigDict
-
+from koji import ClientSession
 from typing import (
     TYPE_CHECKING,
     Any, ClassVar, Dict, List, Optional, Protocol,
@@ -62,6 +62,10 @@ class Base(Protocol):
         ...
 
     @classmethod
+    def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
+        ...
+
+    @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Base':
         ...
 
@@ -106,6 +110,10 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
         if not name:
             raise ValueError(f"name is required for {self.typename}")
         self.name = name
+
+    @classmethod
+    def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
+        raise NotImplementedError(f"Subclasses of BaseObject must implement check_exists")
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'BaseObject':

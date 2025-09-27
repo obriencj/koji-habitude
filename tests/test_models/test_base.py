@@ -50,7 +50,7 @@ class TestBaseModels(unittest.TestCase):
         obj = BaseObject.from_dict(data)
 
         key = obj.key()
-        self.assertEqual(key, ('object', 'test-name'))
+        self.assertEqual(key, ('test-type', 'test-name'))
 
     def test_base_object_filepos_method(self):
         """

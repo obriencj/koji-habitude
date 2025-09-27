@@ -10,12 +10,12 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import ClassVar
+from typing import ClassVar, Any
 
-from koji import MultiCallSession, VirtualCall
+from koji import ClientSession, MultiCallSession, VirtualCall
 from pydantic import Field
 
-from .base import BaseKojiObject
+from .base import BaseKojiObject, BaseKey
 from .change import ChangeReport, Change
 
 
@@ -53,7 +53,7 @@ class ExternalRepoChangeReport(ChangeReport):
 
 
     def impl_read(self, session: MultiCallSession):
-        self._external_repoinfo: VirtualCall = session.getExternalRepo(self.obj.name)
+        self._external_repoinfo: VirtualCall = session.getExternalRepo(self.obj.name, strict=False)
 
 
     def impl_compare(self):
@@ -75,8 +75,14 @@ class ExternalRepo(BaseKojiObject):
 
     url: str = Field(alias='url', pattern=r'^https?://')
 
+
     def change_report(self) -> ExternalRepoChangeReport:
         return ExternalRepoChangeReport(self)
+
+
+    @classmethod
+    def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
+        return session.getExternalRepo(key[1], strict=False)
 
 
 # The end.

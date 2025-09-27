@@ -9,9 +9,9 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
 from dataclasses import dataclass
-from typing import ClassVar, List, Tuple
+from typing import ClassVar, List, Tuple, Any
 
-from koji import MultiCallSession, VirtualCall
+from koji import ClientSession, MultiCallSession, VirtualCall
 from pydantic import Field
 
 from .base import BaseKojiObject, BaseKey
@@ -125,6 +125,14 @@ class GroupChangeReport(ChangeReport):
 
     def impl_read(self, session: MultiCallSession):
         self._groupinfo: VirtualCall = session.getUser(self.obj.name, strict=False)
+        self._members: VirtualCall = None
+        self._permissions: VirtualCall = None
+        return self.impl_read_defer
+
+
+    def impl_read_defer(self, session: MultiCallSession):
+        if self._groupinfo.result is None:
+            return
         self._members: VirtualCall = session.getGroupMembers(self.obj.name)
         self._permissions: VirtualCall = session.getUserPerms(self.obj.name)
 
@@ -194,6 +202,11 @@ class Group(BaseKojiObject):
 
     def change_report(self) -> GroupChangeReport:
         return GroupChangeReport(self)
+
+
+    @classmethod
+    def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
+        return session.getUser(key[1], strict=False)
 
 
 # The end.

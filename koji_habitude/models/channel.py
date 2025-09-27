@@ -10,9 +10,9 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import ClassVar, List, Optional
+from typing import ClassVar, List, Optional, Any
 
-from koji import MultiCallSession, VirtualCall
+from koji import ClientSession, MultiCallSession, VirtualCall
 from pydantic import Field
 
 from .base import BaseKojiObject, BaseKey
@@ -140,6 +140,11 @@ class Channel(BaseKojiObject):
 
     def change_report(self) -> ChannelChangeReport:
         return ChannelChangeReport(self)
+
+
+    @classmethod
+    def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
+        return session.getChannel(key[1], strict=False)
 
 
 # The end.

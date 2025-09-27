@@ -74,8 +74,8 @@ class TestProcessorGroupBehavior(MulticallMocking, TestCase):
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
         get_group_mock.assert_called_once_with('new-group', strict=False)
-        get_members_mock.assert_called_once_with('new-group')
-        get_perms_mock.assert_called_once_with('new-group')
+        get_members_mock.assert_not_called()
+        get_perms_mock.assert_not_called()
         create_mock.assert_called_once_with('new-group')
 
     def test_group_creation_with_members_and_permissions(self):
@@ -130,8 +130,8 @@ class TestProcessorGroupBehavior(MulticallMocking, TestCase):
 
         # Verify all calls were made
         get_group_mock.assert_called_once_with('new-group', strict=False)
-        get_members_mock.assert_called_once_with('new-group')
-        get_perms_mock.assert_called_once_with('new-group')
+        get_members_mock.assert_not_called()
+        get_perms_mock.assert_not_called()
         create_mock.assert_called_once_with('new-group')
         add_member1_mock.assert_called_once_with('new-group', 'user1')
         add_member2_mock.assert_called_once_with('new-group', 'user2')
@@ -434,10 +434,10 @@ class TestProcessorGroupBehavior(MulticallMocking, TestCase):
         # Verify all calls were made
         get_group1_mock.assert_called_once_with('group1', strict=False)
         get_group2_mock.assert_called_once_with('group2', strict=False)
-        get_members1_mock.assert_called_once_with('group1')
-        get_members2_mock.assert_called_once_with('group2')
-        get_perms1_mock.assert_called_once_with('group1')
-        get_perms2_mock.assert_called_once_with('group2')
+        get_members1_mock.assert_not_called()
+        get_members2_mock.assert_not_called()
+        get_perms1_mock.assert_not_called()
+        get_perms2_mock.assert_not_called()
         create1_mock.assert_called_once_with('group1')
         create2_mock.assert_called_once_with('group2')
         add_member1_mock.assert_called_once_with('group1', 'user1')

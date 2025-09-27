@@ -63,7 +63,7 @@ class TestProcessorExternalRepoBehavior(MulticallMocking, TestCase):
         self.assertTrue(result)  # Should process 1 object
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_repo_mock.assert_called_once_with('new-repo')
+        get_repo_mock.assert_called_once_with('new-repo', strict=False)
         create_mock.assert_called_once_with('new-repo', 'https://example.com/repo')
 
     def test_external_repo_update_url(self):
@@ -95,7 +95,7 @@ class TestProcessorExternalRepoBehavior(MulticallMocking, TestCase):
         self.assertTrue(result)  # Should process 1 object
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_repo_mock.assert_called_once_with('existing-repo')
+        get_repo_mock.assert_called_once_with('existing-repo', strict=False)
         edit_mock.assert_called_once_with('existing-repo', url='https://new.example.com/repo')
 
     def test_external_repo_no_changes_needed(self):
@@ -123,7 +123,7 @@ class TestProcessorExternalRepoBehavior(MulticallMocking, TestCase):
         self.assertTrue(result)  # Should process 1 object
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_repo_mock.assert_called_once_with('existing-repo')
+        get_repo_mock.assert_called_once_with('existing-repo', strict=False)
 
     def test_external_repo_http_url(self):
         """Test creating an external repository with HTTP URL."""
@@ -150,7 +150,7 @@ class TestProcessorExternalRepoBehavior(MulticallMocking, TestCase):
         self.assertTrue(result)  # Should process 1 object
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_repo_mock.assert_called_once_with('http-repo')
+        get_repo_mock.assert_called_once_with('http-repo', strict=False)
         create_mock.assert_called_once_with('http-repo', 'http://example.com/repo')
 
     def test_processor_summary_with_multiple_external_repos(self):
@@ -196,8 +196,8 @@ class TestProcessorExternalRepoBehavior(MulticallMocking, TestCase):
         self.assertEqual(summary.state, ProcessorState.EXHAUSTED)
 
         # Verify all calls were made
-        get_repo1_mock.assert_called_once_with('repo1')
-        get_repo2_mock.assert_called_once_with('repo2')
+        get_repo1_mock.assert_called_once_with('repo1', strict=False)
+        get_repo2_mock.assert_called_once_with('repo2', strict=False)
         create1_mock.assert_called_once_with('repo1', 'https://example1.com/repo')
         create2_mock.assert_called_once_with('repo2', 'https://example2.com/repo')
 

@@ -20,29 +20,14 @@ License v3 AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import Callable, ClassVar, Dict, List, Optional, Sequence, Tuple
+from typing import Callable, ClassVar, Dict, List, Optional, Sequence, Tuple, Type
 
 from pydantic import BaseModel, Field
 
-from koji import MultiCallSession, VirtualCall
+from koji import ClientSession, MultiCallSession, VirtualCall
 from .models import Base, BaseKey, ChangeReport, Change
 from .namespace import Namespace
 
-
-@dataclass
-class MissingChange(Change):
-    """
-    A change for a missing object.
-    """
-    key: BaseKey
-
-    def impl_apply(self, session: MultiCallSession) -> VirtualCall:
-        res = VirtualCall(self.key)
-        res.result = None
-        return res
-
-    def explain(self) -> str:
-        return f"Missing object: {self.key}"
 
 
 class MissingChangeReport(ChangeReport):
@@ -51,10 +36,10 @@ class MissingChangeReport(ChangeReport):
     """
 
     def impl_read(self, session: MultiCallSession) -> Callable[[MultiCallSession], None] | None:
-        return None
+        self._exists = self.tp.check_exists(session, self.obj.key())
 
     def impl_compare(self) -> None:
-        self.add(MissingChange(self.obj.key()))
+        self.obj._exists = bool(self._exists.result)
 
 
 class MissingObject(Base):
@@ -64,9 +49,11 @@ class MissingObject(Base):
 
     typename: ClassVar[str] = 'missing'
 
-    def __init__(self, key: BaseKey):
+    def __init__(self, tp: Type[Base], key: BaseKey):
+        self.tp = tp
         self.yaml_type, self.name = key
         self._key = key
+        self._exists = None  # None means not checked yet
 
     def key(self) -> BaseKey:
         return self._key
@@ -93,6 +80,7 @@ class Report(BaseModel):
     """
 
     missing: List[BaseKey] = Field(default_factory=list)
+    found: List[BaseKey] = Field(default_factory=list)
 
 
 class Resolver:
@@ -103,19 +91,22 @@ class Resolver:
 
     def __init__(
             self,
+            session: ClientSession,
             namespace: Namespace):
 
+        if namespace is None:
+            raise ValueError("namespace is required")
+
+        self.session: ClientSession = session
         self.namespace: Namespace = namespace
-        self.created: Dict[BaseKey, Base] = {}
+        self._missing: Dict[BaseKey, Base] = {}
 
 
     def resolve(self, key: BaseKey) -> Base:
-        if self.namespace is None:
-            obj = self.created.get(key)
-        else:
-            obj = self.created.get(key) or self.namespace._ns.get(key)
+        obj = self.namespace._ns.get(key) or self._missing.get(key)
         if obj is None:
-            obj = self.created[key] = MissingObject(key)
+            tp = self.namespace.get_type(key[0], True)
+            obj = self._missing[key] = MissingObject(tp, key)
         return obj
 
 
@@ -133,7 +124,7 @@ class Resolver:
 
 
     def clear(self) -> None:
-        self.created.clear()
+        self._missing.clear()
 
 
     def can_split_key(self, key: BaseKey) -> bool:
@@ -160,17 +151,28 @@ class Resolver:
 
     def report(self) -> Report:
         # The default Offline implementation does nothing
-        return Report(missing=list(self.created.keys()))
+        missing = []
+        found = []
+        for key, obj in self._missing.items():
+            if obj._exists:
+                found.append(key)
+            else:
+                missing.append(key)
+        return Report(missing=missing, found=found)
 
 
-class OnlineResolver(Resolver):
+class OfflineResolver(Resolver):
     """
-    An OnlineResolver is a Resolver that checks the koji instance to verify that
+    An OnlineResolver is a Resolver that does not check the koji instance to verify that
     the dependency exists.
     """
 
-    # TODO
-    pass
+    def __init__(self, namespace: Namespace):
+        super().__init__(None, namespace)
+
+
+    def prepare(self) -> None:
+        pass
 
 
 # The end.

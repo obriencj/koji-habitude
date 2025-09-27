@@ -223,6 +223,17 @@ class Namespace:
         return self._templates.values()
 
 
+    def get_type(self, typename: str, no_call: bool = False) -> Type[Base] | None:
+        """
+        Return the type for the given typename. If no_call is True, will not
+        return a TemplateCall for missing type names.
+        """
+        if no_call:
+            return self.typemap.get(typename)
+        else:
+            return self.typemap.get(typename) or self.typemap.get(None)
+
+
     def to_object(self, objdict: Dict[str, Any]) -> Base:
         """
         Convert a dictionary into a Base object instance. Types are resolved
@@ -243,7 +254,7 @@ class Namespace:
         if objtype is None:
             raise ValueError("Object data has no type set")
 
-        cls = self.typemap.get(objtype) or self.typemap.get(None)
+        cls = self.get_type(objtype)
         if cls is None:
             raise ValueError(f"No type handler for {objtype}")
 

@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from koji_habitude.solver import Solver, Node
-from koji_habitude.resolver import Resolver
+from koji_habitude.resolver import OfflineResolver
 from koji_habitude.namespace import Namespace, Redefine
 from koji_habitude.loader import MultiLoader, YAMLLoader
 
@@ -68,7 +68,7 @@ def create_solver_with_files(
         Solver instance ready for testing
     """
     namespace = load_namespace_from_files(filenames, redefine=redefine)
-    resolver = Resolver(namespace)
+    resolver = OfflineResolver(namespace)
 
     if work_keys is None:
         # Use all objects from the namespace as work items
@@ -126,7 +126,7 @@ class TestSolverBasic(unittest.TestCase):
         """Test solver initialization with work items."""
         # Create a simple namespace with independent objects
         namespace = load_namespace_from_files(['independent_objects.yaml'])
-        resolver = Resolver(namespace)
+        resolver = OfflineResolver(namespace)
 
         # Test initialization with specific work keys
         work_keys = [('user', 'build-user'), ('group', 'packagers')]
@@ -140,7 +140,7 @@ class TestSolverBasic(unittest.TestCase):
         """Test solver initialization using all objects from namespace."""
         # Create a namespace with multiple objects
         namespace = load_namespace_from_files(['independent_objects.yaml'])
-        resolver = Resolver(namespace)
+        resolver = OfflineResolver(namespace)
 
         # Initialize with all objects as work items
         all_keys = list(namespace._ns.keys())
@@ -275,7 +275,7 @@ class TestSolverBasic(unittest.TestCase):
         """Test that solver.prepare() calls resolver.prepare()."""
         # Create a mock resolver to verify prepare() is called
         namespace = load_namespace_from_files(['independent_objects.yaml'])
-        resolver = Resolver(namespace)
+        resolver = OfflineResolver(namespace)
 
         # Mock the resolver's prepare method
         original_prepare = resolver.prepare
@@ -1321,7 +1321,7 @@ class TestSolverTemplates(unittest.TestCase):
 
 class TestSolverIntegration(unittest.TestCase):
     """
-    Integration tests for Resolver + Solver working together.
+    Integration tests for OfflineResolver + Solver working together.
 
     These tests combine multiple files and complex scenarios to validate
     the complete dependency resolution workflow.
