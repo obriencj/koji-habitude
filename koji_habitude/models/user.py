@@ -27,6 +27,10 @@ class UserCreate(Change):
     def impl_apply(self, session: MultiCallSession):
         return session.createUser(self.name, status=self.enabled)
 
+    def explain(self) -> str:
+        status_info = f" (enabled={self.enabled})" if self.enabled is not None else ""
+        return f"Create user '{self.name}'{status_info}"
+
 
 @dataclass
 class UserEnable(Change):
@@ -35,6 +39,9 @@ class UserEnable(Change):
     def impl_apply(self, session: MultiCallSession):
         return session.enableUser(self.name)
 
+    def explain(self) -> str:
+        return f"Enable user '{self.name}'"
+
 
 @dataclass
 class UserDisable(Change):
@@ -42,6 +49,9 @@ class UserDisable(Change):
 
     def impl_apply(self, session: MultiCallSession):
         return session.disableUser(self.name)
+
+    def explain(self) -> str:
+        return f"Disable user '{self.name}'"
 
 
 @dataclass
@@ -52,6 +62,9 @@ class UserGrantPermission(Change):
     def impl_apply(self, session: MultiCallSession):
         return session.grantPermission(self.name, self.permission, create=True)
 
+    def explain(self) -> str:
+        return f"Grant permission '{self.permission}' to user '{self.name}'"
+
 
 @dataclass
 class UserRevokePermission(Change):
@@ -60,6 +73,9 @@ class UserRevokePermission(Change):
 
     def impl_apply(self, session: MultiCallSession):
         return session.revokePermission(self.name, self.permission)
+
+    def explain(self) -> str:
+        return f"Revoke permission '{self.permission}' from user '{self.name}'"
 
 
 @dataclass
@@ -70,6 +86,9 @@ class UserAddToGroup(Change):
     def impl_apply(self, session: MultiCallSession):
         return session.addGroupMember(self.group, self.name, strict=False)
 
+    def explain(self) -> str:
+        return f"Add user '{self.name}' to group '{self.group}'"
+
 
 @dataclass
 class UserRemoveFromGroup(Change):
@@ -78,6 +97,9 @@ class UserRemoveFromGroup(Change):
 
     def impl_apply(self, session: MultiCallSession):
         return session.dropGroupMember(self.group, self.name)
+
+    def explain(self) -> str:
+        return f"Remove user '{self.name}' from group '{self.group}'"
 
 
 class UserChangeReport(ChangeReport):

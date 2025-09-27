@@ -36,6 +36,15 @@ class TagCreate(Change):
             maven_support=self.maven_support,
             maven_include_all=self.maven_include_all)
 
+    def explain(self) -> str:
+        arches_str = ', '.join(self.arches)
+        maven_info = ''
+        if self.maven_support:
+            maven_info = f" with Maven support (include_all={self.maven_include_all})"
+        perm_info = f" with permission '{self.permission}'" if self.permission else ''
+        locked_info = " (locked)" if self.locked else ''
+        return f"Create tag '{self.name}' with arches [{arches_str}]{maven_info}{perm_info}{locked_info}"
+
 
 @dataclass
 class TagSetLocked(Change):
@@ -45,6 +54,10 @@ class TagSetLocked(Change):
     def impl_apply(self, session: MultiCallSession):
         return session.editTag2(self.name, locked=self.locked)
 
+    def explain(self) -> str:
+        action = "Lock" if self.locked else "Unlock"
+        return f"{action} tag '{self.name}'"
+
 
 @dataclass
 class TagSetPermission(Change):
@@ -53,6 +66,12 @@ class TagSetPermission(Change):
 
     def impl_apply(self, session: MultiCallSession):
         return session.editTag2(self.name, perm=self.permission)
+
+    def explain(self) -> str:
+        if self.permission:
+            return f"Set permission for tag '{self.name}' to '{self.permission}'"
+        else:
+            return f"Remove permission from tag '{self.name}'"
 
 
 @dataclass
@@ -67,6 +86,13 @@ class TagSetMaven(Change):
             maven_support=self.maven_support,
             maven_include_all=self.maven_include_all)
 
+    def explain(self) -> str:
+        if self.maven_support:
+            include_all = "all" if self.maven_include_all else "specific"
+            return f"Enable Maven support for tag '{self.name}' (include {include_all} artifacts)"
+        else:
+            return f"Disable Maven support for tag '{self.name}'"
+
 
 @dataclass
 class TagSetArches(Change):
@@ -76,6 +102,10 @@ class TagSetArches(Change):
     def impl_apply(self, session: MultiCallSession):
         return session.editTag2(self.name, arches=' '.join(self.arches))
 
+    def explain(self) -> str:
+        arches_str = ', '.join(self.arches)
+        return f"Set arches for tag '{self.name}' to [{arches_str}]"
+
 
 @dataclass
 class TagSetExtras(Change):
@@ -84,6 +114,10 @@ class TagSetExtras(Change):
 
     def impl_apply(self, session: MultiCallSession):
         return session.editTag2(self.name, extra=self.extras)
+
+    def explain(self) -> str:
+        extras_str = ', '.join(f"{k}={v}" for k, v in self.extras.items())
+        return f"Set extra fields for tag '{self.name}': {extras_str}"
 
 
 @dataclass
@@ -97,6 +131,11 @@ class TagAddGroup(Change):
             description=self.group.description,
             block=self.group.block,
             force=True)
+
+    def explain(self) -> str:
+        block_info = " (blocked)" if self.group.block else ""
+        desc_info = f" - {self.group.description}" if self.group.description else ""
+        return f"Add group '{self.group.name}' to tag '{self.name}'{block_info}{desc_info}"
 
 
 @dataclass
@@ -112,6 +151,11 @@ class TagUpdateGroup(Change):
             block=self.group.block,
             force=True)
 
+    def explain(self) -> str:
+        block_info = " (blocked)" if self.group.block else ""
+        desc_info = f" - {self.group.description}" if self.group.description else ""
+        return f"Update group '{self.group.name}' in tag '{self.name}'{block_info}{desc_info}"
+
 
 @dataclass
 class TagRemoveGroup(Change):
@@ -120,6 +164,9 @@ class TagRemoveGroup(Change):
 
     def impl_apply(self, session: MultiCallSession):
         return session.groupListRemove(self.name, self.group)
+
+    def explain(self) -> str:
+        return f"Remove group '{self.group}' from tag '{self.name}'"
 
 
 @dataclass
@@ -133,6 +180,10 @@ class TagAddGroupPackage(Change):
             self.name, self.group, self.package.name,
             block=self.package.block,
             force=True)
+
+    def explain(self) -> str:
+        block_info = " (blocked)" if self.package.block else ""
+        return f"Add package '{self.package.name}' to group '{self.group}' in tag '{self.name}'{block_info}"
 
 
 @dataclass
@@ -148,6 +199,10 @@ class TagUpdateGroupPackage(Change):
             block=self.package.block,
             force=True)
 
+    def explain(self) -> str:
+        block_info = " (blocked)" if self.package.block else ""
+        return f"Update package '{self.package.name}' in group '{self.group}' of tag '{self.name}'{block_info}"
+
 
 @dataclass
 class TagRemoveGroupPackage(Change):
@@ -157,6 +212,9 @@ class TagRemoveGroupPackage(Change):
 
     def impl_apply(self, session: MultiCallSession):
         return session.groupPackageListRemove(self.name, self.group, self.package)
+
+    def explain(self) -> str:
+        return f"Remove package '{self.package}' from group '{self.group}' in tag '{self.name}'"
 
 
 @dataclass
@@ -169,6 +227,9 @@ class TagAddInheritance(Change):
         data = [{'name': self.parent, 'priority': self.priority}]
         return session.setInheritanceData(self.name, data)
 
+    def explain(self) -> str:
+        return f"Add inheritance from '{self.parent}' to tag '{self.name}' with priority {self.priority}"
+
 
 @dataclass
 class TagRemoveInheritance(Change):
@@ -178,6 +239,9 @@ class TagRemoveInheritance(Change):
     def impl_apply(self, session: MultiCallSession):
         data = [{'name': self.parent, 'delete link': True}]
         return session.setInheritanceData(self.name, data)
+
+    def explain(self) -> str:
+        return f"Remove inheritance from '{self.parent}' in tag '{self.name}'"
 
 
 @dataclass
@@ -189,6 +253,9 @@ class TagAddExternalRepo(Change):
     def impl_apply(self, session: MultiCallSession):
         return session.addExternalRepoToTag(self.name, self.repo, self.priority)
 
+    def explain(self) -> str:
+        return f"Add external repo '{self.repo}' to tag '{self.name}' with priority {self.priority}"
+
 
 @dataclass
 class TagRemoveExternalRepo(Change):
@@ -197,6 +264,9 @@ class TagRemoveExternalRepo(Change):
 
     def impl_apply(self, session: MultiCallSession):
         return session.removeExternalRepoFromTag(self.name, self.repo)
+
+    def explain(self) -> str:
+        return f"Remove external repo '{self.repo}' from tag '{self.name}'"
 
 
 class TagChangeReport(ChangeReport):

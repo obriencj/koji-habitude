@@ -25,6 +25,9 @@ class GroupCreate(Change):
     def impl_apply(self, session: MultiCallSession):
         return session.newGroup(self.name)
 
+    def explain(self) -> str:
+        return f"Create group '{self.name}'"
+
 
 @dataclass
 class GroupEnable(Change):
@@ -33,6 +36,9 @@ class GroupEnable(Change):
     def impl_apply(self, session: MultiCallSession):
         return session.enableUser(self.name)
 
+    def explain(self) -> str:
+        return f"Enable group '{self.name}'"
+
 
 @dataclass
 class GroupDisable(Change):
@@ -40,6 +46,9 @@ class GroupDisable(Change):
 
     def impl_apply(self, session: MultiCallSession):
         return session.disableUser(self.name)
+
+    def explain(self) -> str:
+        return f"Disable group '{self.name}'"
 
 
 @dataclass
@@ -50,6 +59,9 @@ class GroupAddMember(Change):
     def impl_apply(self, session: MultiCallSession):
         return session.addGroupMember(self.name, self.member)
 
+    def explain(self) -> str:
+        return f"Add member '{self.member}' to group '{self.name}'"
+
 
 @dataclass
 class GroupRemoveMember(Change):
@@ -58,6 +70,9 @@ class GroupRemoveMember(Change):
 
     def impl_apply(self, session: MultiCallSession):
         return session.dropGroupMember(self.name, self.member)
+
+    def explain(self) -> str:
+        return f"Remove member '{self.member}' from group '{self.name}'"
 
 
 @dataclass
@@ -68,6 +83,9 @@ class GroupAddPermission(Change):
     def impl_apply(self, session: MultiCallSession):
         return session.grantPermission(self.name, self.permission, create=True)
 
+    def explain(self) -> str:
+        return f"Grant permission '{self.permission}' to group '{self.name}'"
+
 
 @dataclass
 class GroupRemovePermission(Change):
@@ -76,6 +94,9 @@ class GroupRemovePermission(Change):
 
     def impl_apply(self, session: MultiCallSession):
         return session.revokePermission(self.name, self.permission)
+
+    def explain(self) -> str:
+        return f"Revoke permission '{self.permission}' from group '{self.name}'"
 
 
 class GroupChangeReport(ChangeReport):

@@ -33,6 +33,10 @@ class PermissionCreate(Change):
         session.revokePermission(currentuser, self.name)
         return res
 
+    def explain(self) -> str:
+        desc_info = f" with description '{self.description}'" if self.description else ""
+        return f"Create permission '{self.name}'{desc_info}"
+
 
 @dataclass
 class PermissionSetDescription(Change):
@@ -41,6 +45,9 @@ class PermissionSetDescription(Change):
 
     def impl_apply(self, session: MultiCallSession):
         return session.editPermission(self.name, description=self.description)
+
+    def explain(self) -> str:
+        return f"Set description for permission '{self.name}' to '{self.description}'"
 
 
 class PermissionChangeReport(ChangeReport):

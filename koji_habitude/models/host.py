@@ -29,6 +29,10 @@ class HostCreate(Change):
             self.name,
             arches=' '.join(self.arches))
 
+    def explain(self) -> str:
+        arches_str = ', '.join(self.arches)
+        return f"Create host '{self.name}' with arches [{arches_str}]"
+
 
 @dataclass
 class HostSetArches(Change):
@@ -37,6 +41,10 @@ class HostSetArches(Change):
 
     def impl_apply(self, session: MultiCallSession):
         return session.editHost(self.name, arches=' '.join(self.arches))
+
+    def explain(self) -> str:
+        arches_str = ', '.join(self.arches)
+        return f"Set arches for host '{self.name}' to [{arches_str}]"
 
 
 @dataclass
@@ -47,6 +55,9 @@ class HostSetCapacity(Change):
     def impl_apply(self, session: MultiCallSession):
         return session.editHost(self.name, capacity=self.capacity)
 
+    def explain(self) -> str:
+        return f"Set capacity for host '{self.name}' to {self.capacity}"
+
 
 @dataclass
 class HostSetEnabled(Change):
@@ -55,6 +66,10 @@ class HostSetEnabled(Change):
 
     def impl_apply(self, session: MultiCallSession):
         return session.editHost(self.name, enabled=self.enabled)
+
+    def explain(self) -> str:
+        action = "Enable" if self.enabled else "Disable"
+        return f"{action} host '{self.name}'"
 
 
 @dataclass
@@ -65,6 +80,9 @@ class HostSetDescription(Change):
     def impl_apply(self, session: MultiCallSession):
         return session.editHost(self.name, description=self.description)
 
+    def explain(self) -> str:
+        return f"Set description for host '{self.name}' to '{self.description}'"
+
 
 @dataclass
 class HostAddChannel(Change):
@@ -74,6 +92,9 @@ class HostAddChannel(Change):
     def impl_apply(self, session: MultiCallSession):
         return session.addHostToChannel(self.name, self.channel)
 
+    def explain(self) -> str:
+        return f"Add host '{self.name}' to channel '{self.channel}'"
+
 
 @dataclass
 class HostRemoveChannel(Change):
@@ -82,6 +103,9 @@ class HostRemoveChannel(Change):
 
     def impl_apply(self, session: MultiCallSession):
         return session.removeHostFromChannel(self.name, self.channel)
+
+    def explain(self) -> str:
+        return f"Remove host '{self.name}' from channel '{self.channel}'"
 
 
 class HostChangeReport(ChangeReport):

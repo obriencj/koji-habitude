@@ -63,6 +63,14 @@ class Change:
             raise ChangeError(f"Change not applied: {self!r}")
         return self._result.result
 
+    def explain(self) -> str:
+        """
+        Return a human-readable explanation of what this change will do.
+
+        Subclasses should override this method to provide specific explanations.
+        """
+        return f"Apply {self.__class__.__name__}"
+
 
 class ChangeReport:
 

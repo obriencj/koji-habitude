@@ -27,6 +27,10 @@ class ChannelCreate(Change):
     def impl_apply(self, session: MultiCallSession):
         return session.createChannel(self.name, self.description)
 
+    def explain(self) -> str:
+        desc_info = f" with description '{self.description}'" if self.description else ""
+        return f"Create channel '{self.name}'{desc_info}"
+
 
 @dataclass
 class ChannelSetDescription(Change):
@@ -35,6 +39,12 @@ class ChannelSetDescription(Change):
 
     def impl_apply(self, session: MultiCallSession):
         return session.editChannel(self.name, description=self.description)
+
+    def explain(self) -> str:
+        if self.description:
+            return f"Set description for channel '{self.name}' to '{self.description}'"
+        else:
+            return f"Remove description from channel '{self.name}'"
 
 
 @dataclass
@@ -45,6 +55,9 @@ class ChannelAddHost(Change):
     def impl_apply(self, session: MultiCallSession):
         return session.addHostToChannel(self.host, self.name)
 
+    def explain(self) -> str:
+        return f"Add host '{self.host}' to channel '{self.name}'"
+
 
 @dataclass
 class ChannelRemoveHost(Change):
@@ -53,6 +66,9 @@ class ChannelRemoveHost(Change):
 
     def impl_apply(self, session: MultiCallSession):
         return session.removeHostFromChannel(self.host, self.name)
+
+    def explain(self) -> str:
+        return f"Remove host '{self.host}' from channel '{self.name}'"
 
 
 class ChannelChangeReport(ChangeReport):

@@ -27,6 +27,10 @@ class TargetCreate(Change):
     def impl_apply(self, session: MultiCallSession) -> VirtualCall:
         return session.createBuildTarget(self.name, self.build_tag, self.dest_tag or self.name)
 
+    def explain(self) -> str:
+        dest_tag = self.dest_tag or self.name
+        return f"Create target '{self.name}' with build_tag '{self.build_tag}' and dest_tag '{dest_tag}'"
+
 
 @dataclass
 class TargetEdit(Change):
@@ -37,6 +41,10 @@ class TargetEdit(Change):
     def impl_apply(self, session: MultiCallSession) -> VirtualCall:
         # thank you, koji-typing
         return session.editBuildTarget(self.name, self.name, self.build_tag, self.dest_tag or self.name)
+
+    def explain(self) -> str:
+        dest_tag = self.dest_tag or self.name
+        return f"Edit target '{self.name}' to use build_tag '{self.build_tag}' and dest_tag '{dest_tag}'"
 
 
 class TargetChangeReport(ChangeReport):
