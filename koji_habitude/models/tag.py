@@ -399,24 +399,6 @@ class Tag(BaseKojiObject):
         return fixed
 
 
-    @field_validator('groups', mode='after')
-    def validate_groups(self) -> None:
-        seen: Dict[str, TagGroup] = {}
-        groups: List[TagGroup] = []
-
-        for group in self.groups:
-            original = seen.get(group.name)
-            if original is None:
-                seen[group.name] = group
-                groups.append(group)
-                continue
-
-            # merge packages from duplicate group onto original
-            original.packages.extend(group.packages)
-
-        self.groups = groups
-
-
     def split(self) -> 'Tag':
         return Tag(name=self.name, arches=self.arches)
 
