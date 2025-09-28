@@ -144,12 +144,11 @@ class UserChangeReport(ChangeReport):
                 self.add_to_group(group)
             return
 
-        if self.obj.enabled is not None:
-            if info['status'] != self.obj.enabled:
-                if self.obj.enabled:
-                    self.enable_user()
-                else:
-                    self.disable_user()
+        if info['status'] != (0 if self.obj.enabled else 1):
+            if self.obj.enabled:
+                self.enable_user()
+            else:
+                self.disable_user()
 
         groups = info['groups']
         for group in self.obj.groups:
