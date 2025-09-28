@@ -44,6 +44,7 @@ def session(profile: str = 'koji', authenticate: bool = False) -> ClientSession:
     conf = read_config(profile)
     server = conf["server"]
     session = ClientSession(server, opts=conf)
+    session.logger = logger
 
     if authenticate:
         activate_session(session, conf)
