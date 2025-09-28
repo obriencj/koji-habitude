@@ -147,8 +147,11 @@ class GroupChangeReport(ChangeReport):
                 self.add_permission(permission)
             return
 
-        if info['enabled'] != self.obj.enabled:
-            self.enable_group()
+        if info['status'] != self.obj.enabled:
+            if self.obj.enabled:
+                self.enable_group()
+            else:
+                self.disable_group()
 
         members = { m['name']: m for m in self._members.result }
         for member in self.obj.members:
