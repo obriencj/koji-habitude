@@ -175,6 +175,7 @@ class TestProcessorBasic(ProcessorTestBase):
         processor = Processor(
             koji_session=mock_session,
             stream_origin=mock_solver,
+            resolver=None,
             chunk_size=10
         )
 
@@ -190,6 +191,7 @@ class TestProcessorBasic(ProcessorTestBase):
         processor = Processor(
             koji_session=mock_session,
             stream_origin=empty_solver,
+            resolver=None,
             chunk_size=10
         )
 
@@ -207,6 +209,7 @@ class TestProcessorBasic(ProcessorTestBase):
         processor = Processor(
             koji_session=mock_session,
             stream_origin=empty_solver,
+            resolver=None,
             chunk_size=10
         )
 
@@ -233,6 +236,7 @@ class TestProcessorBasic(ProcessorTestBase):
         processor = Processor(
             koji_session=mock_session,
             stream_origin=empty_solver,
+            resolver=None,
             chunk_size=10
         )
 
@@ -257,6 +261,7 @@ class TestProcessorBasic(ProcessorTestBase):
         processor = DiffOnlyProcessor(
             koji_session=mock_session,
             stream_origin=empty_solver,
+            resolver=None,
             chunk_size=10
         )
 
@@ -274,6 +279,7 @@ class TestProcessorBasic(ProcessorTestBase):
         processor = DiffOnlyProcessor(
             koji_session=mock_session,
             stream_origin=empty_solver,
+            resolver=None,
             chunk_size=10
         )
 
@@ -296,6 +302,7 @@ class TestProcessorStateMachine(ProcessorTestBase):
         processor = Processor(
             koji_session=mock_session,
             stream_origin=empty_solver,
+            resolver=None,
             chunk_size=10
         )
 
@@ -311,6 +318,7 @@ class TestProcessorStateMachine(ProcessorTestBase):
         processor = Processor(
             koji_session=mock_session,
             stream_origin=empty_solver,
+            resolver=None,
             chunk_size=10
         )
 
@@ -329,6 +337,7 @@ class TestProcessorStateMachine(ProcessorTestBase):
         processor = Processor(
             koji_session=mock_session,
             stream_origin=empty_solver,
+            resolver=None,
             chunk_size=10
         )
 
