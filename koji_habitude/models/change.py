@@ -53,6 +53,7 @@ class ChangeReportState(Enum):
 class Change:
 
     def __init__(self) -> None:
+        self.resolver: 'Resolver' = None
         self._result: Optional[VirtualCall] = None
 
     def __post_init__(self) -> None:
@@ -80,6 +81,9 @@ class Change:
         Subclasses should override this method to provide specific explanations.
         """
         return f"Apply {self.__class__.__name__}"
+
+    def break_multicall(self, resolver: 'Resolver') -> bool:
+        return False
 
 
 class ChangeReport:
@@ -162,6 +166,13 @@ class ChangeReport:
             # this will raise an exception if the change failed
             change.result
         self.state = ChangeReportState.CHECKED
+
+
+    def break_multicall(self) -> bool:
+        for change in self.changes:
+            if change.break_multicall(self.resolver):
+                return True
+        return False
 
 
 # The end.

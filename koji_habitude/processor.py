@@ -15,6 +15,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 from dataclasses import dataclass
 from enum import Enum
+from itertools import chain
 import logging
 from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 
@@ -286,15 +287,37 @@ class Processor:
             return
         logger.debug(f"Applying changes for {len(self.current_chunk)} objects")
 
-        with multicall(self.koji_session, associations=self.write_logs) as m:
-            for obj in self.current_chunk:
+        # this is horribly over-complicated because at any point in the loop we
+        # may need to break out of the multicall and continue with that object
+        # and the rest of the work in a new multicall. Why? Because tag
+        # inheritance can ONLY be added by using the parent tag's ID, not by
+        # name. So if we're adding the parent tag, we don't know it's ID until
+        # after that multicall has run. This one quirk of the koji API is the
+        # cause of a LOT of pain and complexity.
 
-                # get the change report for this object
-                change_report = self.change_reports[obj.key()]
+        work = iter(self.current_chunk)
+        holdover = next(work)
+        while holdover:
+            work_segment = chain([holdover], work)
+            holdover = None
 
-                # apply the changes to the koji instance
-                change_report.apply(m)
+            with multicall(self.koji_session, associations=self.write_logs) as m:
+                for obj in work_segment:
 
+                    # get the change report for this object
+                    change_report = self.change_reports[obj.key()]
+
+                    # check if the damned thing needs to break out of the multicall
+                    # this should only happen for tag inheritance where the parent
+                    # tag is being created in this same multicall.
+                    if change_report.break_multicall():
+                        holdover = obj
+                        break
+                    else:
+                        # apply the changes to the koji instance
+                        change_report.apply(m)
+
+        # check the results of all the changes
         for obj in self.current_chunk:
             change_report = self.change_reports[obj.key()]
             change_report.check_results()

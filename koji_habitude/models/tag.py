@@ -11,7 +11,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 from dataclasses import dataclass
 from typing import Any, ClassVar, Dict, List, Optional, Sequence, Union, Literal
 
-from koji import ClientSession, MultiCallSession, VirtualCall
+from koji import ClientSession, MultiCallSession, VirtualCall, MultiCallNotReady
 from pydantic import Field, field_validator, model_validator
 
 from .base import BaseKey, BaseKojiObject, SubModel
@@ -20,6 +20,7 @@ from .change import Change, ChangeReport
 
 @dataclass
 class TagCreate(Change):
+    obj: Base
     name: str
     locked: bool
     permission: Optional[str]
@@ -28,13 +29,19 @@ class TagCreate(Change):
     maven_include_all: bool
 
     def impl_apply(self, session: MultiCallSession):
-        return session.createTag(
+        session.createTag(
             self.name,
             locked=self.locked,
             perm=self.permission,
             arches=' '.join(self.arches),
             maven_support=self.maven_support,
             maven_include_all=self.maven_include_all)
+
+        # We have to queue up a new getTag call so that the Tag object can be
+        # considered as existing, and so we can fetch its ID later. Tag
+        # Inheritance is the only place that cannot operate except by using the
+        # parent tag's ID (not by name)
+        return self.obj.query_exists(session)
 
     def explain(self) -> str:
         arches_str = ', '.join(self.arches)
@@ -243,6 +250,31 @@ class TagAddInheritance(Change):
             msg += f" and pkgfilter={self.parent.pkgfilter}"
         return f"Add inheritance from '{self.parent}' to tag '{self.name}' {msg}"
 
+    def break_multicall(self, resolver: 'Resolver') -> bool:
+
+        # quick explanation here. Adding to tag inheritance requires knowing the
+        # parent tag's ID -- it's the only API in koji that has this behavior.
+        # We have a hook at the end of the TagCreate's apply method which will
+        # queue up a fetch of the newly created tag's ID, but until the MC
+        # completes that value isn't available to us. What we're doing here is
+        # using a resolver (which we got from the ChangeReport) to look up the
+        # parent tag entry by its key, and then attempting to see if it exists.
+        # If it does, we'll have the ID and we can continue. If checking raises
+        # a MultiCallNotReady, then damnit we need to break out of the multicall
+        # so it can complete and get us that value.
+
+        tag = resolver.resolve(self.parent.key())
+        try:
+            tinfo = tag.exists
+        except MultiCallNotReady:
+            return True
+
+        if tinfo:
+            self.parent._parent_tag_id = tinfo['id']
+            return False
+        else:
+            raise ValueError(f"Parent tag '{self.parent.name}' does not exist")
+
 
 @dataclass
 class TagUpdateInheritance(TagAddInheritance):
@@ -302,6 +334,7 @@ class TagChangeReport(ChangeReport):
 
     def create_tag(self):
         self.add(TagCreate(
+            self.obj,
             self.obj.name,
             locked=self.obj.locked,
             permission=self.obj.permission,
