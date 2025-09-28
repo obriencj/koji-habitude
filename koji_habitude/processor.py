@@ -15,7 +15,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Iterator, Dict, List, Any, Optional, Tuple
+from typing import Iterator, Dict, List, Any, Optional, Tuple, Callable
 import logging
 
 from koji import ClientSession, VirtualCall
@@ -294,7 +294,7 @@ class Processor:
         self.state = ProcessorState.READY_CHUNK
 
 
-    def run(self) -> Dict[str, Any]:
+    def run(self, step_callback: Optional[Callable[[int, int], None]] = None) -> ProcessorSummary:
         """
         Process all objects in the stream by repeatedly calling step() until we
         are in an EXHAUSTED or BROKEN state. Returns a summary of the processing
@@ -313,6 +313,9 @@ class Processor:
         for step, handled in enumerate(iter(self.step, 0), 1):
             total_objects += handled
             logger.debug(f"Step #{step} processed chunk of {handled} objects")
+
+            if step_callback:
+                step_callback(step, handled)
 
         return ProcessorSummary(
             total_objects=total_objects,
