@@ -92,8 +92,9 @@ def main():
     and applies changes to a koji hub in the correct order.
     """
 
-    log_level = os.environ.get('LOGLEVEL', 'WARNING').upper()
-    logging.basicConfig(level=log_level)
+    log_level = os.environ.get('LOGLEVEL', '').strip().upper()
+    if log_level:
+        logging.basicConfig(level=log_level)
 
 
 # The end.
