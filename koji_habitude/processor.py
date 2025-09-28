@@ -87,7 +87,7 @@ class Processor:
         self,
         koji_session: ClientSession,
         stream_origin: Solver,
-        resolver: Resolver,
+        resolver: Resolver = None,
         chunk_size: int = 100):
         """
         Initialize the processor.
