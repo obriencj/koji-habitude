@@ -132,7 +132,7 @@ class HostChangeReport(ChangeReport):
         self.add(HostRemoveChannel(self.obj.name, channel))
 
     def impl_read(self, session: MultiCallSession):
-        self._hostinfo: VirtualCall = session.getHost(self.obj.name, strict=False)
+        self._hostinfo: VirtualCall = self.obj.query_exists(session)
 
     def impl_compare(self):
         info = self._hostinfo.result

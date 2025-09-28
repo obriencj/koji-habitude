@@ -124,7 +124,7 @@ class GroupChangeReport(ChangeReport):
 
 
     def impl_read(self, session: MultiCallSession):
-        self._groupinfo: VirtualCall = session.getUser(self.obj.name, strict=False)
+        self._groupinfo: VirtualCall = self.obj.query_exists(session)
         self._members: VirtualCall = None
         self._permissions: VirtualCall = None
         return self.impl_read_defer

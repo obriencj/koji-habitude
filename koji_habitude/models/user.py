@@ -130,7 +130,7 @@ class UserChangeReport(ChangeReport):
 
 
     def impl_read(self, session: MultiCallSession):
-        self._userinfo: VirtualCall = session.getUser(self.obj.name, strict=False, groups=True)
+        self._userinfo: VirtualCall = self.obj.query_exists(session)
         self._permissions: VirtualCall = session.getUserPerms(self.obj.name)
 
 
@@ -216,7 +216,7 @@ class User(BaseKojiObject):
 
     @classmethod
     def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
-        return session.getUser(key[1], strict=False)
+        return session.getUser(key[1], strict=False, groups=True)
 
 
 # The end.

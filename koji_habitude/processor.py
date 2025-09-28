@@ -23,6 +23,7 @@ from koji import ClientSession, VirtualCall
 from .koji import multicall
 from .models import BaseKey, Base, ChangeReport
 from .solver import Solver
+from .resolver import Resolver
 
 
 logger = logging.getLogger(__name__)
@@ -86,6 +87,7 @@ class Processor:
         self,
         koji_session: ClientSession,
         stream_origin: Solver,
+        resolver: Resolver,
         chunk_size: int = 100):
         """
         Initialize the processor.
@@ -98,6 +100,7 @@ class Processor:
 
         self.koji_session: ClientSession = koji_session
         self.object_stream = iter(stream_origin)
+        self.resolver: Resolver = resolver
         self.chunk_size = chunk_size
 
         self.current_chunk: List[Base] = []
@@ -210,6 +213,7 @@ class Processor:
 
                 # create and load the change report for this object
                 change_report = obj.change_report()
+                change_report.resolver = self.resolver
                 defer = change_report.read(mc)
                 if defer and callable(defer):
                     # we allow the change report to return a callable to

@@ -224,7 +224,7 @@ class TagAddInheritance(Change):
 
     def impl_apply(self, session: MultiCallSession):
         data = [{
-            'parent_name': self.parent.name,
+            'parent_id': self.parent._parent_tag_id,
             'priority': self.parent.priority,
             # 'intransitive': self.parent.intransitive,
             'maxdepth': self.parent.maxdepth,
@@ -263,10 +263,10 @@ class TagUpdateInheritance(TagAddInheritance):
 @dataclass
 class TagRemoveInheritance(Change):
     name: str
-    parent: str
+    parent_id: str
 
     def impl_apply(self, session: MultiCallSession):
-        data = [{'parent_name': self.parent, 'delete link': True}]
+        data = [{'parent_id': self.parent_id, 'delete link': True}]
         return session.setInheritanceData(self.name, data)
 
     def explain(self) -> str:
@@ -373,7 +373,7 @@ class TagChangeReport(ChangeReport):
         self.add(TagRemoveExternalRepo(self.obj.name, repo))
 
     def impl_read(self, session: MultiCallSession):
-        self._taginfo: VirtualCall = session.getTag(self.obj.name, strict=False)
+        self._taginfo: VirtualCall = self.obj.query_exists(session)
         self._groups: VirtualCall = None
         self._inheritance: VirtualCall = None
         self._external_repos: VirtualCall = None
@@ -423,12 +423,18 @@ class TagChangeReport(ChangeReport):
     def _compare_inheritance(self):
         # Helper function to compare inheritance
 
+        for parent in self.obj.parent_tags:
+            tag = self.resolver.resolve(parent.key())
+            tinfo = tag.exists
+            if tinfo:
+                parent._parent_tag_id = tinfo['id']
+
         koji_inher = {parent['parent_name']: parent for parent in self._inheritance.result}
         inher = {parent.name: parent for parent in self.obj.parent_tags}
 
         for name, parent in koji_inher.items():
             if name not in inher:
-                self.remove_inheritance(name)
+                self.remove_inheritance(parent['parent_id'])
 
         for name, parent in inher.items():
             if name not in koji_inher:
@@ -548,6 +554,11 @@ class InheritanceLink(SubModel):
     maxdepth: Optional[int] = Field(alias='max-depth', default=None)
     noconfig: bool = Field(alias='no-config', default=False)
     pkgfilter: Optional[str] = Field(alias='pkg-filter', default=None)
+
+    _parent_tag_id: Optional[int] = None
+
+    def key(self) -> BaseKey:
+        return (self.type, self.name)
 
     @field_validator('pkgfilter', mode='before')
     @classmethod
@@ -712,6 +723,7 @@ class Tag(BaseKojiObject):
 
     def change_report(self) -> TagChangeReport:
         return TagChangeReport(self)
+
 
     @classmethod
     def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:

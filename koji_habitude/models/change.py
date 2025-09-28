@@ -15,12 +15,15 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from enum import Enum
-from typing import Any, Callable, Optional, List
+from typing import Any, Callable, Optional, List, TYPE_CHECKING
 from logging import getLogger
 
 from koji import MultiCallSession, VirtualCall
 
 from .base import Base, BaseKey
+
+if TYPE_CHECKING:
+    from ..resolver import Resolver
 
 
 logger = getLogger(__name__)
@@ -86,6 +89,7 @@ class ChangeReport:
         self.key: BaseKey = obj.key()
         self.state: ChangeReportState = ChangeReportState.PENDING
         self.changes: List[Change] = []
+        self.resolver: 'Resolver' = None
 
 
     def __len__(self):

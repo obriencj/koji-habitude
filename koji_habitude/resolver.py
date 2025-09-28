@@ -43,7 +43,7 @@ class MissingChangeReport(ChangeReport):
         self._exists = self.obj.tp.check_exists(session, self.obj.key())
 
     def impl_compare(self) -> None:
-        self.obj._exists = bool(self._exists.result)
+        self.obj._exists = self._exists
 
 
 class MissingObject(Base):
@@ -58,6 +58,10 @@ class MissingObject(Base):
         self.yaml_type, self.name = key
         self._key = key
         self._exists = None  # None means not checked yet
+
+    @property
+    def exists(self) -> Any:
+        return self._exists.result
 
     def key(self) -> BaseKey:
         return self._key

@@ -90,7 +90,7 @@ class ChannelChangeReport(ChangeReport):
 
 
     def impl_read(self, session: MultiCallSession):
-        self._channelinfo: VirtualCall = session.getChannel(self.obj.name, strict=False)
+        self._channelinfo: VirtualCall = self.obj.query_exists(session)
         self._hosts: VirtualCall = session.listHosts(channelID=self.obj.name)
 
 

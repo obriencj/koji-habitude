@@ -58,7 +58,7 @@ class TargetChangeReport(ChangeReport):
 
 
     def impl_read(self, session: MultiCallSession):
-        self._targetinfo: VirtualCall = session.getBuildTarget(self.obj.name, strict=False)
+        self._targetinfo: VirtualCall = self.obj.query_exists(session)
 
 
     def impl_compare(self):

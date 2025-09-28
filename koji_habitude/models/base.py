@@ -12,7 +12,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from pydantic import BaseModel, Field, ConfigDict
-from koji import ClientSession
+from koji import ClientSession, VirtualCall
 from typing import (
     TYPE_CHECKING,
     Any, ClassVar, Dict, List, Optional, Protocol,
@@ -61,6 +61,9 @@ class Base(Protocol):
     def dependency_keys(self) -> Sequence[BaseKey]:
         ...
 
+    def prove_exists(self, session: ClientSession) -> Any:
+        ...
+
     @classmethod
     def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
         ...
@@ -101,6 +104,7 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
 
     # this is the record of the `from_dict` call if it was used
     _data: Optional[Dict[str, Any]] = None
+    _exists: Optional[VirtualCall] = None
 
     model_config = ConfigDict(validate_by_alias=True, validate_by_name=True)
 
@@ -110,6 +114,21 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
         if not name:
             raise ValueError(f"name is required for {self.typename}")
         self.name = name
+
+        self._exists = None
+
+    @property
+    def exists(self) -> Any:
+        return self._exists.result
+
+    def query_exists(self, session: ClientSession) -> VirtualCall:
+        res = self.check_exists(session, self.key())
+        if isinstance(res, VirtualCall):
+            self._exists = res
+        else:
+            self._exists = VirtualCall(None, None, None)
+            self._exists._result = res
+        return self._exists
 
     @classmethod
     def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:

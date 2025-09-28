@@ -78,7 +78,7 @@ class PermissionChangeReport(ChangeReport):
 
 
     def impl_read(self, session: MultiCallSession):
-        self._permissioninfo: VirtualCall = getPermission(session, self.obj.name)
+        self._permissioninfo: VirtualCall = self.obj.query_exists(session)
 
 
     def impl_compare(self):
@@ -103,6 +103,7 @@ class Permission(BaseKojiObject):
 
     def change_report(self) -> PermissionChangeReport:
         return PermissionChangeReport(self)
+
 
     @classmethod
     def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
