@@ -66,6 +66,15 @@ class WorkflowStateError(Exception):
     pass
 
 
+class WorkflowMissingObjectsError(Exception):
+    """
+    Exception raised when the workflow has missing objects.
+    """
+    def __init__(self, message: str, report: Report):
+        super().__init__(message)
+        self.report = report
+
+
 @dataclass
 class Workflow:
 
@@ -159,7 +168,9 @@ class Workflow:
         """
         if len(self.missing_report.missing) > 0:
             self.state = WorkflowState.FAILED
-            raise WorkflowStateError(f"Missing objects: {self.missing_report.missing}")
+            raise WorkflowMissingObjectsError(
+                f"Missing {len(self.missing_report.missing)} objects",
+                self.missing_report)
 
 
     def run_processing(self):

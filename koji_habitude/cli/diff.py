@@ -78,6 +78,8 @@ def display_summary(summary, report, show_unchanged):
 
     click.echo()
 
+
+def display_missing(report):
     if report:
         total_dependencies = len(report.found) + len(report.missing)
         click.echo(f"Resolver identified {total_dependencies} dependencies not defined in the data set")
@@ -94,9 +96,6 @@ def display_summary(summary, report, show_unchanged):
             click.echo(f"  {key[0]} {key[1]}")
 
     click.echo()
-
-    if report.missing:
-        return 1
 
 
 @main.command()
@@ -120,8 +119,11 @@ def diff(data, templates=None, profile='koji', show_unchanged=False):
 
     workflow = DiffWorkflow(paths=data, template_paths=templates, profile=profile)
     workflow.run()
-    display_summary(workflow.summary, workflow.missing_report, show_unchanged)
-    return 0
+
+    display_summary(workflow.summary, show_unchanged)
+    display_missing(workflow.missing_report)
+
+    return 1 if workflow.missing_report.missing else 0
 
 
 # The end.

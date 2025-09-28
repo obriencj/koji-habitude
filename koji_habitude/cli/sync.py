@@ -12,6 +12,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 import click
 
 from ..workflow import SyncWorkflow as _SyncWorkflow
+from ..workflow import WorkflowMissingObjectsError
 
 from . import main, catchall
 
@@ -90,6 +91,8 @@ def display_summary(summary, report, show_unchanged):
 
     click.echo()
 
+
+def display_missing(report):
     if report:
         total_dependencies = len(report.found) + len(report.missing)
         click.echo(f"Resolver identified {total_dependencies} dependencies not defined in the data set")
@@ -130,9 +133,15 @@ def sync(data, templates=None, profile='koji', show_unchanged=False):
     DATA can be directories or files containing YAML object definitions.
     """
 
-    workflow = SyncWorkflow(data, templates, profile)
-    workflow.run()
-    display_summary(workflow.summary, workflow.missing_report, show_unchanged)
+    try:
+        workflow = SyncWorkflow(data, templates, profile)
+        workflow.run()
+    except WorkflowMissingObjectsError as e:
+        display_missing(e.report)
+        return 1
+
+    display_summary(workflow.summary, show_unchanged)
+    display_missing(workflow.missing_report)
 
     return 0
 
