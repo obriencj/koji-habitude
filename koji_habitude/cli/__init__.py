@@ -67,8 +67,6 @@ def catchall(func):
 
 
 class MagicGroup(click.Group):
-    command_class = MagicCommand
-
     def _load_commands(self):
         # delaying to avoid circular imports
         from .sync import sync
