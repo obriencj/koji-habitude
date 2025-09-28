@@ -16,10 +16,14 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 from enum import Enum
 from typing import Any, Callable, Optional, List
+from logging import getLogger
 
 from koji import MultiCallSession, VirtualCall
 
 from .base import Base, BaseKey
+
+
+logger = getLogger(__name__)
 
 
 class ChangeError(Exception):
@@ -55,6 +59,7 @@ class Change:
     def apply(self, session: MultiCallSession) -> None:
         if self._result is not None:
             raise ChangeError(f"Attempted to re-apply change: {self!r}")
+        logger.debug(f"Applying change: {self!r}")
         self._result = self.impl_apply(session)
 
     @property
@@ -136,6 +141,7 @@ class ChangeReport:
             raise ChangeReportError(f"Change report is not compared: {self.state}")
 
         self.state = ChangeReportState.APPLYING
+        logger.debug(f"Applying {len(self.changes)} changes to {self.obj.key()}")
         for change in self.changes:
             change.apply(session)
         self.state = ChangeReportState.APPLIED

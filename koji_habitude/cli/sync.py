@@ -45,7 +45,7 @@ def run_summary(data, templates, profile) -> ProcessorSummary:
     solver = Solver(resolver)
     solver.prepare()
 
-    koji_session = session(profile)
+    koji_session = session(profile, authenticate=True)
 
     # Create and run DiffOnlyProcessor
     processor = Processor(
