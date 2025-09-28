@@ -291,6 +291,10 @@ class Processor:
                 # apply the changes to the koji instance
                 change_report.apply(m)
 
+        for obj in self.current_chunk:
+            change_report = self.change_reports[obj.key()]
+            change_report.check_results()
+
         self.state = ProcessorState.READY_CHUNK
 
 

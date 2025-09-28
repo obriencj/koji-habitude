@@ -42,6 +42,8 @@ class ChangeReportState(Enum):
     COMPARED = 'compared'
     APPLYING = 'applying'
     APPLIED = 'applied'
+    CHECKING = 'checking'
+    CHECKED = 'checked'
     ERROR = 'error'
 
 
@@ -145,6 +147,17 @@ class ChangeReport:
         for change in self.changes:
             change.apply(session)
         self.state = ChangeReportState.APPLIED
+
+
+    def check_results(self) -> None:
+        if self.state != ChangeReportState.APPLIED:
+            raise ChangeReportError(f"Change report is not applied: {self.state}")
+
+        self.state = ChangeReportState.CHECKING
+        for change in self.changes:
+            # this will raise an exception if the change failed
+            change.result
+        self.state = ChangeReportState.CHECKED
 
 
 # The end.

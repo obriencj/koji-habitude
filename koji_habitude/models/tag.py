@@ -372,10 +372,12 @@ class TagChangeReport(ChangeReport):
 
         if info['locked'] != self.obj.locked:
             self.set_tag_locked()
-        if info['permission'] != self.obj.permission:
+        if info['perm'] != self.obj.permission:
             self.set_tag_permission()
-        if info['arches'] != self.obj.arches:
+
+        if info['arches'].split() != self.obj.arches:
             self.set_tag_arches()
+
         if info['maven_support'] != self.obj.maven_support or \
            info['maven_include_all'] != self.obj.maven_include_all:
             self.set_tag_maven()
