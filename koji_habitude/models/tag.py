@@ -220,15 +220,44 @@ class TagRemoveGroupPackage(Change):
 @dataclass
 class TagAddInheritance(Change):
     name: str
-    parent: str
-    priority: int
+    parent: 'InheritanceLink'
 
     def impl_apply(self, session: MultiCallSession):
-        data = [{'name': self.parent, 'priority': self.priority}]
+        data = [{
+            'parent_name': self.parent.name,
+            'priority': self.parent.priority,
+            # 'intransitive': self.parent.intransitive,
+            'maxdepth': self.parent.maxdepth,
+            'noconfig': self.parent.noconfig,
+            'pkg_filter': self.parent.pkgfilter,
+        }]
         return session.setInheritanceData(self.name, data)
 
     def explain(self) -> str:
-        return f"Add inheritance from '{self.parent}' to tag '{self.name}' with priority {self.priority}"
+        msg = f"with priority {self.parent.priority}"
+        if self.parent.maxdepth is not None :
+            msg += f" and maxdepth={self.parent.maxdepth}"
+        if self.parent.noconfig is not None:
+            msg += f" and noconfig={self.parent.noconfig}"
+        if self.parent.pkgfilter is not None:
+            msg += f" and pkgfilter={self.parent.pkgfilter}"
+        return f"Add inheritance from '{self.parent}' to tag '{self.name}' {msg}"
+
+
+@dataclass
+class TagUpdateInheritance(TagAddInheritance):
+    name: str
+    parent: 'InheritanceLink'
+
+    def explain(self) -> str:
+        msg = f"with priority {self.parent.priority}"
+        if self.parent.maxdepth is not None :
+            msg += f" and maxdepth={self.parent.maxdepth}"
+        if self.parent.noconfig is not None:
+            msg += f" and noconfig={self.parent.noconfig}"
+        if self.parent.pkgfilter is not None:
+            msg += f" and pkgfilter={self.parent.pkgfilter}"
+        return f"Update inheritance from '{self.parent}' to tag '{self.name}' {msg}"
 
 
 @dataclass
@@ -237,7 +266,7 @@ class TagRemoveInheritance(Change):
     parent: str
 
     def impl_apply(self, session: MultiCallSession):
-        data = [{'name': self.parent, 'delete link': True}]
+        data = [{'parent_name': self.parent, 'delete link': True}]
         return session.setInheritanceData(self.name, data)
 
     def explain(self) -> str:
@@ -329,7 +358,10 @@ class TagChangeReport(ChangeReport):
         self.add(TagRemoveGroupPackage(self.obj.name, group, package))
 
     def add_inheritance(self, parent: 'InheritanceLink'):
-        self.add(TagAddInheritance(self.obj.name, parent.name, parent.priority))
+        self.add(TagAddInheritance(self.obj.name, parent))
+
+    def update_inheritance(self, parent: 'InheritanceLink'):
+        self.add(TagUpdateInheritance(self.obj.name, parent))
 
     def remove_inheritance(self, parent: str):
         self.add(TagRemoveInheritance(self.obj.name, parent))
@@ -391,7 +423,7 @@ class TagChangeReport(ChangeReport):
     def _compare_inheritance(self):
         # Helper function to compare inheritance
 
-        koji_inher = {parent['name']: parent for parent in self._inheritance.result}
+        koji_inher = {parent['parent_name']: parent for parent in self._inheritance.result}
         inher = {parent.name: parent for parent in self.obj.parent_tags}
 
         for name, parent in koji_inher.items():
@@ -401,6 +433,12 @@ class TagChangeReport(ChangeReport):
         for name, parent in inher.items():
             if name not in koji_inher:
                 self.add_inheritance(parent)
+            else:
+                if koji_inher['priority'] != parent.priority or \
+                   koji_inher['maxdepth'] != parent.maxdepth or \
+                   koji_inher['noconfig'] != parent.noconfig or \
+                   koji_inher['pkg_filter'] != parent.pkgfilter:
+                    self.update_inheritance(parent)
 
         koji_ext_repos = {repo['name']: repo for repo in self._external_repos.result}
         ext_repos = {repo.name: repo for repo in self.obj.external_repos}
