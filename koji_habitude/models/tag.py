@@ -17,6 +17,10 @@ from pydantic import Field, field_validator, model_validator
 from .base import Base, BaseKey, BaseKojiObject, SubModel
 from .change import Change, ChangeReport
 
+import logging
+
+logger = logging.getLogger("koji_habitude.models.tag")
+
 
 @dataclass
 class TagCreate(Change):
@@ -41,6 +45,8 @@ class TagCreate(Change):
         # considered as existing, and so we can fetch its ID later. Tag
         # Inheritance is the only place that cannot operate except by using the
         # parent tag's ID (not by name)
+
+        logger.debug(f"Queueing getTag call for tag '{self.name}'")
         return self.obj.query_exists(session)
 
     def explain(self) -> str:
@@ -263,13 +269,21 @@ class TagAddInheritance(Change):
         # a MultiCallNotReady, then damnit we need to break out of the multicall
         # so it can complete and get us that value.
 
+        logger.debug(f"Checking if TagAddInheritance ({self.name}) needs to break out of multicall")
+
         tag = resolver.resolve(self.parent.key())
+        logger.debug(f"Resolved parent tag '{self.parent.name}' to {tag}")
+
         try:
             tinfo = tag.exists
         except MultiCallNotReady:
+            logger.debug(f"MultiCallNotReady, breaking out of multicall")
             return True
 
+        logger.debug(f"  exists: {tinfo}")
+
         if tinfo:
+            logger.debug(f"Parent tag '{self.parent.name}' exists, ID: {tinfo['id']}")
             self.parent._parent_tag_id = tinfo['id']
             return False
         else:
@@ -277,9 +291,21 @@ class TagAddInheritance(Change):
 
 
 @dataclass
-class TagUpdateInheritance(TagAddInheritance):
+class TagUpdateInheritance(Change):
     name: str
     parent: 'InheritanceLink'
+    parent_id: int
+
+    def impl_apply(self, session: MultiCallSession):
+        data = [{
+            'parent_id': self.parent_id,
+            'priority': self.parent.priority,
+            'intransitive': self.parent.intransitive,
+            'maxdepth': self.parent.maxdepth,
+            'noconfig': self.parent.noconfig,
+            'pkg_filter': self.parent.pkgfilter,
+        }]
+        return session.setInheritanceData(self.name, data)
 
     def explain(self) -> str:
         msg = f"with priority {self.parent.priority}"
@@ -454,10 +480,14 @@ class TagChangeReport(ChangeReport):
         # Helper function to compare inheritance
 
         for parent in self.obj.parent_tags:
+            logger.debug(f"Checking if parent tag '{parent.name}' exists already")
             tag = self.resolver.resolve(parent.key())
             tinfo = tag.exists
             if tinfo:
                 parent._parent_tag_id = tinfo['id']
+                logger.debug(f"Parent tag '{parent.name}' exists already, ID: {tinfo['id']}")
+            else:
+                logger.debug(f"Parent tag '{parent.name}' does not exist")
 
         koji_inher = {parent['name']: parent for parent in self._inheritance.result}
         inher = {parent.name: parent for parent in self.obj.parent_tags}
@@ -476,7 +506,7 @@ class TagChangeReport(ChangeReport):
                    koji_parent['noconfig'] != parent.noconfig or \
                    koji_parent['pkg_filter'] != parent.pkgfilter or \
                    koji_parent['intransitive'] != parent.intransitive:
-                    self.update_inheritance(parent)
+                    self.update_inheritance(parent, koji_parent['parent_id'])
 
         koji_ext_repos = {repo['name']: repo for repo in self._external_repos.result}
         ext_repos = {repo.name: repo for repo in self.obj.external_repos}
@@ -760,6 +790,7 @@ class Tag(BaseKojiObject):
 
     @classmethod
     def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
+        logger.debug(f"Checking if tag '{key[1]}' exists")
         return session.getTag(key[1], strict=False)
 
 
