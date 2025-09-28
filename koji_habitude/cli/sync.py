@@ -13,7 +13,7 @@ import click
 
 from ..workflow import SyncWorkflow as _SyncWorkflow
 
-from . import main
+from . import main, catchall
 
 
 class SyncWorkflow(_SyncWorkflow):
@@ -119,6 +119,7 @@ def display_summary(summary, report, show_unchanged):
 @click.option(
     '--show-unchanged', 'show_unchanged', is_flag=True, default=False,
     help="Show objects that don't need any changes")
+@catchall
 def sync(data, templates=None, profile='koji', show_unchanged=False):
     """
     Synchronize local koji data expectations with hub instance.

@@ -15,7 +15,7 @@ from ..loader import MultiLoader, YAMLLoader, pretty_yaml_all
 from ..namespace import TemplateNamespace
 from ..templates import Template
 
-from . import main
+from . import main, catchall
 
 
 def print_template(tmpl: Template, full: bool = False):
@@ -67,6 +67,7 @@ def print_template(tmpl: Template, full: bool = False):
 @click.option(
     '--select', "-S", 'select', metavar='NAME', multiple=True,
     help="Select templates by name")
+@catchall
 def list_templates(dirs=[], template_dirs=[], yaml=False, full=False, select=[]):
     """
     List available templates.

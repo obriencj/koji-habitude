@@ -14,7 +14,7 @@ import click
 from ..loader import MultiLoader, YAMLLoader, pretty_yaml_all
 from ..namespace import Namespace, TemplateNamespace, ExpanderNamespace
 
-from . import main
+from . import main, catchall
 
 
 @main.command()
@@ -28,6 +28,7 @@ from . import main
 @click.option(
     "--select", "-S", "select", metavar="NAME", multiple=True,
     help="Filter results to only include types")
+@catchall
 def expand(data, templates=None, validate=False, select=[]):
     """
     Expand templates and data files into YAML output.

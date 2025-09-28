@@ -12,7 +12,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 import click
 
 from ..workflow import DiffWorkflow
-from . import main
+from . import main, catchall
 
 
 def display_summary(summary, report, show_unchanged):
@@ -110,6 +110,7 @@ def display_summary(summary, report, show_unchanged):
 @click.option(
     '--show-unchanged', 'show_unchanged', is_flag=True, default=False,
     help="Show objects that don't need any changes")
+@catchall
 def diff(data, templates=None, profile='koji', show_unchanged=False):
     """
     Show what changes would be made without applying them.
@@ -117,18 +118,10 @@ def diff(data, templates=None, profile='koji', show_unchanged=False):
     DATA can be directories or files containing YAML object definitions.
     """
 
-    try:
-        workflow = DiffWorkflow(paths=data, template_paths=templates, profile=profile)
-        workflow.run()
-        display_summary(workflow.summary, workflow.missing_report, show_unchanged)
-
-        return 0
-
-    except Exception as e:
-        import traceback
-        click.echo(f"Error: {e}", err=True)
-        click.echo(traceback.format_exc(), err=True)
-        return 1
+    workflow = DiffWorkflow(paths=data, template_paths=templates, profile=profile)
+    workflow.run()
+    display_summary(workflow.summary, workflow.missing_report, show_unchanged)
+    return 0
 
 
 # The end.

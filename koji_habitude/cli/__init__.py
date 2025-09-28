@@ -14,6 +14,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 import logging
 import os
+from functools import wraps
 from typing import List
 
 import click
@@ -36,10 +37,11 @@ def resplit(strs: List[str], sep=',') -> List[str]:
     return list(filter(None, map(str.strip, sep.join(strs).split(sep))))
 
 
-class MagicCommand(click.Command):
-    def main(self, *args, **kwargs):
+def catchall(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
         try:
-            return super().main(*args, **kwargs)
+            return func(*args, **kwargs)
 
         except ValidationError as e:
             click.echo(f"[ValidationError] {e}", err=True)
@@ -60,6 +62,8 @@ class MagicCommand(click.Command):
         except Exception as e:
             click.echo(f"[Error] {e}", err=True)
             raise
+
+    return wrapper
 
 
 class MagicGroup(click.Group):
