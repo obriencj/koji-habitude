@@ -363,9 +363,6 @@ class TagChangeReport(ChangeReport):
     def update_inheritance(self, parent: 'InheritanceLink'):
         self.add(TagUpdateInheritance(self.obj.name, parent))
 
-    def remove_inheritance(self, parent: str):
-        self.add(TagRemoveInheritance(self.obj.name, parent))
-
     def add_external_repo(self, repo: 'InheritanceLink'):
         self.add(TagAddExternalRepo(self.obj.name, repo.name, repo.priority))
 

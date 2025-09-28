@@ -20,7 +20,7 @@ License v3 AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import Callable, ClassVar, Dict, List, Optional, Sequence, Tuple, Type
+from typing import Callable, ClassVar, Dict, List, Optional, Sequence, Tuple, Type, Any
 
 from pydantic import BaseModel, Field
 
