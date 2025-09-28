@@ -300,6 +300,7 @@ class Processor:
         while holdover:
             work_segment = chain([holdover], work)
             holdover = None
+            work_check = []
 
             with multicall(self.koji_session, associations=self.write_logs) as m:
                 for obj in work_segment:
@@ -316,11 +317,13 @@ class Processor:
                     else:
                         # apply the changes to the koji instance
                         change_report.apply(m)
+                        work_check.append(obj)
 
-        # check the results of all the changes
-        for obj in self.current_chunk:
-            change_report = self.change_reports[obj.key()]
-            change_report.check_results()
+            # check the results of all the changes. This will raise an exception
+            # if the apply failed for some reason.
+            for obj in work_check:
+                change_report = self.change_reports[obj.key()]
+                change_report.check_results()
 
         self.state = ProcessorState.READY_CHUNK
 

@@ -143,6 +143,7 @@ class Workflow:
         self.solver = self.cls_solver(self.resolver)
         self.solver.prepare()
         self.dataseries = list(self.solver)
+        self.missing_report = self.resolver.report()
         yield self.state_change(WorkflowState.SOLVING, WorkflowState.SOLVED)
 
 
@@ -152,8 +153,20 @@ class Workflow:
         yield self.state_change(WorkflowState.CONNECTING, WorkflowState.CONNECTED)
 
 
+    def review_missing_report(self):
+        """
+        Review the missing report and raise an exception if there are any missing objects.
+        """
+        if len(self.missing_report.missing) > 0:
+            self.state = WorkflowState.FAILED
+            raise WorkflowStateError(f"Missing objects: {self.missing_report.missing}")
+
+
     def run_processing(self):
         yield self.state_change(WorkflowState.CONNECTED, WorkflowState.PROCESSING)
+
+        self.review_missing_report()
+
         self.processor = self.cls_processor(
             koji_session=self.session,
             stream_origin=self.dataseries,
@@ -161,7 +174,6 @@ class Workflow:
             chunk_size=self.chunk_size
         )
         self.summary = self.processor.run(self.processor_step_callback)
-        self.missing_report = self.resolver.report()
         yield self.state_change(WorkflowState.PROCESSING, WorkflowState.PROCESSED)
 
 
@@ -189,13 +201,21 @@ class Workflow:
         if self.state != WorkflowState.READY:
             raise WorkflowStateError(f"Workflow state ({self.state}) not as expected: {WorkflowState.READY}")
 
-        self._iter_workflow = self.iter_run()
-        for phase_result in self._iter_workflow:
-            if phase_result is True:
-                self.workflow_paused()
-                return True
-        self._iter_workflow = None
-        return False
+        try:
+            self._iter_workflow = self.iter_run()
+            for phase_result in self._iter_workflow:
+                if phase_result is True:
+                    self.workflow_paused()
+                    return True
+
+        except Exception as e:
+            self._iter_workflow = None
+            self.state = WorkflowState.FAILED
+            raise
+
+        else:
+            self._iter_workflow = None
+            return False
 
 
     def resume(self):
@@ -214,12 +234,20 @@ class Workflow:
         if self._iter_workflow is None:
             raise WorkflowStateError(f"Workflow is missing its internal iterator, despite the state: {self.state}")
 
-        for phase_result in self._iter_workflow:
-            if phase_result is True:
-                self.workflow_paused()
-                return True
-        self._iter_workflow = None
-        return False
+        try:
+            for phase_result in self._iter_workflow:
+                if phase_result is True:
+                    self.workflow_paused()
+                    return True
+
+        except Exception as e:
+            self._iter_workflow = None
+            self.state = WorkflowState.FAILED
+            raise
+
+        else:
+            self._iter_workflow = None
+            return False
 
 
     def workflow_state_change(self, from_state: WorkflowState, to_state: WorkflowState) -> bool:
@@ -266,6 +294,13 @@ class DiffWorkflow(Workflow):
         super().__init__(
             paths, template_paths, profile, chunk_size,
             cls_processor=DiffOnlyProcessor)
+
+
+    def review_missing_report(self):
+        """
+        Diff mode is allowed to have missing objects, so we don't need to do anything.
+        """
+        pass
 
 
     def get_session(self, profile: str = 'koji') -> ClientSession:
