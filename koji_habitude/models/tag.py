@@ -437,11 +437,12 @@ class TagChangeReport(ChangeReport):
             if name not in koji_inher:
                 self.add_inheritance(parent)
             else:
-                if koji_inher['priority'] != parent.priority or \
-                   koji_inher['maxdepth'] != parent.maxdepth or \
-                   koji_inher['noconfig'] != parent.noconfig or \
-                   koji_inher['pkg_filter'] != parent.pkgfilter or \
-                   koji_inher['intransitive'] != parent.intransitive:
+                koji_parent = koji_inher[name]
+                if koji_parent['priority'] != parent.priority or \
+                   koji_parent['maxdepth'] != parent.maxdepth or \
+                   koji_parent['noconfig'] != parent.noconfig or \
+                   koji_parent['pkg_filter'] != parent.pkgfilter or \
+                   koji_parent['intransitive'] != parent.intransitive:
                     self.update_inheritance(parent)
 
         koji_ext_repos = {repo['name']: repo for repo in self._external_repos.result}
