@@ -381,7 +381,7 @@ class TagChangeReport(ChangeReport):
         if info['maven_support'] != self.obj.maven_support or \
            info['maven_include_all'] != self.obj.maven_include_all:
             self.set_tag_maven()
-        if info['extras'] != self.obj.extras:
+        if info['extra'] != self.obj.extras:
             self.set_tag_extras()
 
         self._compare_groups()
