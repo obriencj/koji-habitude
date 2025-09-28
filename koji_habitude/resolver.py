@@ -35,8 +35,12 @@ class MissingChangeReport(ChangeReport):
     A change report for a missing object.
     """
 
+    # we're hijacking the Processor's read and compare steps in order to perform
+    # the existence checks, and feed the boolean back onto the MissingObject
+    # itself.
+
     def impl_read(self, session: MultiCallSession) -> Callable[[MultiCallSession], None] | None:
-        self._exists = self.tp.check_exists(session, self.obj.key())
+        self._exists = self.obj.tp.check_exists(session, self.obj.key())
 
     def impl_compare(self) -> None:
         self.obj._exists = bool(self._exists.result)
