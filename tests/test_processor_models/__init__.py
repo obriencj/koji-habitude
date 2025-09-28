@@ -97,7 +97,7 @@ class MulticallMocking:
         self.client_callmethod_mock = self.client_callmethod_patcher.start()
 
         # Mock for koji_cli.lib.activate_session
-        self.activate_session_patcher = patch('koji_cli.lib.activate_session')
+        self.activate_session_patcher = patch('koji_habitude.koji.activate_session')
         self.activate_session_mock = self.activate_session_patcher.start()
 
         # Mock for koji.read_config (used in koji_habitude.koji.session)
