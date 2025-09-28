@@ -17,9 +17,8 @@ import os
 from typing import List
 
 import click
-from pydantic import ValidationError
-
 from koji import GSSAPIAuthError, GenericError
+from pydantic import ValidationError
 
 
 def resplit(strs: List[str], sep=',') -> List[str]:
@@ -53,9 +52,9 @@ class MagicGroup(click.Group):
         self.add_command(expand)
 
 
-    def __call__(self, *args, **kwargs):
+    def main(self, *args, **kwargs):
         try:
-            return self.main(*args, **kwargs)
+            return super().main(*args, **kwargs)
 
         except ValidationError as e:
             click.echo(f"[ValidationError] {e}", err=True)
@@ -74,7 +73,7 @@ class MagicGroup(click.Group):
             return 130
 
         except Exception as e:
-            logger.error(f"Error: {e}")
+            click.echo(f"[Error] {e}", err=True)
             raise
 
 
