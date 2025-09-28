@@ -65,14 +65,20 @@ class MagicCommand(click.Command):
 class MagicGroup(click.Group):
     command_class = MagicCommand
 
-    def list_commands(self, ctx):
+    def _load_commands(self):
         # delaying to avoid circular imports
         from .sync import sync
         from .diff import diff
         from .templates import list_templates
         from .expand import expand
-        return super().list_commands(ctx)
 
+    def get_command(self, ctx, cmd_name):
+        self._load_commands()
+        return super().get_command(ctx, cmd_name)
+
+    def list_commands(self, ctx):
+        self._load_commands()
+        return super().list_commands(ctx)
 
 
 @click.group(cls=MagicGroup)
