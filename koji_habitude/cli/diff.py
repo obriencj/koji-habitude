@@ -54,7 +54,7 @@ def run_summary(data, templates, profile) -> ProcessorSummary:
         chunk_size=100
     )
 
-    return processor.run()
+    return processor.run(), resolver.report()
 
 
 def display_summary(summary, show_unchanged):
@@ -118,6 +118,28 @@ def display_summary(summary, show_unchanged):
     if show_unchanged and unchanged_count > 0:
         click.echo(f"({unchanged_count} objects unchanged)")
 
+    click.echo()
+
+    if report:
+        total_dependencies = len(report.found) + len(report.missing)
+        click.echo(f"Resolver identified {total_dependencies} dependencies not defined in the data set")
+        click.echo(f"({len(report.found)} were found in the system, {len(report.missing)} remain missing)")
+
+    if report.found:
+        click.echo("Found objects:")
+        for key in report.found:
+            click.echo(f"  {key[0]} {key[1]}")
+
+    if report.missing:
+        click.echo("Missing objects:")
+        for key in report.missing:
+            click.echo(f"  {key[0]} {key[1]}")
+
+    click.echo()
+
+    if report.missing:
+        return 1
+
 
 @click.command()
 @click.argument('data', nargs=-1, required=True)
@@ -139,8 +161,8 @@ def diff(data, templates=None, profile='koji', show_unchanged=False):
 
     try:
         # Call the diff functionality directly
-        summary = run_summary(data, templates, profile)
-        display_summary(summary, show_unchanged)
+        summary, report = run_summary(data, templates, profile)
+        display_summary(summary, report, show_unchanged)
         return 0
 
     except Exception as e:

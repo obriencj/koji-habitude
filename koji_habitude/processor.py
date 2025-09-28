@@ -23,7 +23,6 @@ from koji import ClientSession, VirtualCall
 from .koji import multicall
 from .models import BaseKey, Base, ChangeReport
 from .solver import Solver
-from .resolver import MissingObject
 
 
 logger = logging.getLogger(__name__)
