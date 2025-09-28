@@ -14,8 +14,10 @@ import click
 from ..loader import MultiLoader, YAMLLoader, pretty_yaml_all
 from ..namespace import Namespace, TemplateNamespace, ExpanderNamespace
 
+from . import main
 
-@click.command()
+
+@main.command()
 @click.argument('data', metavar='DATA', nargs=-1, required=True)
 @click.option(
     '--templates', 'templates', metavar='PATH', multiple=True,

@@ -15,6 +15,8 @@ from ..loader import MultiLoader, YAMLLoader, pretty_yaml_all
 from ..namespace import TemplateNamespace
 from ..templates import Template
 
+from . import main
+
 
 def print_template(tmpl: Template, full: bool = False):
     print(f"{tmpl.name}")
@@ -51,7 +53,7 @@ def print_template(tmpl: Template, full: bool = False):
                 print(f"    {var}")
 
 
-@click.command()
+@main.command()
 @click.argument('dirs', metavar='PATH', nargs=-1, required=False)
 @click.option(
     '--templates', "-T", 'template_dirs', metavar='PATH', multiple=True,

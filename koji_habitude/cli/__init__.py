@@ -36,22 +36,7 @@ def resplit(strs: List[str], sep=',') -> List[str]:
     return list(filter(None, map(str.strip, sep.join(strs).split(sep))))
 
 
-class MagicGroup(click.Group):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        # delaying to avoid circular imports
-        from .sync import sync
-        from .diff import diff
-        from .templates import list_templates
-        from .expand import expand
-
-        self.add_command(sync)
-        self.add_command(diff)
-        self.add_command(list_templates)
-        self.add_command(expand)
-
-
+class MagicCommand(click.Command):
     def main(self, *args, **kwargs):
         try:
             return super().main(*args, **kwargs)
@@ -75,6 +60,19 @@ class MagicGroup(click.Group):
         except Exception as e:
             click.echo(f"[Error] {e}", err=True)
             raise
+
+
+class MagicGroup(click.Group):
+    command_class = MagicCommand
+
+    def list_commands(self, ctx):
+        # delaying to avoid circular imports
+        from .sync import sync
+        from .diff import diff
+        from .templates import list_templates
+        from .expand import expand
+        return super().list_commands(ctx)
+
 
 
 @click.group(cls=MagicGroup)

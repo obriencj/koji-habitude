@@ -12,7 +12,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 import click
 
 from ..workflow import DiffWorkflow
-
+from . import main
 
 
 def display_summary(summary, report, show_unchanged):
@@ -99,7 +99,7 @@ def display_summary(summary, report, show_unchanged):
         return 1
 
 
-@click.command()
+@main.command()
 @click.argument('data', nargs=-1, required=True)
 @click.option(
     '--templates', 'templates', metavar='PATH', multiple=True,

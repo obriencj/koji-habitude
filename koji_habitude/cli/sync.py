@@ -13,6 +13,8 @@ import click
 
 from ..workflow import SyncWorkflow as _SyncWorkflow
 
+from . import main
+
 
 class SyncWorkflow(_SyncWorkflow):
 
@@ -106,7 +108,7 @@ def display_summary(summary, report, show_unchanged):
     click.echo()
 
 
-@click.command()
+@main.command()
 @click.argument('data', nargs=-1, required=True)
 @click.option(
     '--templates', metavar='PATH', multiple=True,
