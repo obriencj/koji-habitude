@@ -256,8 +256,6 @@ class SyncWorkflow(Workflow):
 
 class DiffWorkflow(Workflow):
 
-    cls_processor: Type[DiffOnlyProcessor] = DiffOnlyProcessor
-
     def __init__(
         self,
         paths: List[str | Path],
@@ -265,7 +263,9 @@ class DiffWorkflow(Workflow):
         profile: str = 'koji',
         chunk_size: int = 100):
 
-        super().__init__(paths, template_paths, profile, chunk_size)
+        super().__init__(
+            paths, template_paths, profile, chunk_size,
+            cls_processor=DiffOnlyProcessor)
 
 
     def get_session(self, profile: str = 'koji') -> ClientSession:
