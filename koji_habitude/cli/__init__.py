@@ -22,6 +22,16 @@ from .diff import diff
 from .templates import list_templates
 from .expand import expand
 
+import os
+import logging
+
+
+# Get the log level from the environment variable, defaulting to 'INFO' if not set
+log_level = os.environ.get('LOGLEVEL', 'INFO').upper()
+
+# Configure basic logging with the determined level
+logging.basicConfig(level=log_level)
+
 
 def resplit(strs: List[str], sep=',') -> List[str]:
     return list(filter(None, map(str.strip, sep.join(strs).split(sep))))
