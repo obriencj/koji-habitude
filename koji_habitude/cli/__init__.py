@@ -12,12 +12,14 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: AI Generated with Human Rework
 
 
+import logging
+import os
 from typing import List
 
 import click
+from pydantic import ValidationError
 
-import os
-import logging
+from koji import GSSAPIError, GenericError
 
 
 def resplit(strs: List[str], sep=',') -> List[str]:
@@ -35,7 +37,7 @@ def resplit(strs: List[str], sep=',') -> List[str]:
     return list(filter(None, map(str.strip, sep.join(strs).split(sep))))
 
 
-class DelayedGroup(click.Group):
+class MagicGroup(click.Group):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -51,7 +53,32 @@ class DelayedGroup(click.Group):
         self.add_command(expand)
 
 
-@click.group(cls=DelayedGroup)
+    def __call__(self, *args, **kwargs):
+        try:
+            return super().__call__(*args, **kwargs)
+
+        except ValidationError as e:
+            click.echo(f"[ValidationError] {e}", err=True)
+            return 1
+
+        except GSSAPIError as e:
+            click.echo(f"[GSSAPIError] {e}", err=True)
+            return 1
+
+        except GenericError as e:
+            click.echo(f"[GenericError] {e}", err=True)
+            return 1
+
+        except KeyboardInterrupt:
+            click.echo("[Keyboard interrupt]", err=True)
+            return 130
+
+        except Exception as e:
+            logger.error(f"Error: {e}")
+            raise
+
+
+@click.group(cls=MagicGroup)
 def main():
     """
     koji-habitude - Synchronize local koji data expectations with hub instance.
