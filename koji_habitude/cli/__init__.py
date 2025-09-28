@@ -55,14 +55,14 @@ class MagicGroup(click.Group):
 
     def __call__(self, *args, **kwargs):
         try:
-            return super().__call__(*args, **kwargs)
+            return self.main(*args, **kwargs)
 
         except ValidationError as e:
             click.echo(f"[ValidationError] {e}", err=True)
             return 1
 
         except GSSAPIAuthError as e:
-            click.echo(f"[GSSAPIError] {e}", err=True)
+            click.echo(f"[GSSAPIAuthError] {e}", err=True)
             return 1
 
         except GenericError as e:
