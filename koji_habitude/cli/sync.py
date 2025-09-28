@@ -65,7 +65,7 @@ def run_summary(data, templates, profile) -> ProcessorSummary:
     return processor.run(step_callback), resolver.report()
 
 
-def display_summary(summary, show_unchanged):
+def display_summary(summary, report, show_unchanged):
     """
     Display the summary of the changes with proper grouping and indentation.
     """
