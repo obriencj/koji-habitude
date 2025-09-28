@@ -26,7 +26,6 @@ from typing import Any, Dict, Iterator, List, Type
 
 from .koji import ClientSession, session
 from .loader import MultiLoader, YAMLLoader
-from .loader import MultiLoader
 from .models import Base
 from .namespace import Namespace, TemplateNamespace
 from .processor import DiffOnlyProcessor, Processor, ProcessorSummary
@@ -79,6 +78,7 @@ class Workflow:
     cls_yamlloader: Type[YAMLLoader] = YAMLLoader
     cls_template_namespace: Type[TemplateNamespace] = TemplateNamespace
     cls_namespace: Type[Namespace] = Namespace
+    cls_processor: Type[Processor] = Processor
     cls_resolver: Type[Resolver] = Resolver
     cls_solver: Type[Solver] = Solver
 
@@ -93,6 +93,7 @@ class Workflow:
     missing_report: Report = field(init=False, default=None)
 
     state: WorkflowState = field(init=False, default=WorkflowState.READY)
+    _iter_workflow: Iterator[bool] = field(init=False, default=None)
 
 
     def load_yaml(self, paths: List[str | Path]) -> Iterator[Dict[str, Any]]:
@@ -138,7 +139,7 @@ class Workflow:
 
     def run_solving(self):
         yield self.state_change(WorkflowState.LOADED, WorkflowState.SOLVING)
-        self.resolver = self.cls_resolver(self.dataseries, self.namespace)
+        self.resolver = self.cls_resolver(self.namespace)
         self.solver = self.cls_solver(self.resolver)
         self.solver.prepare()
         self.dataseries = list(self.solver)
@@ -155,7 +156,7 @@ class Workflow:
         yield self.state_change(WorkflowState.CONNECTED, WorkflowState.PROCESSING)
         self.processor = self.cls_processor(
             koji_session=self.session,
-            stream_origin=self.dataset,
+            stream_origin=self.dataseries,
             resolver=self.resolver,
             chunk_size=self.chunk_size
         )
@@ -188,12 +189,12 @@ class Workflow:
         if self.state != WorkflowState.READY:
             raise WorkflowStateError(f"Workflow state ({self.state}) not as expected: {WorkflowState.READY}")
 
-        self.workflow = self.iter_run()
-        for phase_result in self.workflow:
+        self._iter_workflow = self.iter_run()
+        for phase_result in self._iter_workflow:
             if phase_result is True:
                 self.workflow_paused()
                 return True
-        self.workflow = None
+        self._iter_workflow = None
         return False
 
 
@@ -210,14 +211,14 @@ class Workflow:
         if self.state in (WorkflowState.READY, WorkflowState.COMPLETED, WorkflowState.FAILED):
             raise WorkflowStateError(f"Cannot resume workflow from state: {self.state}")
 
-        if self.workflow is None:
+        if self._iter_workflow is None:
             raise WorkflowStateError(f"Workflow is missing its internal iterator, despite the state: {self.state}")
 
-        for phase_result in self.workflow:
+        for phase_result in self._iter_workflow:
             if phase_result is True:
                 self.workflow_paused()
                 return True
-        self.workflow = None
+        self._iter_workflow = None
         return False
 
 
@@ -245,12 +246,12 @@ class Workflow:
 class SyncWorkflow(Workflow):
     def __init__(
         self,
-        data: List[str | Path],
+        paths: List[str | Path],
         template_paths: List[str | Path] = None,
         profile: str = 'koji',
         chunk_size: int = 100):
 
-        super().__init__(data, template_paths, profile, chunk_size)
+        super().__init__(paths, template_paths, profile, chunk_size)
 
 
 class DiffWorkflow(Workflow):
@@ -259,12 +260,12 @@ class DiffWorkflow(Workflow):
 
     def __init__(
         self,
-        data: List[str | Path],
+        paths: List[str | Path],
         template_paths: List[str | Path] = None,
         profile: str = 'koji',
         chunk_size: int = 100):
 
-        super().__init__(data, template_paths, profile, chunk_size)
+        super().__init__(paths, template_paths, profile, chunk_size)
 
 
     def get_session(self, profile: str = 'koji') -> ClientSession:
