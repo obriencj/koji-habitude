@@ -11,59 +11,18 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 import click
 
-from ..loader import MultiLoader, YAMLLoader
-from ..namespace import Namespace, TemplateNamespace
-from ..resolver import Resolver
-from ..solver import Solver
-from ..processor import Processor, ProcessorSummary
-from ..koji import session
+from ..workflow import SyncWorkflow as _SyncWorkflow
 
 
-def run_summary(data, templates, profile) -> ProcessorSummary:
-    """
-    Build a Processor and run it to get a summary of the changes
-    """
+class SyncWorkflow(_SyncWorkflow):
 
-    # Load templates if provided
-    template_ns = TemplateNamespace()
-    if templates:
-        ml = MultiLoader([YAMLLoader])
-        template_ns.feedall_raw(ml.load(templates))
-        template_ns.expand()
-
-    # Create regular Namespace with loaded templates
-    data_ns = Namespace()
-    data_ns._templates.update(template_ns._templates)
-
-    # Load and process data files
-    ml = MultiLoader([YAMLLoader])
-    data_ns.feedall_raw(ml.load(data))
-    data_ns.expand()
-
-    # Create resolver and solver
-    resolver = Resolver(data_ns)
-    solver = Solver(resolver)
-    solver.prepare()
-
-    koji_session = session(profile, authenticate=True)
-
-    # Create and run DiffOnlyProcessor
-    processor = Processor(
-        koji_session=koji_session,
-        stream_origin=solver,
-        resolver=resolver,
-        chunk_size=100
-    )
-
-    def step_callback(step, handled):
+    def processor_step_callback(self, step, handled):
         click.echo(f"Step #{step} processed chunk of {handled} objects")
-        report = resolver.report()
+        report = self.resolver.report()
         if report.missing:
             for key in report.missing:
                 click.echo(f"Dependency missing: {key[0]} {key[1]}")
             raise click.ClickException("Missing dependencies found in the system")
-
-    return processor.run(step_callback), resolver.report()
 
 
 def display_summary(summary, report, show_unchanged):
@@ -168,8 +127,9 @@ def sync(data, templates=None, profile='koji', show_unchanged=False):
     DATA can be directories or files containing YAML object definitions.
     """
 
-    summary, report = run_summary(data, templates, profile)
-    display_summary(summary, report, show_unchanged)
+    workflow = SyncWorkflow(data, templates, profile)
+    workflow.run()
+    display_summary(workflow.summary, workflow.missing_report, show_unchanged)
 
     return 0
 

@@ -11,51 +11,8 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 import click
 
-from ..loader import MultiLoader, YAMLLoader
-from ..namespace import Namespace, TemplateNamespace
-from ..resolver import Resolver
-from ..solver import Solver
-from ..processor import DiffOnlyProcessor, ProcessorSummary
-from ..koji import session
+from ..workflow import DiffWorkflow
 
-
-def run_summary(data, templates, profile) -> ProcessorSummary:
-    """
-    Build a Processor and run it to get a summary of the changes
-    """
-
-    # Load templates if provided
-    template_ns = TemplateNamespace()
-    if templates:
-        ml = MultiLoader([YAMLLoader])
-        template_ns.feedall_raw(ml.load(templates))
-        template_ns.expand()
-
-    # Create regular Namespace with loaded templates
-    data_ns = Namespace()
-    data_ns._templates.update(template_ns._templates)
-
-    # Load and process data files
-    ml = MultiLoader([YAMLLoader])
-    data_ns.feedall_raw(ml.load(data))
-    data_ns.expand()
-
-    # Create resolver and solver
-    resolver = Resolver(data_ns)
-    solver = Solver(resolver)
-    solver.prepare()
-
-    koji_session = session(profile)
-
-    # Create and run DiffOnlyProcessor
-    processor = DiffOnlyProcessor(
-        koji_session=koji_session,
-        stream_origin=solver,
-        resolver=resolver,
-        chunk_size=100
-    )
-
-    return processor.run(), resolver.report()
 
 
 def display_summary(summary, report, show_unchanged):
@@ -161,9 +118,10 @@ def diff(data, templates=None, profile='koji', show_unchanged=False):
     """
 
     try:
-        # Call the diff functionality directly
-        summary, report = run_summary(data, templates, profile)
-        display_summary(summary, report, show_unchanged)
+        workflow = DiffWorkflow(paths=data, template_paths=templates, profile=profile)
+        workflow.run()
+        display_summary(workflow.summary, workflow.missing_report, show_unchanged)
+
         return 0
 
     except Exception as e:

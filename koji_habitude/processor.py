@@ -15,15 +15,15 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Iterator, Dict, List, Any, Optional, Tuple, Callable
 import logging
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 
 from koji import ClientSession, VirtualCall
 
 from .koji import multicall
-from .models import BaseKey, Base, ChangeReport
-from .solver import Solver
+from .models import Base, BaseKey, ChangeReport
 from .resolver import Resolver
+from .solver import Solver
 
 
 logger = logging.getLogger(__name__)
@@ -99,12 +99,12 @@ class Processor:
         """
 
         self.koji_session: ClientSession = koji_session
-        self.object_stream = iter(stream_origin)
+        self.object_stream: Iterator[Base] = iter(stream_origin)
         self.resolver: Resolver = resolver
-        self.chunk_size = chunk_size
+        self.chunk_size: int = chunk_size
 
         self.current_chunk: List[Base] = []
-        self.state = ProcessorState.READY_CHUNK
+        self.state: ProcessorState = ProcessorState.READY_CHUNK
 
         self.change_reports: Dict[BaseKey, ChangeReport] = {}
         self.read_logs: Dict[BaseKey, List[VirtualCall]] = {}

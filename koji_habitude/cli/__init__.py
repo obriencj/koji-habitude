@@ -16,28 +16,42 @@ from typing import List
 
 import click
 
-
-from .sync import sync
-from .diff import diff
-from .templates import list_templates
-from .expand import expand
-
 import os
 import logging
 
 
-# Get the log level from the environment variable, defaulting to 'INFO' if not set
-log_level = os.environ.get('LOGLEVEL', 'INFO').upper()
-
-# Configure basic logging with the determined level
-logging.basicConfig(level=log_level)
-
-
 def resplit(strs: List[str], sep=',') -> List[str]:
+    """
+    Takes a list of strings which may be comma-separated to indicate multiple
+    values. Returns a list of strings with the commas removed and those values
+    expanded, whitespace stripped, and any empty strings omitted.
+
+    Example:
+        >>> resplit(['foo', ' ', 'bar,baz', 'qux,,quux'])
+        ['foo', 'bar', 'baz', 'qux', 'quux']
+    """
+
+    # joins 'em, splits 'em, strips 'em, and filters 'em
     return list(filter(None, map(str.strip, sep.join(strs).split(sep))))
 
 
-@click.group()
+class DelayedGroup(click.Group):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # delaying to avoid circular imports
+        from .sync import sync
+        from .diff import diff
+        from .templates import list_templates
+        from .expand import expand
+
+        self.add_command(sync)
+        self.add_command(diff)
+        self.add_command(list_templates)
+        self.add_command(expand)
+
+
+@click.group(cls=DelayedGroup)
 def main():
     """
     koji-habitude - Synchronize local koji data expectations with hub instance.
@@ -45,15 +59,9 @@ def main():
     This tool loads YAML templates and data files, resolves dependencies,
     and applies changes to a koji hub in the correct order.
     """
-    pass
 
-
-# Register subcommands
-main.add_command(sync)
-main.add_command(diff)
-main.add_command(list_templates)
-main.add_command(expand)
-
+    log_level = os.environ.get('LOGLEVEL', 'WARNING').upper()
+    logging.basicConfig(level=log_level)
 
 
 # The end.
