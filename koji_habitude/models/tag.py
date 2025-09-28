@@ -426,7 +426,7 @@ class TagChangeReport(ChangeReport):
             if tinfo:
                 parent._parent_tag_id = tinfo['id']
 
-        koji_inher = {parent['parent_name']: parent for parent in self._inheritance.result}
+        koji_inher = {parent['name']: parent for parent in self._inheritance.result}
         inher = {parent.name: parent for parent in self.obj.parent_tags}
 
         for name, parent in koji_inher.items():
