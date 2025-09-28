@@ -135,20 +135,6 @@ def multicall(
     Args:
         session: The koji session to create the multicall session from
         associations: Dict of BaseKey to list of VirtualCall objects
-
-    Usage:
-    ```python
-    call_log = []
-
-    with multicall(session, call_log=call_log) as mc:
-        # perform method calls againt the mc context, which will
-        # each return a VirtualResult object that acts as a
-        # promise for the eventual result of the call
-        ...
-
-    for call in call_log:
-        print(call)  # each call is a VirtualCall object
-    ```
     """
 
     # note that we make the call log mandatory here.

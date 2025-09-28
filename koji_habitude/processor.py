@@ -312,9 +312,6 @@ class Processor:
             Summary of processing results including total objects processed,
             changes applied, and any errors encountered.
         """
-
-        logger.info("Starting processor run")
-
         total_objects = 0
         step = 0
 
@@ -364,8 +361,6 @@ class DiffOnlyProcessor(Processor):
 
         if self.state != ProcessorState.READY_APPLY:
             raise ProcessorStateError(f"Processor is not in the READY_APPLY state: {self.state}")
-
-        logger.info(f"DIFF MODE: Would apply changes for {len(self.change_reports)} objects")
 
         self.state = ProcessorState.READY_CHUNK
 
