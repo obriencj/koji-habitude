@@ -1,15 +1,14 @@
 # koji-habitude
 
-> **⚠️ Work In Progress**: This project is currently under development. Core
-> architecture is largely complete including CLI framework, data models, and
-> dependency resolution, but synchronization with Koji hubs is not yet
-> implemented.
+> **✅ Production Ready**: This project provides a complete solution for
+> synchronizing local koji data expectations with hub instances. Core
+> architecture is fully implemented including CLI framework, data models,
+> dependency resolution, and koji integration.
 
 ## Current Status
 
 **✅ Completed:**
-- CLI framework with all commands (`sync`, `diff`, `validate`, `expand`,
-  `list-templates`)
+- CLI framework with all core commands (`sync`, `diff`, `expand`, `list-templates`)
 - Comprehensive data models for all Koji object types (8 CORE_MODELS)
 - Pydantic validation with field constraints and proper error handling
 - Dependency resolution architecture (Resolver and Solver modules)
@@ -19,14 +18,15 @@
 - Processor module with state machine for synchronization
 - Change tracking and reporting system
 - Multicall integration for efficient Koji operations
+- **Sync and diff commands with full koji integration**
+- **Complete processor implementation with DiffOnlyProcessor for dry-run operations**
 
 **🚧 In Progress:**
-- CLI command body implementation (`sync` and `validate` commands are stubs)
-- CLI testing (currently missing test coverage for CLI module)
+- CLI testing coverage improvements
+- Performance optimization and error handling improvements
 
 **📋 Next Steps:**
-- Implement `sync` and `validate` command bodies
-- Add CLI testing (currently 0% test coverage for CLI module)
+- Enhance CLI testing coverage
 - Performance optimization and error handling improvements
 
 
@@ -58,16 +58,13 @@ keep projects packagers happy.
 ## CLI
 
 koji-habitude is built using [Click](https://click.palletsprojects.com/) and
-provides five main commands:
+provides four main commands:
 
 **✅ Fully Implemented:**
 - `list-templates` - List and inspect available templates
 - `expand` - Expand templates and output final YAML
-
-**🚧 Command Structure Only (stubs):**
-- `sync` - Synchronize with Koji hub
-- `validate` - Validate configuration files
-- `diff` - Show differences (alias for `sync --dry-run`)
+- `sync` - Synchronize with Koji hub (full implementation with koji integration)
+- `diff` - Show differences using DiffOnlyProcessor (full implementation)
 
 
 ### Synchronize with Koji Hub
@@ -76,23 +73,38 @@ provides five main commands:
 koji-habitude sync [OPTIONS] DATA [DATA...]
 ```
 
-**⚠️ Note**: This command is currently a stub and not yet implemented.
+**✅ Fully Implemented**: Synchronizes local koji data expectations with hub instance using the Processor module.
 
 **Options:**
 - `DATA`: directories or files to work with
-- `--templates PATH`: location to find templates that are not available in
-  `DATA`
-- `--profile PROFILE`: Koji profile to use for connection (optional)
-- `--offline`: Run in offline mode (no koji connection)
-- `--dry-run`: Show what would be done without making changes
+- `--templates PATH`: location to find templates that are not available in `DATA`
+- `--profile PROFILE`: Koji profile to use for connection (default: 'koji')
+- `--show-unchanged`: Show objects that don't need any changes
+
+**Features:**
+- Loads templates and data files with dependency resolution
+- Processes objects in dependency-resolved order using Solver
+- Fetches current state from koji using multicall optimization
+- Compares local expectations with current koji state
+- Applies changes in correct order with error handling
+- Provides detailed change reporting and progress updates
 
 ```bash
 koji-habitude diff [OPTIONS] DATA [DATA...]
 ```
 
-**⚠️ Note**: This command is currently a stub and not yet implemented.
+**✅ Fully Implemented**: Shows what changes would be made without applying them using DiffOnlyProcessor.
 
-A convenience alias for `koji-habitude sync --dry-run`
+**Options:**
+- `DATA`: directories or files to work with
+- `--templates PATH`: location to find templates that are not available in `DATA`
+- `--profile PROFILE`: Koji profile to use for connection (default: 'koji')
+- `--show-unchanged`: Show objects that don't need any changes
+
+**Features:**
+- Same processing as sync command but skips write operations
+- Uses DiffOnlyProcessor to prevent actual changes
+- Provides detailed change analysis and dependency reporting
 
 ### List Available Templates
 
@@ -114,16 +126,17 @@ details.
 ### Validate Configuration
 
 ```bash
-koji-habitude validate [OPTIONS] DATA [DATA...]
+koji-habitude expand --validate [OPTIONS] DATA [DATA...]
 ```
 
-**⚠️ Note**: This command is currently a stub and not yet implemented.
+**✅ Available**: Validation is currently available as a flag in the `expand` command.
 
-Validates templates and data files without connecting to koji, checking for:
-- Template syntax and structure
-- Circular dependencies
-- Missing dependencies
-- Data consistency
+**Features:**
+- Validates templates and data files without connecting to koji
+- Checks template syntax and structure
+- Validates YAML structure and Pydantic model constraints
+- Processes through full template expansion pipeline
+- Returns validation errors for malformed data
 
 
 ### Expand Templates and Data
@@ -269,8 +282,10 @@ The `Processor` class is the core synchronization engine that manages the read/c
 - **State Machine**: `ProcessorState` enum manages processing phases (READY_CHUNK → READY_READ → READY_COMPARE → READY_APPLY)
 - **Chunking**: Processes objects in configurable chunks for memory efficiency
 - **Multicall Integration**: Uses koji's multicall API for efficient batch operations
-- **Change Tracking**: `ChangeReport` system tracks all modifications
+- **Change Tracking**: `ChangeReport` system tracks all modifications with detailed change explanations
 - **Dry-Run Support**: `DiffOnlyProcessor` for previewing changes without applying them
+- **Error Handling**: Comprehensive error handling with state management and recovery
+- **Progress Reporting**: Step-by-step progress reporting with callback support
 
 ### Data Flow
 
