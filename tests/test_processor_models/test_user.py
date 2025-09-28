@@ -70,6 +70,7 @@ class TestProcessorUserBehavior(MulticallMocking, TestCase):
         processor = Processor(
             koji_session=mock_session,
             stream_origin=solver,
+            resolver=None,
             chunk_size=10
         )
 
@@ -120,6 +121,7 @@ class TestProcessorUserBehavior(MulticallMocking, TestCase):
         processor = Processor(
             koji_session=mock_session,
             stream_origin=solver,
+            resolver=None,
             chunk_size=10
         )
 
@@ -146,7 +148,7 @@ class TestProcessorUserBehavior(MulticallMocking, TestCase):
         get_user_mock = Mock()
         get_user_mock.return_value = {
             'name': 'existing-user',
-            'status': False,  # User is disabled
+            'status': 1,  # User is disabled
             'groups': []
         }
 
@@ -163,6 +165,7 @@ class TestProcessorUserBehavior(MulticallMocking, TestCase):
         processor = Processor(
             koji_session=mock_session,
             stream_origin=solver,
+            resolver=None,
             chunk_size=10
         )
 
@@ -184,7 +187,7 @@ class TestProcessorUserBehavior(MulticallMocking, TestCase):
         get_user_mock = Mock()
         get_user_mock.return_value = {
             'name': 'existing-user',
-            'status': True,  # User is enabled
+            'status': 0,  # User is enabled
             'groups': []
         }
 
@@ -201,6 +204,7 @@ class TestProcessorUserBehavior(MulticallMocking, TestCase):
         processor = Processor(
             koji_session=mock_session,
             stream_origin=solver,
+            resolver=None,
             chunk_size=10
         )
 
@@ -222,7 +226,7 @@ class TestProcessorUserBehavior(MulticallMocking, TestCase):
         get_user_mock = Mock()
         get_user_mock.return_value = {
             'name': 'existing-user',
-            'status': True,
+            'status': 0,  # User is enabled
             'groups': []  # User has no groups currently
         }
 
@@ -243,6 +247,7 @@ class TestProcessorUserBehavior(MulticallMocking, TestCase):
         processor = Processor(
             koji_session=mock_session,
             stream_origin=solver,
+            resolver=None,
             chunk_size=10
         )
 
@@ -265,7 +270,7 @@ class TestProcessorUserBehavior(MulticallMocking, TestCase):
         get_user_mock = Mock()
         get_user_mock.return_value = {
             'name': 'existing-user',
-            'status': True,
+            'status': 0,  # User is enabled
             'groups': ['group1', 'extra-group']  # User has extra group
         }
 
@@ -282,6 +287,7 @@ class TestProcessorUserBehavior(MulticallMocking, TestCase):
         processor = Processor(
             koji_session=mock_session,
             stream_origin=solver,
+            resolver=None,
             chunk_size=10
         )
 
@@ -303,7 +309,7 @@ class TestProcessorUserBehavior(MulticallMocking, TestCase):
         get_user_mock = Mock()
         get_user_mock.return_value = {
             'name': 'existing-user',
-            'status': True,
+            'status': 0,  # User is enabled
             'groups': []
         }
 
@@ -324,6 +330,7 @@ class TestProcessorUserBehavior(MulticallMocking, TestCase):
         processor = Processor(
             koji_session=mock_session,
             stream_origin=solver,
+            resolver=None,
             chunk_size=10
         )
 
@@ -346,7 +353,7 @@ class TestProcessorUserBehavior(MulticallMocking, TestCase):
         get_user_mock = Mock()
         get_user_mock.return_value = {
             'name': 'existing-user',
-            'status': True,
+            'status': 0,  # User is enabled
             'groups': []
         }
 
@@ -363,6 +370,7 @@ class TestProcessorUserBehavior(MulticallMocking, TestCase):
         processor = Processor(
             koji_session=mock_session,
             stream_origin=solver,
+            resolver=None,
             chunk_size=10
         )
 
@@ -384,7 +392,7 @@ class TestProcessorUserBehavior(MulticallMocking, TestCase):
         get_user_mock = Mock()
         get_user_mock.return_value = {
             'name': 'existing-user',
-            'status': True,  # Already enabled
+            'status': 0,  # Already enabled
             'groups': ['group1']  # Already in group1
         }
 
@@ -397,6 +405,7 @@ class TestProcessorUserBehavior(MulticallMocking, TestCase):
         processor = Processor(
             koji_session=mock_session,
             stream_origin=solver,
+            resolver=None,
             chunk_size=10
         )
 
@@ -459,6 +468,7 @@ class TestProcessorUserBehavior(MulticallMocking, TestCase):
         processor = Processor(
             koji_session=mock_session,
             stream_origin=solver,
+            resolver=None,
             chunk_size=10
         )
 
