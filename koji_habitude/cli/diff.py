@@ -15,7 +15,7 @@ from ..workflow import DiffWorkflow
 from . import main, catchall
 
 
-def display_summary(summary, report, show_unchanged):
+def display_summary(summary, show_unchanged):
     """
     Display the summary of the changes with proper grouping and indentation.
     """
