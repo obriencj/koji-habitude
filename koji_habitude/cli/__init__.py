@@ -19,7 +19,7 @@ from typing import List
 import click
 from pydantic import ValidationError
 
-from koji import GSSAPIError, GenericError
+from koji import GSSAPIAuthError, GenericError
 
 
 def resplit(strs: List[str], sep=',') -> List[str]:
@@ -61,7 +61,7 @@ class MagicGroup(click.Group):
             click.echo(f"[ValidationError] {e}", err=True)
             return 1
 
-        except GSSAPIError as e:
+        except GSSAPIAuthError as e:
             click.echo(f"[GSSAPIError] {e}", err=True)
             return 1
 
