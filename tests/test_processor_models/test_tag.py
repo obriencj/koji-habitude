@@ -75,6 +75,9 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         get_tag_mock = Mock()
         get_tag_mock.return_value = None
 
+        get_tag_post_mock = Mock()
+        get_tag_post_mock.return_value = None
+
         get_groups_mock = Mock()
         get_groups_mock.return_value = []
 
@@ -96,6 +99,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
         self.queue_client_response('createTag', create_mock)
         self.queue_client_response('editTag2', set_extras_mock)
+        self.queue_client_response('getTag', get_tag_post_mock)
 
         processor = Processor(
             koji_session=mock_session,
@@ -109,6 +113,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
         get_tag_mock.assert_called_once_with('new-tag', strict=False)
+        get_tag_post_mock.assert_called_once_with('new-tag', strict=False)
         # When tag doesn't exist, deferred calls are not made
         get_groups_mock.assert_not_called()
         get_inheritance_mock.assert_not_called()
@@ -140,6 +145,9 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
 
         get_tag_mock = Mock()
         get_tag_mock.return_value = None
+
+        get_tag_post_mock = Mock()
+        get_tag_post_mock.return_value = None
 
         get_groups_mock = Mock()
         get_groups_mock.return_value = []
@@ -182,10 +190,14 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         self.queue_client_response('groupPackageListAdd', add_group_pkg2_mock)
         self.queue_client_response('setInheritanceData', add_inheritance_mock)
         self.queue_client_response('addExternalRepoToTag', add_external_repo_mock)
+        self.queue_client_response('getTag', get_tag_post_mock)
 
         processor = Processor(
             koji_session=mock_session,
             stream_origin=solver,
+            resolver=create_resolver_with_objects({
+                ('tag', 'parent-tag'): {'id': 123, 'name': 'parent-tag'}
+            }),
             chunk_size=10
         )
 
@@ -195,6 +207,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
 
         # Verify all calls were made
         get_tag_mock.assert_called_once_with('complex-tag', strict=False)
+        get_tag_post_mock.assert_called_once_with('complex-tag', strict=False)
         # When tag doesn't exist, deferred calls are not made
         get_groups_mock.assert_not_called()
         get_inheritance_mock.assert_not_called()
@@ -204,7 +217,18 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         add_group_mock.assert_called_once_with('complex-tag', 'build', description=None, block=False, force=True)
         add_group_pkg1_mock.assert_called_once_with('complex-tag', 'build', 'package1', block=False, force=True)
         add_group_pkg2_mock.assert_called_once_with('complex-tag', 'build', 'package2', block=False, force=True)
-        add_inheritance_mock.assert_called_once()
+        add_inheritance_mock.assert_called_once_with(
+            'complex-tag',
+            [
+                {
+                    'parent_id': 123,
+                    'priority': 10,
+                    'intransitive': False,
+                    'maxdepth': None,
+                    'noconfig': False,
+                    'pkg_filter': '',
+                }
+            ])
         add_external_repo_mock.assert_called_once_with('complex-tag', 'external-repo', 5)
 
     def test_update_locked_status(self):
@@ -466,6 +490,12 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         get_tag2_mock = Mock()
         get_tag2_mock.return_value = None
 
+        get_tag_post1_mock = Mock()
+        get_tag_post1_mock.return_value = None
+
+        get_tag_post2_mock = Mock()
+        get_tag_post2_mock.return_value = None
+
         # Mock other calls
         get_groups1_mock = Mock()
         get_groups1_mock.return_value = []
@@ -514,6 +544,9 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         self.queue_client_response('createTag', create2_mock)
         self.queue_client_response('editTag2', set_extras2_mock)
 
+        self.queue_client_response('getTag', get_tag_post1_mock)
+        self.queue_client_response('getTag', get_tag_post2_mock)
+
         processor = Processor(
             koji_session=mock_session,
             stream_origin=solver,
@@ -533,6 +566,8 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         create2_mock.assert_called_once()
         set_extras1_mock.assert_called_once_with('tag1', extra={})
         set_extras2_mock.assert_called_once_with('tag2', extra={})
+        get_tag_post1_mock.assert_called_once_with('tag1', strict=False)
+        get_tag_post2_mock.assert_called_once_with('tag2', strict=False)
 
 
 class TestProcessorTagGroups(MulticallMocking, TestCase):
@@ -1090,6 +1125,146 @@ class TestProcessorTagDependencies(MulticallMocking, TestCase):
 
         get_tag_mock.assert_called_once_with('existing-tag', strict=False)
         add_external_repo_mock.assert_called_once_with('existing-tag', 'external-repo', 5)
+
+    def test_simultaneous_tag_creation_with_inheritance(self):
+        """
+        Test creating two tags simultaneously where one inherits from the other.
+
+        This verifies that dependency resolution correctly handles the case where
+        both parent and child tags are created in the same processing run, with
+        the parent tag being processed first due to dependency ordering.
+        """
+        # Create parent tag
+        parent_tag = create_test_tag('parent-tag', locked=False, arches=['x86_64'])
+
+        # Create child tag that inherits from parent
+        inheritance = [create_inheritance_link('parent-tag', 10)]
+        child_tag = create_test_tag('child-tag', locked=False, arches=['x86_64'], inheritance=inheritance)
+
+        # Create solver with both tags
+        solver = create_solver_with_objects([parent_tag, child_tag])
+        mock_session = create_test_koji_session()
+
+        # Mock getTag calls - both tags don't exist yet
+        get_parent_tag_mock = Mock()
+        get_parent_tag_mock.return_value = None
+
+        get_child_tag_mock = Mock()
+        get_child_tag_mock.return_value = None
+
+        # Mock getTagGroups calls
+        get_parent_groups_mock = Mock()
+        get_parent_groups_mock.return_value = []
+
+        get_child_groups_mock = Mock()
+        get_child_groups_mock.return_value = []
+
+        # Mock getInheritanceData calls
+        get_parent_inheritance_mock = Mock()
+        get_parent_inheritance_mock.return_value = []
+
+        get_child_inheritance_mock = Mock()
+        get_child_inheritance_mock.return_value = []
+
+        # Mock getTagExternalRepos calls
+        get_parent_external_repos_mock = Mock()
+        get_parent_external_repos_mock.return_value = []
+
+        get_child_external_repos_mock = Mock()
+        get_child_external_repos_mock.return_value = []
+
+        # Mock createTag calls
+        create_parent_mock = Mock()
+        create_parent_mock.return_value = None
+
+        create_child_mock = Mock()
+        create_child_mock.return_value = None
+
+        # Mock post-creation getTag calls
+        get_parent_tag_post_mock = Mock()
+        get_parent_tag_post_mock.return_value = None
+
+        get_child_tag_post_mock = Mock()
+        get_child_tag_post_mock.return_value = None
+
+        # Mock editTag2 calls (for setExtras)
+        edit_parent_tag_mock = Mock()
+        edit_parent_tag_mock.return_value = None
+
+        edit_child_tag_mock = Mock()
+        edit_child_tag_mock.return_value = None
+
+        # Mock setInheritanceData call for child tag inheritance
+        set_child_inheritance_mock = Mock()
+        set_child_inheritance_mock.return_value = None
+
+        # Queue all the mock responses in dependency order
+        # Parent tag processing first
+        self.queue_client_response('getTag', get_parent_tag_mock)
+        self.queue_client_response('getTagGroups', get_parent_groups_mock)
+        self.queue_client_response('getInheritanceData', get_parent_inheritance_mock)
+        self.queue_client_response('getTagExternalRepos', get_parent_external_repos_mock)
+        self.queue_client_response('createTag', create_parent_mock)
+        self.queue_client_response('editTag2', edit_parent_tag_mock)
+        self.queue_client_response('getTag', get_parent_tag_post_mock)
+
+        # Child tag processing second
+        self.queue_client_response('getTag', get_child_tag_mock)
+        self.queue_client_response('getTagGroups', get_child_groups_mock)
+        self.queue_client_response('getInheritanceData', get_child_inheritance_mock)
+        self.queue_client_response('getTagExternalRepos', get_child_external_repos_mock)
+        self.queue_client_response('createTag', create_child_mock)
+        self.queue_client_response('editTag2', edit_child_tag_mock)
+        self.queue_client_response('setInheritanceData', set_child_inheritance_mock)
+        self.queue_client_response('getTag', get_child_tag_post_mock)
+
+        # Create resolver with both tags to handle dependency resolution
+        resolver = create_resolver_with_objects({
+            ('tag', 'parent-tag'): {'id': 1, 'name': 'parent-tag'},
+            ('tag', 'child-tag'): {'id': 2, 'name': 'child-tag'},
+        })
+
+        processor = Processor(
+            koji_session=mock_session,
+            stream_origin=solver,
+            resolver=resolver,
+            chunk_size=10
+        )
+
+        # Process both tags - should handle dependency resolution correctly
+        result = processor.step()
+        self.assertTrue(result)  # Should process both objects
+        self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
+
+        # Verify parent tag was created first
+        create_parent_mock.assert_called_once_with(
+            'parent-tag',
+            locked=False,
+            perm=None,
+            arches='x86_64',
+            maven_support=False,
+            maven_include_all=False
+        )
+
+        # Verify child tag was created second
+        create_child_mock.assert_called_once_with(
+            'child-tag',
+            locked=False,
+            perm=None,
+            arches='x86_64',
+            maven_support=False,
+            maven_include_all=False
+        )
+
+        # Verify inheritance was set on child tag
+        set_child_inheritance_mock.assert_called_once()
+        inheritance_call = set_child_inheritance_mock.call_args
+        self.assertEqual(inheritance_call[0][0], 'child-tag')  # tag name
+        # Verify the inheritance data structure
+        inheritance_data = inheritance_call[0][1]
+        self.assertEqual(len(inheritance_data), 1)
+        self.assertEqual(inheritance_data[0]['parent_id'], 1)  # parent tag ID
+        self.assertEqual(inheritance_data[0]['priority'], 10)
 
 
 # The end.

@@ -14,7 +14,7 @@ from typing import Any, ClassVar, Dict, List, Optional, Sequence, Union, Literal
 from koji import ClientSession, MultiCallSession, VirtualCall, MultiCallNotReady
 from pydantic import Field, field_validator, model_validator
 
-from .base import BaseKey, BaseKojiObject, SubModel
+from .base import Base, BaseKey, BaseKojiObject, SubModel
 from .change import Change, ChangeReport
 
 
