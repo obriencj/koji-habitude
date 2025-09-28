@@ -51,6 +51,7 @@ def run_summary(data, templates, profile) -> ProcessorSummary:
     processor = DiffOnlyProcessor(
         koji_session=koji_session,
         stream_origin=solver,
+        resolver=resolver,
         chunk_size=100
     )
 
