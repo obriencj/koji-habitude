@@ -11,7 +11,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 from dataclasses import dataclass
 from typing import Any, ClassVar, Dict, List, Optional, Sequence, Union, Literal
 
-from koji import MultiCallSession, VirtualCall
+from koji import ClientSession, MultiCallSession, VirtualCall
 from pydantic import Field, field_validator, model_validator
 
 from .base import BaseKey, BaseKojiObject, SubModel
@@ -672,6 +672,10 @@ class Tag(BaseKojiObject):
 
     def change_report(self) -> TagChangeReport:
         return TagChangeReport(self)
+
+    @classmethod
+    def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
+        return session.getTag(key[1], strict=False)
 
 
 # The end.
