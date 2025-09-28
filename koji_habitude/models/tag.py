@@ -226,7 +226,7 @@ class TagAddInheritance(Change):
         data = [{
             'parent_id': self.parent._parent_tag_id,
             'priority': self.parent.priority,
-            # 'intransitive': self.parent.intransitive,
+            'intransitive': self.parent.intransitive,
             'maxdepth': self.parent.maxdepth,
             'noconfig': self.parent.noconfig,
             'pkg_filter': self.parent.pkgfilter,
@@ -440,7 +440,8 @@ class TagChangeReport(ChangeReport):
                 if koji_inher['priority'] != parent.priority or \
                    koji_inher['maxdepth'] != parent.maxdepth or \
                    koji_inher['noconfig'] != parent.noconfig or \
-                   koji_inher['pkg_filter'] != parent.pkgfilter:
+                   koji_inher['pkg_filter'] != parent.pkgfilter or \
+                   koji_inher['intransitive'] != parent.intransitive:
                     self.update_inheritance(parent)
 
         koji_ext_repos = {repo['name']: repo for repo in self._external_repos.result}
@@ -550,7 +551,8 @@ class InheritanceLink(SubModel):
     type: Literal['tag', 'external-repo'] = Field(alias='type', default='tag')
     maxdepth: Optional[int] = Field(alias='max-depth', default=None)
     noconfig: bool = Field(alias='no-config', default=False)
-    pkgfilter: Optional[str] = Field(alias='pkg-filter', default=None)
+    pkgfilter: str = Field(alias='pkg-filter', default='')
+    intransitive: bool = Field(alias='intransitive', default=False)
 
     _parent_tag_id: Optional[int] = None
 
