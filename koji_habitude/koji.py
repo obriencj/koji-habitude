@@ -55,7 +55,7 @@ def session(profile: str = 'koji', authenticate: bool = False) -> ClientSession:
     return session
 
 
-class VirtualCallProcessor:
+class VirtualCallProcessor(VirtualCall):
     """
     A VirtualCall that reports the results of the calls.
     """

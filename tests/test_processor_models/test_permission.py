@@ -14,7 +14,7 @@ from unittest.mock import Mock
 from koji_habitude.processor import Processor, DiffOnlyProcessor, ProcessorState, ProcessorSummary
 from koji_habitude.models import Permission
 
-from . import create_test_koji_session, create_solver_with_objects, MulticallMocking
+from . import create_test_koji_session, create_solver_with_objects, create_resolver_with_objects, create_empty_resolver, MulticallMocking
 
 
 def create_test_permission(name: str, description: str = None) -> Permission:
@@ -63,6 +63,7 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
         processor = Processor(
             koji_session=mock_session,
             stream_origin=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
@@ -160,6 +161,7 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
         processor = Processor(
             koji_session=mock_session,
             stream_origin=solver,
+            resolver=None,
             chunk_size=10
         )
 

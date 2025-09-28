@@ -15,7 +15,7 @@ from koji_habitude.processor import Processor, DiffOnlyProcessor, ProcessorState
 from koji_habitude.models import Tag
 from koji_habitude.models.tag import InheritanceLink
 
-from . import create_test_koji_session, create_solver_with_objects, MulticallMocking
+from . import create_test_koji_session, create_solver_with_objects, create_resolver_with_objects, MulticallMocking
 
 
 def create_test_tag(name: str, locked: bool = False, permission: str = None,
@@ -100,6 +100,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         processor = Processor(
             koji_session=mock_session,
             stream_origin=solver,
+            resolver=None,
             chunk_size=10
         )
 
@@ -217,11 +218,11 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         get_tag_mock.return_value = {
             'name': 'existing-tag',
             'locked': False,  # Currently unlocked
-            'permission': None,
-            'arches': [],
+            'perm': None,
+            'arches': '',
             'maven_support': False,
             'maven_include_all': False,
-            'extras': {}
+            'extra': {}
         }
 
         get_groups_mock = Mock()
@@ -266,11 +267,11 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         get_tag_mock.return_value = {
             'name': 'existing-tag',
             'locked': False,
-            'permission': None,  # Currently no permission
-            'arches': [],
+            'perm': None,  # Currently no permission
+            'arches': '',
             'maven_support': False,
             'maven_include_all': False,
-            'extras': {}
+            'extra': {}
         }
 
         get_groups_mock = Mock()
@@ -315,11 +316,11 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         get_tag_mock.return_value = {
             'name': 'existing-tag',
             'locked': False,
-            'permission': None,
-            'arches': ['x86_64'],  # Currently only x86_64
+            'perm': None,
+            'arches': 'x86_64',  # Currently only x86_64
             'maven_support': False,
             'maven_include_all': False,
-            'extras': {}
+            'extra': {}
         }
 
         get_groups_mock = Mock()
@@ -364,11 +365,11 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         get_tag_mock.return_value = {
             'name': 'existing-tag',
             'locked': False,
-            'permission': None,
-            'arches': [],
+            'perm': None,
+            'arches': '',
             'maven_support': False,  # Currently disabled
             'maven_include_all': False,  # Currently disabled
-            'extras': {}
+            'extra': {}
         }
 
         get_groups_mock = Mock()
@@ -413,11 +414,11 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         get_tag_mock.return_value = {
             'name': 'existing-tag',
             'locked': False,  # Already matches
-            'permission': None,
-            'arches': ['x86_64'],  # Already matches
+            'perm': None,
+            'arches': 'x86_64',  # Already matches
             'maven_support': False,
             'maven_include_all': False,
-            'extras': {}
+            'extra': {}
         }
 
         get_groups_mock = Mock()
@@ -553,11 +554,11 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         get_tag_mock.return_value = {
             'name': 'existing-tag',
             'locked': False,
-            'permission': None,
-            'arches': [],
+            'perm': None,
+            'arches': '',
             'maven_support': False,
             'maven_include_all': False,
-            'extras': {}
+            'extra': {}
         }
 
         get_groups_mock = Mock()
@@ -609,11 +610,11 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         get_tag_mock.return_value = {
             'name': 'existing-tag',
             'locked': False,
-            'permission': None,
-            'arches': [],
+            'perm': None,
+            'arches': '',
             'maven_support': False,
             'maven_include_all': False,
-            'extras': {}
+            'extra': {}
         }
 
         # Mock existing group with different properties
@@ -669,11 +670,11 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         get_tag_mock.return_value = {
             'name': 'existing-tag',
             'locked': False,
-            'permission': None,
-            'arches': [],
+            'perm': None,
+            'arches': '',
             'maven_support': False,
             'maven_include_all': False,
-            'extras': {}
+            'extra': {}
         }
 
         # Mock existing group that should be removed
@@ -727,11 +728,11 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         get_tag_mock.return_value = {
             'name': 'existing-tag',
             'locked': False,
-            'permission': None,
-            'arches': [],
+            'perm': None,
+            'arches': '',
             'maven_support': False,
             'maven_include_all': False,
-            'extras': {}
+            'extra': {}
         }
 
         # Mock existing group with only one package
@@ -785,11 +786,11 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         get_tag_mock.return_value = {
             'name': 'existing-tag',
             'locked': False,
-            'permission': None,
-            'arches': [],
+            'perm': None,
+            'arches': '',
             'maven_support': False,
             'maven_include_all': False,
-            'extras': {}
+            'extra': {}
         }
 
         # Mock existing group with package that has different block status
@@ -845,11 +846,11 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         get_tag_mock.return_value = {
             'name': 'existing-tag',
             'locked': False,
-            'permission': None,
-            'arches': [],
+            'perm': None,
+            'arches': '',
             'maven_support': False,
             'maven_include_all': False,
-            'extras': {}
+            'extra': {}
         }
 
         # Mock existing group with extra package that should be removed
@@ -914,11 +915,11 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         get_tag_mock.return_value = {
             'name': 'existing-tag',
             'locked': False,
-            'permission': None,
-            'arches': [],
+            'perm': None,
+            'arches': '',
             'maven_support': False,
             'maven_include_all': False,
-            'extras': {}
+            'extra': {}
         }
 
         # Mock existing group with packages that need various changes
@@ -997,11 +998,11 @@ class TestProcessorTagDependencies(MulticallMocking, TestCase):
         get_tag_mock.return_value = {
             'name': 'existing-tag',
             'locked': False,
-            'permission': None,
-            'arches': [],
+            'perm': None,
+            'arches': '',
             'maven_support': False,
             'maven_include_all': False,
-            'extras': {}
+            'extra': {}
         }
 
         get_groups_mock = Mock()
@@ -1022,9 +1023,14 @@ class TestProcessorTagDependencies(MulticallMocking, TestCase):
         self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
         self.queue_client_response('setInheritanceData', add_inheritance_mock)
 
+        resolver = create_resolver_with_objects({
+            ('tag', 'parent-tag'): {'id': 1, 'name': 'parent-tag'},
+        })
+
         processor = Processor(
             koji_session=mock_session,
             stream_origin=solver,
+            resolver=resolver,
             chunk_size=10
         )
 
@@ -1047,11 +1053,11 @@ class TestProcessorTagDependencies(MulticallMocking, TestCase):
         get_tag_mock.return_value = {
             'name': 'existing-tag',
             'locked': False,
-            'permission': None,
-            'arches': [],
+            'perm': None,
+            'arches': '',
             'maven_support': False,
             'maven_include_all': False,
-            'extras': {}
+            'extra': {}
         }
 
         get_groups_mock = Mock()
