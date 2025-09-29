@@ -413,14 +413,14 @@ class TagChangeReport(ChangeReport):
         for package in packages:
             self.remove_group_package(group, package)
 
-    def remove_group_package(self, group: str, package: str):
-        self.add(TagRemoveGroupPackage(self.obj.name, group, package))
-
     def add_inheritance(self, parent: 'InheritanceLink'):
         self.add(TagAddInheritance(self.obj.name, parent))
 
-    def update_inheritance(self, parent: 'InheritanceLink'):
-        self.add(TagUpdateInheritance(self.obj.name, parent))
+    def update_inheritance(self, parent: 'InheritanceLink', parent_id: int):
+        self.add(TagUpdateInheritance(self.obj.name, parent, parent_id))
+
+    def remove_inheritance(self, parent_id: int):
+        self.add(TagRemoveInheritance(self.obj.name, parent_id))
 
     def add_external_repo(self, repo: 'InheritanceLink'):
         self.add(TagAddExternalRepo(self.obj.name, repo.name, repo.priority))
