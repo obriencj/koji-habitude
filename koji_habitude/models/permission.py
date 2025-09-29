@@ -11,6 +11,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 from dataclasses import dataclass
 from functools import partial
+import logging
 from typing import ClassVar, Optional, Any
 
 from koji import MultiCallSession, VirtualCall, ClientSession
@@ -21,9 +22,13 @@ from .change import Change, ChangeReport
 from ..koji import call_processor
 
 
+logger = logging.getLogger(__name__)
+
+
 def getPermission(session: ClientSession, name: str):
 
     def filter_for_perm(perms):
+        logger.debug(f"Filtering for permission: {name}")
         for perm in perms:
             if perm['name'] == name:
                 return perm
@@ -42,7 +47,9 @@ class PermissionCreate(Change):
         # there's no way to create a permission on its own, you have to grant it to someone
         # and then revoke it. We record the logged in user as _currentuser when we use the
         # `koji_habituse.koji.session` call.
-        res = session.grantPermission(currentuser, self.name, description=self.description)
+        res = session.grantPermission(
+            currentuser, self.name, create=True,
+            description=self.description)
         session.revokePermission(currentuser, self.name)
         return res
 
@@ -68,14 +75,11 @@ class PermissionChangeReport(ChangeReport):
     Change report for permission objects.
     """
 
-
     def create_permission(self):
         self.add(PermissionCreate(self.obj.name, self.obj.description))
 
-
     def set_description(self):
         self.add(PermissionSetDescription(self.obj.name, self.obj.description))
-
 
     def impl_read(self, session: MultiCallSession):
         self._permissioninfo: VirtualCall = self.obj.query_exists(session)
@@ -107,6 +111,7 @@ class Permission(BaseKojiObject):
 
     @classmethod
     def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
+        # XXX TODO: NOT WORKING
         return getPermission(session, key[1])
 
 

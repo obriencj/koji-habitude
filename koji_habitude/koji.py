@@ -66,6 +66,7 @@ class VirtualCallProcessor(VirtualCall):
 
     @property
     def result(self):
+        logger.debug(f"VirtualCallProcessor.result: {self._result}")
         if self._result:
             return self._result[0]
 
@@ -84,8 +85,10 @@ def call_processor(post_process, sessionmethod, *args, **kwargs):
 
     result = sessionmethod(*args, **kwargs)
     if isinstance(result, VirtualCall):
+        logger.debug(f"VirtualCall: {result}")
         return VirtualCallProcessor(post_process, result)
     else:
+        logger.debug(f"normal value: {result}")
         return post_process(result)
 
 
