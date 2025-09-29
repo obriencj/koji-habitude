@@ -10,7 +10,6 @@ name: child-tag
 arches: [x86_64]
 inheritance:
   - name: missing-parent-tag
-    type: tag
     priority: 10
 
 ---
@@ -31,9 +30,8 @@ permissions:
 type: tag
 name: tag-with-missing-repo
 arches: [x86_64]
-inheritance:
+external-repos:
   - name: missing-external-repo
-    type: external-repo
     priority: 10
 
 # The end.

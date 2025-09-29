@@ -2,9 +2,8 @@
 ---
 type: tag
 name: fedora-40-build-base
-inheritance:
+external-repos:
   - name: fedora-40
-    type: external-repo
     priority: 10
 
 ---
@@ -15,9 +14,8 @@ url: "https://iad.mirror.rackspace.com/fedora/releases/40/Everything/x86_64/os/"
 ---
 type: tag
 name: fedora-42-build-base
-inheritance:
+external-repos:
   - name: fedora-42
-    type: external-repo
     priority: 10
 
 ---
@@ -28,9 +26,8 @@ url: "https://iad.mirror.rackspace.com/fedora/releases/42/Everything/x86_64/os/"
 ---
 type: tag
 name: almalinux-9-build-base
-inheritance:
+external-repos:
   - name: almalinux-9-baseos
-    type: external-repo
     priority: 10
 
 ---
@@ -42,9 +39,8 @@ url: "https://iad.mirror.rackspace.com/almalinux/9/BaseOS/x86_64/os/"
 ---
 type: tag
 name: almalinux-10-build-base
-inheritance:
+external-repos:
   - name: almalinux-9-baseos
-    type: external-repo
     priority: 10
 
 ---

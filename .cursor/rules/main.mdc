@@ -1,3 +1,9 @@
+---
+description: Main Rules for koji-habitude
+globs:
+alwaysApply: true
+---
+
 # Cursor Rules for koji-habitude
 
 ## Project Overview
@@ -31,7 +37,7 @@ This is a Python project called koji-habitude that synchronizes local koji data 
 
 ### Dependencies
 - Minimize dependencies to absolute essentials
-- Approved dependencies: click (CLI), koji (mandatory for koji operations)
+- Approved dependencies: click (CLI), pydantic, koji (mandatory for koji operations)
 - Justify any additional dependencies before adding them
 
 ## Git Operations
@@ -85,7 +91,7 @@ This is a Python project called koji-habitude that synchronizes local koji data 
 - Use double quotes for human-readable text (names, error messages, print output, logging, help text, descriptions)
 
 ## File Formatting Standards
-- Every Python file must end with a comment containing exactly: `# The end.`
+- Every Python file must end with a comment containing exactly: `# The end.` and a newline
 - Every Python file must start with a module docstring following this format:
   ```python
   """
@@ -111,8 +117,3 @@ This is a Python project called koji-habitude that synchronizes local koji data 
 
       # Function body starts here
   ```
-
-## Testing
-- if the AI assistant is tasked with helping with testing or unit tests or unit test data, it *MUST* adhere to the rules in tests/TESTING_RULES.md
-- **PRIMARY TEST COMMAND**: Always use `tox -qe quicktest --` to run tests (add arguments as needed: `-v` for verbose, specific test files, etc.)
-- Test execution alternatives: `make quicktest` (simple), `make test` (full multi-version), `make coverage` (with coverage)

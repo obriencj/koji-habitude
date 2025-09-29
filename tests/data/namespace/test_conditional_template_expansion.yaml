@@ -29,11 +29,9 @@ content: |
     - aarch64
   inheritance:
     - name: {{ product }}-dest
-      type: tag
       priority: 10
   {% if use_override %}
     - name: {{ product }}-override
-      type: tag
       priority: 5
   {% endif %}
 ---

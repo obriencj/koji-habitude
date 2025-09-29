@@ -26,7 +26,6 @@ name: build-tag
 arches: [x86_64]
 inheritance:
   - name: base-tag
-    type: tag
     priority: 10
 
 ---
@@ -46,10 +45,9 @@ name: myproject-with-repo
 arches: [x86_64]
 inheritance:
   - name: build-tag
-    type: tag
     priority: 10
+external-repos:
   - name: epel-9
-    type: external-repo
     priority: 20
 
 # The end.

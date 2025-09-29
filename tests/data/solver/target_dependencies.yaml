@@ -13,7 +13,6 @@ name: dest-tag
 arches: [x86_64]
 inheritance:
   - name: build-tag
-    type: tag
     priority: 10
 
 ---

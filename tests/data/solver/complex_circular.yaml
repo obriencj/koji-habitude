@@ -13,10 +13,8 @@ name: tag-1
 arches: [x86_64]
 inheritance:
   - name: tag-2
-    type: tag
     priority: 10
   - name: base-tag
-    type: tag
     priority: 20
 
 ---
@@ -25,7 +23,6 @@ name: tag-2
 arches: [x86_64]
 inheritance:
   - name: tag-3
-    type: tag
     priority: 10
 
 ---
@@ -34,7 +31,6 @@ name: tag-3
 arches: [x86_64]
 inheritance:
   - name: tag-1
-    type: tag
     priority: 10
 
 ---
@@ -43,7 +39,6 @@ name: tag-4
 arches: [x86_64]
 inheritance:
   - name: tag-5
-    type: tag
     priority: 10
 
 ---
@@ -52,7 +47,6 @@ name: tag-5
 arches: [x86_64]
 inheritance:
   - name: tag-4
-    type: tag
     priority: 10
 
 # This creates:
