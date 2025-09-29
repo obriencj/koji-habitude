@@ -1,3 +1,9 @@
+---
+description: Main Rules for koji-habitude
+globs:
+alwaysApply: true
+---
+
 # Cursor Rules for koji-habitude
 
 ## Project Overview
@@ -112,7 +118,5 @@ This is a Python project called koji-habitude that synchronizes local koji data 
       # Function body starts here
   ```
 
-## Testing
-- if the AI assistant is tasked with helping with testing or unit tests or unit test data, it *MUST* adhere to the rules in tests/TESTING_RULES.md
-- **PRIMARY TEST COMMAND**: Always use `tox -qe quicktest --` to run tests (add arguments as needed: `-v` for verbose, specific test files, etc.)
-- Test execution alternatives: `make quicktest` (simple), `make test` (full multi-version), `make coverage` (with coverage)
+## Testing Rules
+- Read the rules from .cursor/TESTING_RULES.md

@@ -1,3 +1,9 @@
+---
+description: Testing Rules for koji-habitude
+globs:
+alwaysApply: true
+---
+
 # AI Assistant Unit Testing Rules - Concise Version
 
 ## CORE PRINCIPLE: BUG DETECTION, NOT BUG FIXING
