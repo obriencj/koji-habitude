@@ -13,7 +13,7 @@ from unittest.mock import Mock
 
 from koji_habitude.processor import Processor, DiffOnlyProcessor, ProcessorState, ProcessorSummary
 from koji_habitude.models import Tag
-from koji_habitude.models.tag import InheritanceLink
+from koji_habitude.models.tag import InheritanceLink, ExternalRepoLink
 
 from . import create_test_koji_session, create_solver_with_objects, create_resolver_with_objects, MulticallMocking
 
@@ -21,7 +21,8 @@ from . import create_test_koji_session, create_solver_with_objects, create_resol
 def create_test_tag(name: str, locked: bool = False, permission: str = None,
                    arches: list = None, maven_support: bool = False,
                    maven_include_all: bool = False, extras: dict = None,
-                   groups: dict = None, inheritance: list = None) -> Tag:
+                   groups: dict = None, inheritance: list = None,
+                   external_repos: list = None) -> Tag:
     """
     Create a test tag with the specified parameters.
 
@@ -34,7 +35,8 @@ def create_test_tag(name: str, locked: bool = False, permission: str = None,
         maven_include_all: Whether maven include all is enabled (default False)
         extras: Extra tag data (default empty dict)
         groups: Tag groups dict (default empty dict)
-        inheritance: List of inheritance links with type field (default empty list)
+        inheritance: List of inheritance links (default empty list)
+        external_repos: List of external repo links (default empty list)
 
     Returns:
         Tag object for testing
@@ -49,14 +51,20 @@ def create_test_tag(name: str, locked: bool = False, permission: str = None,
         extras=extras or {},
         groups=groups or {},
         inheritance=inheritance or [],
+        external_repos=external_repos or [],
         filename='test.yaml',
         lineno=1
     )
 
 
-def create_inheritance_link(name: str, priority: int = None, type: str = 'tag') -> InheritanceLink:
+def create_inheritance_link(name: str, priority: int = None) -> InheritanceLink:
     """Create an inheritance link for testing."""
-    return InheritanceLink(name=name, priority=priority, type=type)
+    return InheritanceLink(name=name, priority=priority)
+
+
+def create_external_repo_link(name: str, priority: int = None) -> ExternalRepoLink:
+    """Create an external repo link for testing."""
+    return ExternalRepoLink(name=name, priority=priority)
 
 
 class TestProcessorTagLifecycle(MulticallMocking, TestCase):
@@ -123,10 +131,8 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
 
     def test_creation_with_complex_settings(self):
         """Test creating a tag with all settings."""
-        inheritance = [
-            create_inheritance_link('parent-tag', 10, 'tag'),
-            create_inheritance_link('external-repo', 5, 'external-repo')
-        ]
+        inheritance = [create_inheritance_link('parent-tag', 10)]
+        external_repos = [create_external_repo_link('external-repo', 5)]
         groups = {'build': ['package1', 'package2']}
 
         tag = create_test_tag(
@@ -138,7 +144,8 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
             maven_include_all=True,
             extras={'key': 'value'},
             groups=groups,
-            inheritance=inheritance
+            inheritance=inheritance,
+            external_repos=external_repos
         )
         solver = create_solver_with_objects([tag])
         mock_session = create_test_koji_session()
@@ -229,7 +236,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
                     'pkg_filter': '',
                 }
             ])
-        add_external_repo_mock.assert_called_once_with('complex-tag', 'external-repo', 5)
+        add_external_repo_mock.assert_called_once_with('complex-tag', 'external-repo', priority=5, merge_mode='koji', arches=None)
 
     def test_update_locked_status(self):
         """Test updating an existing tag's locked status."""
@@ -1078,8 +1085,8 @@ class TestProcessorTagDependencies(MulticallMocking, TestCase):
 
     def test_add_external_repo(self):
         """Test adding external repository to an existing tag."""
-        inheritance = [create_inheritance_link('external-repo', 5, 'external-repo')]
-        tag = create_test_tag('existing-tag', inheritance=inheritance)
+        external_repos = [create_external_repo_link('external-repo', 5)]
+        tag = create_test_tag('existing-tag', external_repos=external_repos)
         solver = create_solver_with_objects([tag])
         mock_session = create_test_koji_session()
 
@@ -1124,7 +1131,7 @@ class TestProcessorTagDependencies(MulticallMocking, TestCase):
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
         get_tag_mock.assert_called_once_with('existing-tag', strict=False)
-        add_external_repo_mock.assert_called_once_with('existing-tag', 'external-repo', 5)
+        add_external_repo_mock.assert_called_once_with('existing-tag', 'external-repo', priority=5, merge_mode='koji', arches=None)
 
     def test_simultaneous_tag_creation_with_inheritance(self):
         """

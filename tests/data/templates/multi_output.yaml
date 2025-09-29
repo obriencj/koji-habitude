@@ -15,7 +15,6 @@ content: |
   arches: {{ arches | list }}
   inheritance:
     - name: {{ name }}-build
-      type: tag
       priority: 10
   ---
   type: target
