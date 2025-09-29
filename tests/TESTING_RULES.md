@@ -209,6 +209,39 @@ When a test fails due to a bug in production code:
 6. **DO** let the programmer fix the production code
 7. **DO** verify the test passes after the bug is fixed
 
+## AI Assistant Bug Detection Responsibilities
+
+### Primary Role: Bug Detection, NOT Bug Fixing
+- **FIND bugs** using unit tests and code analysis
+- **REPORT bugs** to the user with detailed information
+- **DO NOT fix bugs** - that is the user's responsibility
+
+### When Running Tests:
+1. **Execute tests** to identify failures and issues
+2. **Document findings** with specific details:
+   - File and line number where the bug occurs
+   - Description of what the code is trying to do
+   - What's actually happening (error message, unexpected behavior)
+   - Impact on the system
+3. **Present findings** to the user for their review and action
+
+### Bug Reporting Format:
+When reporting bugs, include:
+- **Location**: Exact file path and line number
+- **Issue**: Clear description of the problem
+- **Current Code**: What the problematic code looks like
+- **Expected Behavior**: What should happen
+- **Actual Behavior**: What actually happens
+- **Impact**: How this affects the system
+
+### What NOT to Do:
+- Do not make changes to fix bugs
+- Do not modify model files, processor files, or any core code
+- Do not assume you should fix issues you find
+- Do not proceed with "obvious" fixes without explicit permission
+
+### Exception:
+The only exception is when working on unit tests themselves - you may modify test files to update them for new model structures, but only with explicit user consent and only in the tests directory.
 
 ## Test Writing Philosophy
 
