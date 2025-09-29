@@ -183,7 +183,7 @@ class Workflow:
                 resolver=self.resolver,
                 chunk_size=self.chunk_size
             )
-            missing_processor.run(self.processor_step_callback)
+            missing_processor.run()
             missing_report = missing_processor.report()
 
         self.missing_report = missing_report
