@@ -14,8 +14,10 @@ import click
 from ..loader import MultiLoader, YAMLLoader, pretty_yaml_all
 from ..namespace import Namespace, TemplateNamespace, ExpanderNamespace
 
+from . import main, catchall
 
-@click.command()
+
+@main.command()
 @click.argument('data', metavar='DATA', nargs=-1, required=True)
 @click.option(
     '--templates', 'templates', metavar='PATH', multiple=True,
@@ -26,6 +28,7 @@ from ..namespace import Namespace, TemplateNamespace, ExpanderNamespace
 @click.option(
     "--select", "-S", "select", metavar="NAME", multiple=True,
     help="Filter results to only include types")
+@catchall
 def expand(data, templates=None, validate=False, select=[]):
     """
     Expand templates and data files into YAML output.

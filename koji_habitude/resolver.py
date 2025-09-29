@@ -20,6 +20,7 @@ License v3 AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
+import logging
 from typing import Callable, ClassVar, Dict, List, Optional, Sequence, Tuple, Type, Any
 
 from pydantic import BaseModel, Field
@@ -28,6 +29,8 @@ from koji import ClientSession, MultiCallSession, VirtualCall
 from .models import Base, BaseKey, ChangeReport, Change
 from .namespace import Namespace
 
+
+logger = logging.getLogger(__name__)
 
 
 class MissingChangeReport(ChangeReport):
@@ -39,11 +42,16 @@ class MissingChangeReport(ChangeReport):
     # the existence checks, and feed the boolean back onto the MissingObject
     # itself.
 
-    def impl_read(self, session: MultiCallSession) -> Callable[[MultiCallSession], None] | None:
-        self._exists = self.obj.tp.check_exists(session, self.obj.key())
+    def impl_read(self, session: MultiCallSession) -> None:
+        logger.debug(f"MissingChangeReport.impl_read: {self.obj.key()}")
+        if self.obj._exists is not None:
+            logger.debug(f"MissingChangeReport.impl_read: {self.obj.key()} already checked")
+            return
+        self.obj._exists = self.obj.tp.check_exists(session, self.obj.key())
+        logger.debug(f"MissingChangeReport.impl_read: {self.obj.key()} checked: {self.obj._exists}")
 
     def impl_compare(self) -> None:
-        self.obj._exists = self._exists
+        pass
 
 
 class MissingObject(Base):
@@ -58,10 +66,11 @@ class MissingObject(Base):
         self.yaml_type, self.name = key
         self._key = key
         self._exists = None  # None means not checked yet
+        logger.debug(f"MissingObject created: {self.key()}")
 
     @property
     def exists(self) -> Any:
-        return self._exists.result
+        return self._exists.result if self._exists is not None else None
 
     def key(self) -> BaseKey:
         return self._key
@@ -79,16 +88,18 @@ class MissingObject(Base):
         return ()
 
     def change_report(self) -> MissingChangeReport:
+        logger.debug(f"MissingObject change_report: {self.key()}")
         return MissingChangeReport(self)
 
 
-class Report(BaseModel):
+@dataclass
+class Report:
     """
     A Report is a container for a set of missing dependencies.
     """
 
-    missing: List[BaseKey] = Field(default_factory=list)
-    found: List[BaseKey] = Field(default_factory=list)
+    missing: Dict[BaseKey, Base]
+    found: Dict[BaseKey, Base]
 
 
 class Resolver:
@@ -152,13 +163,13 @@ class Resolver:
 
     def report(self) -> Report:
         # The default Offline implementation does nothing
-        missing = []
-        found = []
+        missing = {}
+        found = {}
         for key, obj in self._missing.items():
-            if obj._exists:
-                found.append(key)
+            if obj.exists:
+                found[key] = obj
             else:
-                missing.append(key)
+                missing[key] = obj
         return Report(missing=missing, found=found)
 
 

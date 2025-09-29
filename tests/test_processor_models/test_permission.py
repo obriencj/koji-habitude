@@ -14,7 +14,7 @@ from unittest.mock import Mock
 from koji_habitude.processor import Processor, DiffOnlyProcessor, ProcessorState, ProcessorSummary
 from koji_habitude.models import Permission
 
-from . import create_test_koji_session, create_solver_with_objects, MulticallMocking
+from . import create_test_koji_session, create_solver_with_objects, create_resolver_with_objects, create_empty_resolver, MulticallMocking
 
 
 def create_test_permission(name: str, description: str = None) -> Permission:
@@ -63,6 +63,7 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
         processor = Processor(
             koji_session=mock_session,
             stream_origin=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
@@ -71,7 +72,9 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
         get_permission_mock.assert_called_once_with()
-        grant_mock.assert_called_once_with(12345, 'new-permission', description='Test permission description')
+        grant_mock.assert_called_once_with(
+            12345, 'new-permission', create=True,
+            description='Test permission description')
         revoke_mock.assert_called_once_with(12345, 'new-permission')
 
     def test_permission_creation_without_description(self):
@@ -107,7 +110,8 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
         get_permission_mock.assert_called_once_with()
-        grant_mock.assert_called_once_with(12345, 'new-permission', description=None)
+        grant_mock.assert_called_once_with(
+            12345, 'new-permission', create=True, description=None)
         revoke_mock.assert_called_once_with(12345, 'new-permission')
 
     def test_permission_update_description(self):
@@ -160,6 +164,7 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
         processor = Processor(
             koji_session=mock_session,
             stream_origin=solver,
+            resolver=None,
             chunk_size=10
         )
 
@@ -290,8 +295,10 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
         # Verify all calls were made
         get_perm1_mock.assert_called_once_with()
         get_perm2_mock.assert_called_once_with()
-        grant1_mock.assert_called_once_with(12345, 'perm1', description='First permission')
-        grant2_mock.assert_called_once_with(12345, 'perm2', description='Second permission')
+        grant1_mock.assert_called_once_with(
+            12345, 'perm1', create=True, description='First permission')
+        grant2_mock.assert_called_once_with(
+            12345, 'perm2', create=True, description='Second permission')
         revoke1_mock.assert_called_once_with(12345, 'perm1')
         revoke2_mock.assert_called_once_with(12345, 'perm2')
 

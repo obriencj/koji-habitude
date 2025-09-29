@@ -148,7 +148,7 @@ class TestProcessorGroupBehavior(MulticallMocking, TestCase):
         get_group_mock = Mock()
         get_group_mock.return_value = {
             'name': 'existing-group',
-            'enabled': True,
+            'status': 0,  # Group is enabled
             'permissions': []
         }
 
@@ -196,7 +196,7 @@ class TestProcessorGroupBehavior(MulticallMocking, TestCase):
         get_group_mock = Mock()
         get_group_mock.return_value = {
             'name': 'existing-group',
-            'enabled': True,
+            'status': 0,  # Group is enabled
             'permissions': []
         }
 
@@ -242,7 +242,7 @@ class TestProcessorGroupBehavior(MulticallMocking, TestCase):
         get_group_mock = Mock()
         get_group_mock.return_value = {
             'name': 'existing-group',
-            'enabled': True,
+            'status': 0,  # Group is enabled
             'permissions': []
         }
 
@@ -290,7 +290,7 @@ class TestProcessorGroupBehavior(MulticallMocking, TestCase):
         get_group_mock = Mock()
         get_group_mock.return_value = {
             'name': 'existing-group',
-            'enabled': True,
+            'status': 0,  # Group is enabled
             'permissions': []
         }
 
@@ -333,7 +333,7 @@ class TestProcessorGroupBehavior(MulticallMocking, TestCase):
         get_group_mock = Mock()
         get_group_mock.return_value = {
             'name': 'existing-group',
-            'enabled': True,
+            'status': 0,  # Group is enabled
             'permissions': ['perm1']  # Already has perm1
         }
 

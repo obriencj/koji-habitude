@@ -15,15 +15,16 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Iterator, Dict, List, Any, Optional, Tuple, Callable
+from itertools import chain
 import logging
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 
 from koji import ClientSession, VirtualCall
 
 from .koji import multicall
-from .models import BaseKey, Base, ChangeReport
-from .solver import Solver
+from .models import Base, BaseKey, ChangeReport
 from .resolver import Resolver
+from .solver import Solver
 
 
 logger = logging.getLogger(__name__)
@@ -87,7 +88,7 @@ class Processor:
         self,
         koji_session: ClientSession,
         stream_origin: Solver,
-        resolver: Resolver,
+        resolver: Resolver = None,
         chunk_size: int = 100):
         """
         Initialize the processor.
@@ -99,12 +100,12 @@ class Processor:
         """
 
         self.koji_session: ClientSession = koji_session
-        self.object_stream = iter(stream_origin)
+        self.object_stream: Iterator[Base] = iter(stream_origin)
         self.resolver: Resolver = resolver
-        self.chunk_size = chunk_size
+        self.chunk_size: int = chunk_size
 
         self.current_chunk: List[Base] = []
-        self.state = ProcessorState.READY_CHUNK
+        self.state: ProcessorState = ProcessorState.READY_CHUNK
 
         self.change_reports: Dict[BaseKey, ChangeReport] = {}
         self.read_logs: Dict[BaseKey, List[VirtualCall]] = {}
@@ -286,18 +287,43 @@ class Processor:
             return
         logger.debug(f"Applying changes for {len(self.current_chunk)} objects")
 
-        with multicall(self.koji_session, associations=self.write_logs) as m:
-            for obj in self.current_chunk:
+        # this is horribly over-complicated because at any point in the loop we
+        # may need to break out of the multicall and continue with that object
+        # and the rest of the work in a new multicall. Why? Because tag
+        # inheritance can ONLY be added by using the parent tag's ID, not by
+        # name. So if we're adding the parent tag, we don't know it's ID until
+        # after that multicall has run. This one quirk of the koji API is the
+        # cause of a LOT of pain and complexity.
 
-                # get the change report for this object
+        work = iter(self.current_chunk)
+        holdover = next(work)
+        while holdover:
+            work_segment = chain([holdover], work)
+            holdover = None
+            work_check = []
+
+            with multicall(self.koji_session, associations=self.write_logs) as m:
+                for obj in work_segment:
+
+                    # get the change report for this object
+                    change_report = self.change_reports[obj.key()]
+
+                    # check if the damned thing needs to break out of the multicall
+                    # this should only happen for tag inheritance where the parent
+                    # tag is being created in this same multicall.
+                    if change_report.break_multicall():
+                        holdover = obj
+                        break
+                    else:
+                        # apply the changes to the koji instance
+                        change_report.apply(m)
+                        work_check.append(obj)
+
+            # check the results of all the changes. This will raise an exception
+            # if the apply failed for some reason.
+            for obj in work_check:
                 change_report = self.change_reports[obj.key()]
-
-                # apply the changes to the koji instance
-                change_report.apply(m)
-
-        for obj in self.current_chunk:
-            change_report = self.change_reports[obj.key()]
-            change_report.check_results()
+                change_report.check_results()
 
         self.state = ProcessorState.READY_CHUNK
 
@@ -312,15 +338,11 @@ class Processor:
             Summary of processing results including total objects processed,
             changes applied, and any errors encountered.
         """
-
-        logger.info("Starting processor run")
-
         total_objects = 0
         step = 0
 
         for step, handled in enumerate(iter(self.step, 0), 1):
             total_objects += handled
-            logger.debug(f"Step #{step} processed chunk of {handled} objects")
 
             if step_callback:
                 step_callback(step, handled)
@@ -364,8 +386,6 @@ class DiffOnlyProcessor(Processor):
 
         if self.state != ProcessorState.READY_APPLY:
             raise ProcessorStateError(f"Processor is not in the READY_APPLY state: {self.state}")
-
-        logger.info(f"DIFF MODE: Would apply changes for {len(self.change_reports)} objects")
 
         self.state = ProcessorState.READY_CHUNK
 

@@ -59,32 +59,6 @@ class TestMissingObject(unittest.TestCase):
         self.assertEqual(deps, ())
 
 
-class TestReport(unittest.TestCase):
-    """Test the Report dataclass."""
-
-    def test_empty_report_creation(self):
-        """Test creating an empty report."""
-        report = Report()
-
-        self.assertEqual(report.missing, [])
-
-    def test_report_with_missing_dependencies(self):
-        """Test creating a report with missing dependencies."""
-        missing_deps = [('tag', 'parent-tag'), ('user', 'build-user')]
-        report = Report(missing=missing_deps)
-
-        self.assertEqual(report.missing, missing_deps)
-
-    def test_report_mutable_list(self):
-        """Test that report.missing is mutable."""
-        report = Report()
-
-        # Should be able to modify the list
-        report.missing.append(('tag', 'new-tag'))
-        self.assertEqual(len(report.missing), 1)
-        self.assertEqual(report.missing[0], ('tag', 'new-tag'))
-
-
 class TestResolver(unittest.TestCase):
     """Test the Resolver class."""
 
@@ -225,7 +199,7 @@ class TestResolver(unittest.TestCase):
         report = self.resolver.report()
 
         self.assertIsInstance(report, Report)
-        self.assertEqual(report.missing, [])
+        self.assertEqual(report.missing, {})
 
     def test_resolve_with_none_namespace(self):
         """Test resolver behavior with None namespace."""

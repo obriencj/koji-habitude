@@ -11,15 +11,20 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 from dataclasses import dataclass
 from typing import Any, ClassVar, Dict, List, Optional, Sequence, Union, Literal
 
-from koji import ClientSession, MultiCallSession, VirtualCall
+from koji import ClientSession, MultiCallSession, VirtualCall, MultiCallNotReady
 from pydantic import Field, field_validator, model_validator
 
-from .base import BaseKey, BaseKojiObject, SubModel
+from .base import Base, BaseKey, BaseKojiObject, SubModel
 from .change import Change, ChangeReport
+
+import logging
+
+logger = logging.getLogger("koji_habitude.models.tag")
 
 
 @dataclass
 class TagCreate(Change):
+    obj: Base
     name: str
     locked: bool
     permission: Optional[str]
@@ -28,13 +33,21 @@ class TagCreate(Change):
     maven_include_all: bool
 
     def impl_apply(self, session: MultiCallSession):
-        return session.createTag(
+        session.createTag(
             self.name,
             locked=self.locked,
             perm=self.permission,
             arches=' '.join(self.arches),
             maven_support=self.maven_support,
             maven_include_all=self.maven_include_all)
+
+        # We have to queue up a new getTag call so that the Tag object can be
+        # considered as existing, and so we can fetch its ID later. Tag
+        # Inheritance is the only place that cannot operate except by using the
+        # parent tag's ID (not by name)
+
+        logger.debug(f"Queueing getTag call for tag '{self.name}'")
+        return self.obj.query_exists(session)
 
     def explain(self) -> str:
         arches_str = ', '.join(self.arches)
@@ -243,11 +256,56 @@ class TagAddInheritance(Change):
             msg += f" and pkgfilter={self.parent.pkgfilter}"
         return f"Add inheritance from '{self.parent}' to tag '{self.name}' {msg}"
 
+    def break_multicall(self, resolver: 'Resolver') -> bool:
+
+        # quick explanation here. Adding to tag inheritance requires knowing the
+        # parent tag's ID -- it's the only API in koji that has this behavior.
+        # We have a hook at the end of the TagCreate's apply method which will
+        # queue up a fetch of the newly created tag's ID, but until the MC
+        # completes that value isn't available to us. What we're doing here is
+        # using a resolver (which we got from the ChangeReport) to look up the
+        # parent tag entry by its key, and then attempting to see if it exists.
+        # If it does, we'll have the ID and we can continue. If checking raises
+        # a MultiCallNotReady, then damnit we need to break out of the multicall
+        # so it can complete and get us that value.
+
+        logger.debug(f"Checking if TagAddInheritance ({self.name}) needs to break out of multicall")
+
+        tag = resolver.resolve(self.parent.key())
+        logger.debug(f"Resolved parent tag '{self.parent.name}' to {tag}")
+
+        try:
+            tinfo = tag.exists
+        except MultiCallNotReady:
+            logger.debug(f"MultiCallNotReady, breaking out of multicall")
+            return True
+
+        logger.debug(f"  exists: {tinfo}")
+
+        if tinfo:
+            logger.debug(f"Parent tag '{self.parent.name}' exists, ID: {tinfo['id']}")
+            self.parent._parent_tag_id = tinfo['id']
+            return False
+        else:
+            raise ValueError(f"Parent tag '{self.parent.name}' does not exist")
+
 
 @dataclass
-class TagUpdateInheritance(TagAddInheritance):
+class TagUpdateInheritance(Change):
     name: str
     parent: 'InheritanceLink'
+    parent_id: int
+
+    def impl_apply(self, session: MultiCallSession):
+        data = [{
+            'parent_id': self.parent_id,
+            'priority': self.parent.priority,
+            'intransitive': self.parent.intransitive,
+            'maxdepth': self.parent.maxdepth,
+            'noconfig': self.parent.noconfig,
+            'pkg_filter': self.parent.pkgfilter,
+        }]
+        return session.setInheritanceData(self.name, data)
 
     def explain(self) -> str:
         msg = f"with priority {self.parent.priority}"
@@ -302,6 +360,7 @@ class TagChangeReport(ChangeReport):
 
     def create_tag(self):
         self.add(TagCreate(
+            self.obj,
             self.obj.name,
             locked=self.obj.locked,
             permission=self.obj.permission,
@@ -421,10 +480,14 @@ class TagChangeReport(ChangeReport):
         # Helper function to compare inheritance
 
         for parent in self.obj.parent_tags:
+            logger.debug(f"Checking if parent tag '{parent.name}' exists already")
             tag = self.resolver.resolve(parent.key())
             tinfo = tag.exists
             if tinfo:
                 parent._parent_tag_id = tinfo['id']
+                logger.debug(f"Parent tag '{parent.name}' exists already, ID: {tinfo['id']}")
+            else:
+                logger.debug(f"Parent tag '{parent.name}' does not exist")
 
         koji_inher = {parent['name']: parent for parent in self._inheritance.result}
         inher = {parent.name: parent for parent in self.obj.parent_tags}
@@ -443,7 +506,7 @@ class TagChangeReport(ChangeReport):
                    koji_parent['noconfig'] != parent.noconfig or \
                    koji_parent['pkg_filter'] != parent.pkgfilter or \
                    koji_parent['intransitive'] != parent.intransitive:
-                    self.update_inheritance(parent)
+                    self.update_inheritance(parent, koji_parent['parent_id'])
 
         koji_ext_repos = {repo['name']: repo for repo in self._external_repos.result}
         ext_repos = {repo.name: repo for repo in self.obj.external_repos}
@@ -727,6 +790,7 @@ class Tag(BaseKojiObject):
 
     @classmethod
     def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
+        logger.debug(f"Checking if tag '{key[1]}' exists")
         return session.getTag(key[1], strict=False)
 
 

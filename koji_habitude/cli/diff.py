@@ -11,54 +11,11 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 import click
 
-from ..loader import MultiLoader, YAMLLoader
-from ..namespace import Namespace, TemplateNamespace
-from ..resolver import Resolver
-from ..solver import Solver
-from ..processor import DiffOnlyProcessor, ProcessorSummary
-from ..koji import session
+from ..workflow import DiffWorkflow
+from . import main, catchall
 
 
-def run_summary(data, templates, profile) -> ProcessorSummary:
-    """
-    Build a Processor and run it to get a summary of the changes
-    """
-
-    # Load templates if provided
-    template_ns = TemplateNamespace()
-    if templates:
-        ml = MultiLoader([YAMLLoader])
-        template_ns.feedall_raw(ml.load(templates))
-        template_ns.expand()
-
-    # Create regular Namespace with loaded templates
-    data_ns = Namespace()
-    data_ns._templates.update(template_ns._templates)
-
-    # Load and process data files
-    ml = MultiLoader([YAMLLoader])
-    data_ns.feedall_raw(ml.load(data))
-    data_ns.expand()
-
-    # Create resolver and solver
-    resolver = Resolver(data_ns)
-    solver = Solver(resolver)
-    solver.prepare()
-
-    koji_session = session(profile)
-
-    # Create and run DiffOnlyProcessor
-    processor = DiffOnlyProcessor(
-        koji_session=koji_session,
-        stream_origin=solver,
-        resolver=resolver,
-        chunk_size=100
-    )
-
-    return processor.run(), resolver.report()
-
-
-def display_summary(summary, report, show_unchanged):
+def display_summary(summary, show_unchanged):
     """
     Display the summary of the changes with proper grouping and indentation.
     """
@@ -121,6 +78,8 @@ def display_summary(summary, report, show_unchanged):
 
     click.echo()
 
+
+def display_missing(report):
     if report:
         total_dependencies = len(report.found) + len(report.missing)
         click.echo(f"Resolver identified {total_dependencies} dependencies not defined in the data set")
@@ -138,11 +97,8 @@ def display_summary(summary, report, show_unchanged):
 
     click.echo()
 
-    if report.missing:
-        return 1
 
-
-@click.command()
+@main.command()
 @click.argument('data', nargs=-1, required=True)
 @click.option(
     '--templates', 'templates', metavar='PATH', multiple=True,
@@ -153,6 +109,7 @@ def display_summary(summary, report, show_unchanged):
 @click.option(
     '--show-unchanged', 'show_unchanged', is_flag=True, default=False,
     help="Show objects that don't need any changes")
+@catchall
 def diff(data, templates=None, profile='koji', show_unchanged=False):
     """
     Show what changes would be made without applying them.
@@ -160,17 +117,13 @@ def diff(data, templates=None, profile='koji', show_unchanged=False):
     DATA can be directories or files containing YAML object definitions.
     """
 
-    try:
-        # Call the diff functionality directly
-        summary, report = run_summary(data, templates, profile)
-        display_summary(summary, report, show_unchanged)
-        return 0
+    workflow = DiffWorkflow(paths=data, template_paths=templates, profile=profile)
+    workflow.run()
 
-    except Exception as e:
-        import traceback
-        click.echo(f"Error: {e}", err=True)
-        click.echo(traceback.format_exc(), err=True)
-        return 1
+    display_summary(workflow.summary, show_unchanged)
+    display_missing(workflow.missing_report)
+
+    return 1 if workflow.missing_report.missing else 0
 
 
 # The end.

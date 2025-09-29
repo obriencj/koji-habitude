@@ -44,6 +44,7 @@ def session(profile: str = 'koji', authenticate: bool = False) -> ClientSession:
     conf = read_config(profile)
     server = conf["server"]
     session = ClientSession(server, opts=conf)
+    session.logger = logger
 
     if authenticate:
         activate_session(session, conf)
@@ -54,7 +55,7 @@ def session(profile: str = 'koji', authenticate: bool = False) -> ClientSession:
     return session
 
 
-class VirtualCallProcessor:
+class VirtualCallProcessor(VirtualCall):
     """
     A VirtualCall that reports the results of the calls.
     """
@@ -65,6 +66,7 @@ class VirtualCallProcessor:
 
     @property
     def result(self):
+        logger.debug(f"VirtualCallProcessor.result: {self._result}")
         if self._result:
             return self._result[0]
 
@@ -83,8 +85,10 @@ def call_processor(post_process, sessionmethod, *args, **kwargs):
 
     result = sessionmethod(*args, **kwargs)
     if isinstance(result, VirtualCall):
+        logger.debug(f"VirtualCall: {result}")
         return VirtualCallProcessor(post_process, result)
     else:
+        logger.debug(f"normal value: {result}")
         return post_process(result)
 
 
@@ -135,20 +139,6 @@ def multicall(
     Args:
         session: The koji session to create the multicall session from
         associations: Dict of BaseKey to list of VirtualCall objects
-
-    Usage:
-    ```python
-    call_log = []
-
-    with multicall(session, call_log=call_log) as mc:
-        # perform method calls againt the mc context, which will
-        # each return a VirtualResult object that acts as a
-        # promise for the eventual result of the call
-        ...
-
-    for call in call_log:
-        print(call)  # each call is a VirtualCall object
-    ```
     """
 
     # note that we make the call log mandatory here.

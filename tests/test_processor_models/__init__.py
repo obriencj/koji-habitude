@@ -13,11 +13,12 @@ from unittest.mock import patch
 from typing import List, Tuple, Any, Dict
 
 from koji import ClientSession
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from koji_habitude.koji import session
+from koji_habitude.resolver import Resolver
 from koji_habitude.solver import Solver
-from koji_habitude.models import Base
+from koji_habitude.models import Base, BaseKey
 
 
 def create_test_koji_session():
@@ -43,10 +44,7 @@ def create_empty_solver() -> Solver:
     Returns:
         Solver with empty object stream
     """
-    # Create a mock solver that yields no objects
-    mock_solver = Mock(spec=Solver)
-    mock_solver.__iter__ = Mock(return_value=iter([]))
-    return mock_solver
+    return create_solver_with_objects({})
 
 
 def create_solver_with_objects(objects: List[Base]) -> Solver:
@@ -62,6 +60,26 @@ def create_solver_with_objects(objects: List[Base]) -> Solver:
     mock_solver = Mock(spec=Solver)
     mock_solver.__iter__ = Mock(return_value=iter(objects))
     return mock_solver
+
+
+def create_empty_resolver() -> Resolver:
+    """
+    Create a Resolver with no objects for testing empty scenarios.
+    """
+    return create_resolver_with_objects([])
+
+
+def create_resolver_with_objects(objects: Dict[BaseKey, Base]) -> Resolver:
+    """
+    Create a Resolver with specific objects for testing.
+    """
+
+    def resolve(key: BaseKey) -> Base:
+        return Mock(spec=Base, exists=objects.get(key))
+
+    mock_resolver = Mock(spec=Resolver)
+    mock_resolver.resolve.side_effect = resolve
+    return mock_resolver
 
 
 class MulticallMocking:
@@ -97,7 +115,7 @@ class MulticallMocking:
         self.client_callmethod_mock = self.client_callmethod_patcher.start()
 
         # Mock for koji_cli.lib.activate_session
-        self.activate_session_patcher = patch('koji_cli.lib.activate_session')
+        self.activate_session_patcher = patch('koji_habitude.koji.activate_session')
         self.activate_session_mock = self.activate_session_patcher.start()
 
         # Mock for koji.read_config (used in koji_habitude.koji.session)

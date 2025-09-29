@@ -12,32 +12,78 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: AI Generated with Human Rework
 
 
+import logging
+import os
+from functools import wraps
 from typing import List
 
 import click
-
-
-from .sync import sync
-from .diff import diff
-from .templates import list_templates
-from .expand import expand
-
-import os
-import logging
-
-
-# Get the log level from the environment variable, defaulting to 'INFO' if not set
-log_level = os.environ.get('LOGLEVEL', 'INFO').upper()
-
-# Configure basic logging with the determined level
-logging.basicConfig(level=log_level)
+from koji import GSSAPIAuthError, GenericError
+from pydantic import ValidationError
 
 
 def resplit(strs: List[str], sep=',') -> List[str]:
+    """
+    Takes a list of strings which may be comma-separated to indicate multiple
+    values. Returns a list of strings with the commas removed and those values
+    expanded, whitespace stripped, and any empty strings omitted.
+
+    Example:
+        >>> resplit(['foo', ' ', 'bar,baz', 'qux,,quux'])
+        ['foo', 'bar', 'baz', 'qux', 'quux']
+    """
+
+    # joins 'em, splits 'em, strips 'em, and filters 'em
     return list(filter(None, map(str.strip, sep.join(strs).split(sep))))
 
 
-@click.group()
+def catchall(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+
+        except ValidationError as e:
+            click.echo(f"[ValidationError] {e}", err=True)
+            return 1
+
+        except GSSAPIAuthError as e:
+            click.echo(f"[GSSAPIAuthError] {e}", err=True)
+            return 1
+
+        except GenericError as e:
+            click.echo(f"[GenericError] {e}", err=True)
+            return 1
+
+        except KeyboardInterrupt:
+            click.echo("[Keyboard interrupt]", err=True)
+            return 130
+
+        except Exception as e:
+            click.echo(f"[Error] {e}", err=True)
+            raise
+
+    return wrapper
+
+
+class MagicGroup(click.Group):
+    def _load_commands(self):
+        # delaying to avoid circular imports
+        from .sync import sync
+        from .diff import diff
+        from .templates import list_templates
+        from .expand import expand
+
+    def get_command(self, ctx, cmd_name):
+        self._load_commands()
+        return super().get_command(ctx, cmd_name)
+
+    def list_commands(self, ctx):
+        self._load_commands()
+        return super().list_commands(ctx)
+
+
+@click.group(cls=MagicGroup)
 def main():
     """
     koji-habitude - Synchronize local koji data expectations with hub instance.
@@ -45,15 +91,10 @@ def main():
     This tool loads YAML templates and data files, resolves dependencies,
     and applies changes to a koji hub in the correct order.
     """
-    pass
 
-
-# Register subcommands
-main.add_command(sync)
-main.add_command(diff)
-main.add_command(list_templates)
-main.add_command(expand)
-
+    log_level = os.environ.get('LOGLEVEL', '').strip().upper()
+    if log_level:
+        logging.basicConfig(level=log_level)
 
 
 # The end.
