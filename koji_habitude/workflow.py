@@ -152,7 +152,6 @@ class Workflow:
         self.solver = self.cls_solver(self.resolver)
         self.solver.prepare()
         self.dataseries = list(self.solver)
-        self.missing_report = self.resolver.report()
         yield self.state_change(WorkflowState.SOLVING, WorkflowState.SOLVED)
 
 
@@ -176,6 +175,18 @@ class Workflow:
     def run_processing(self):
         yield self.state_change(WorkflowState.CONNECTED, WorkflowState.PROCESSING)
 
+        missing_report = self.resolver.report()
+        if missing_report.missing:
+            missing_processor = DiffOnlyProcessor(
+                koji_session=self.session,
+                stream_origin=missing_report.missing.values(),
+                resolver=self.resolver,
+                chunk_size=self.chunk_size
+            )
+            missing_processor.run(self.processor_step_callback)
+            missing_report = missing_processor.report()
+
+        self.missing_report = missing_report
         self.review_missing_report()
 
         self.processor = self.cls_processor(

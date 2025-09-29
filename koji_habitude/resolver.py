@@ -20,6 +20,7 @@ License v3 AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
+import logging
 from typing import Callable, ClassVar, Dict, List, Optional, Sequence, Tuple, Type, Any
 
 from pydantic import BaseModel, Field
@@ -28,6 +29,8 @@ from koji import ClientSession, MultiCallSession, VirtualCall
 from .models import Base, BaseKey, ChangeReport, Change
 from .namespace import Namespace
 
+
+logger = logging.getLogger(__name__)
 
 
 class MissingChangeReport(ChangeReport):
@@ -39,11 +42,14 @@ class MissingChangeReport(ChangeReport):
     # the existence checks, and feed the boolean back onto the MissingObject
     # itself.
 
-    def impl_read(self, session: MultiCallSession) -> Callable[[MultiCallSession], None] | None:
-        self._exists = self.obj.tp.check_exists(session, self.obj.key())
+    def impl_read(self, session: MultiCallSession) -> None:
+        if self.obj._exists is not None:
+            return
+        logger.debug(f"MissingChangeReport.impl_read: {self.obj.key()}")
+        self.obj._exists = self.obj.tp.check_exists(session, self.obj.key())
 
     def impl_compare(self) -> None:
-        self.obj._exists = self._exists
+        pass
 
 
 class MissingObject(Base):

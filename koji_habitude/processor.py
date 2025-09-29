@@ -343,7 +343,6 @@ class Processor:
 
         for step, handled in enumerate(iter(self.step, 0), 1):
             total_objects += handled
-            logger.debug(f"Step #{step} processed chunk of {handled} objects")
 
             if step_callback:
                 step_callback(step, handled)
