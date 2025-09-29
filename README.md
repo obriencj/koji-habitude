@@ -1,14 +1,15 @@
 # koji-habitude
 
-** WORK IN PROGRESS **
-This project is not production ready. It's coming along fast, but there are challenges
+**🚧 WORK IN PROGRESS 🚧**
+
+This project is *not* production ready. It's coming along fast, but there are challenges
 cropping up all of the time. Until this project has a version of 1.0, do not attempt
 to use it with a production Koji instance.
 
 
 ## Current Status
 
-**✅ Completed:**
+**🚧 In Progress:**
 - CLI framework with all core commands (`sync`, `diff`, `expand`, `list-templates`)
 - Comprehensive data models for all Koji object types (8 CORE_MODELS)
 - Pydantic validation with field constraints and proper error handling
@@ -24,6 +25,7 @@ to use it with a production Koji instance.
 
 **🚧 In Progress:**
 - CLI testing coverage improvements
+- Integration testing on a real koji instance
 - Performance optimization and error handling improvements
 
 **📋 Next Steps:**
@@ -74,8 +76,6 @@ provides four main commands:
 koji-habitude sync [OPTIONS] DATA [DATA...]
 ```
 
-**✅ Fully Implemented**: Synchronizes local koji data expectations with hub instance using the Processor module.
-
 **Options:**
 - `DATA`: directories or files to work with
 - `--templates PATH`: location to find templates that are not available in `DATA`
@@ -94,8 +94,6 @@ koji-habitude sync [OPTIONS] DATA [DATA...]
 koji-habitude diff [OPTIONS] DATA [DATA...]
 ```
 
-**✅ Fully Implemented**: Shows what changes would be made without applying them using DiffOnlyProcessor.
-
 **Options:**
 - `DATA`: directories or files to work with
 - `--templates PATH`: location to find templates that are not available in `DATA`
@@ -113,8 +111,6 @@ koji-habitude diff [OPTIONS] DATA [DATA...]
 koji-habitude list-templates [OPTIONS] PATH [PATH...]
 ```
 
-**✅ Fully Implemented**: Shows all templates found in the given locations with their configuration
-details.
 
 **Options:**
 - `PATH`: directories containing template files
@@ -130,7 +126,6 @@ details.
 koji-habitude expand --validate [OPTIONS] DATA [DATA...]
 ```
 
-**✅ Available**: Validation is currently available as a flag in the `expand` command.
 
 **Features:**
 - Validates templates and data files without connecting to koji
@@ -145,8 +140,6 @@ koji-habitude expand --validate [OPTIONS] DATA [DATA...]
 ```bash
 koji-habitude expand [OPTIONS] DATA [DATA...]
 ```
-
-**✅ Fully Implemented**: Expands templates and data files into final YAML output.
 
 **Options:**
 - `DATA`: directories or files to work with
