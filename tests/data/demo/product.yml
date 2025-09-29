@@ -13,6 +13,16 @@ content: |
     - "{{ name }}-taggers"
 
   ---
+  type: permission
+  name: {{ name }}-pkglist
+  description: "Can update package list for {{ name }}"
+
+  ---
+  type: permission
+  name: {{ name }}-taggers
+  description: "Can tag builds for {{ name }}"
+
+  ---
   type: template
   name: {{ name }}-version
   defaults:

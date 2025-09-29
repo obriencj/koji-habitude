@@ -1,0 +1,56 @@
+
+---
+type: tag
+name: fedora-40-build-base
+inheritance:
+  - name: fedora-40
+    type: external-repo
+    priority: 10
+
+---
+type: external-repo
+name: fedora-40
+url: "https://iad.mirror.rackspace.com/fedora/releases/40/Everything/x86_64/os/"
+
+---
+type: tag
+name: fedora-42-build-base
+inheritance:
+  - name: fedora-42
+    type: external-repo
+    priority: 10
+
+---
+type: external-repo
+name: fedora-42
+url: "https://iad.mirror.rackspace.com/fedora/releases/42/Everything/x86_64/os/"
+
+---
+type: tag
+name: almalinux-9-build-base
+inheritance:
+  - name: almalinux-9-baseos
+    type: external-repo
+    priority: 10
+
+---
+type: external-repo
+name: almalinux-9-baseos
+url: "https://iad.mirror.rackspace.com/almalinux/9/BaseOS/x86_64/os/""
+
+
+---
+type: tag
+name: almalinux-10-build-base
+inheritance:
+  - name: almalinux-9-baseos
+    type: external-repo
+    priority: 10
+
+---
+type: external-repo
+name: almalinux-10-baseos
+url: "https://iad.mirror.rackspace.com/almalinux/10/BaseOS/x86_64/os/""
+
+
+# The end.
