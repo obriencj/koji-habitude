@@ -36,7 +36,7 @@ inheritance:
 ---
 type: external-repo
 name: almalinux-9-baseos
-url: "https://iad.mirror.rackspace.com/almalinux/9/BaseOS/x86_64/os/""
+url: "https://iad.mirror.rackspace.com/almalinux/9/BaseOS/x86_64/os/"
 
 
 ---
@@ -50,7 +50,7 @@ inheritance:
 ---
 type: external-repo
 name: almalinux-10-baseos
-url: "https://iad.mirror.rackspace.com/almalinux/10/BaseOS/x86_64/os/""
+url: "https://iad.mirror.rackspace.com/almalinux/10/BaseOS/x86_64/os/"
 
 
 # The end.
