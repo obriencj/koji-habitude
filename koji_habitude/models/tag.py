@@ -508,7 +508,7 @@ class TagChangeReport(ChangeReport):
                    koji_parent['intransitive'] != parent.intransitive:
                     self.update_inheritance(parent, koji_parent['parent_id'])
 
-        koji_ext_repos = {repo['name']: repo for repo in self._external_repos.result}
+        koji_ext_repos = {repo['external_repo_name']: repo for repo in self._external_repos.result}
         ext_repos = {repo.name: repo for repo in self.obj.external_repos}
 
         for name, repo in koji_ext_repos.items():
