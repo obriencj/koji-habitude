@@ -199,7 +199,7 @@ class TestResolver(unittest.TestCase):
         report = self.resolver.report()
 
         self.assertIsInstance(report, Report)
-        self.assertEqual(report.missing, [])
+        self.assertEqual(report.missing, {})
 
     def test_resolve_with_none_namespace(self):
         """Test resolver behavior with None namespace."""

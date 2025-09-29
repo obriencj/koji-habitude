@@ -245,7 +245,7 @@ class TestSolverBasic(unittest.TestCase):
 
         # Should return a report from the resolver
         self.assertIsNotNone(report)
-        self.assertIsInstance(report.missing, list)
+        self.assertIsInstance(report.missing, dict)
 
     def test_solver_report_with_missing_dependencies(self):
         """Test solver report when there are missing dependencies."""
