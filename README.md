@@ -1,6 +1,10 @@
 # koji-habitude
 
-> ** WORK IN PROGRESS **
+** WORK IN PROGRESS **
+This project is not production ready. It's coming along fast, but there are challenges
+cropping up all of the time. Until this project has a version of 1.0, do not attempt
+to use it with a production Koji instance.
+
 
 ## Current Status
 
