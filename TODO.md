@@ -5,7 +5,6 @@ This document tracks planned features and improvements for koji-habitude.
 ## ✅ Recently Completed
 
 **CLI Framework and Core Commands**:
-- [x] Fix CLI import errors and convert from Clique to Click
 - [x] Implement basic CLI structure with subcommands
 - [x] Add `sync` command with full koji integration
 - [x] Add `diff` command using DiffOnlyProcessor
@@ -13,7 +12,6 @@ This document tracks planned features and improvements for koji-habitude.
 - [x] Add `expand` command for template expansion and YAML output
 - [x] Add `--validate` flag to expand command for validation
 - [x] Update documentation to reflect current state
-- [x] Fix namespace import issues (RawObject → BaseObject)
 
 **Data Model and Schemas**:
 - [x] Implement comprehensive CORE_MODELS schemas (Channel, ExternalRepo, Group,
@@ -59,10 +57,9 @@ This document tracks planned features and improvements for koji-habitude.
 - [x] Add support for custom koji profiles and authentication
 
 **Workflow Orchestration** (High-level coordination):
-- [ ] Implement Workflow class for end-to-end process coordination
-- [ ] Add missing object validation before processing
+- [x] Implement Workflow class for end-to-end process coordination
+- [x] Add missing object validation before processing
 - [ ] Implement progress reporting and TUI integration
-- [ ] Add error handling and rollback capabilities
 - [ ] Create workflow configuration and options
 - [ ] Add workflow testing with integration scenarios
 - [ ] Document workflow usage and best practices
