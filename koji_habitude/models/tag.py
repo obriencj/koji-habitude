@@ -490,7 +490,7 @@ class TagChangeReport(ChangeReport):
             for group_name, group in self.obj.groups.items():
                 self.add_group(group)
                 self.add_group_packages(group_name, group.packages)
-            for parent in self.obj.parent_tags:
+            for parent in self.obj.inheritance:
                 self.add_inheritance(parent)
             for repo in self.obj.external_repos:
                 self.add_external_repo(repo)
@@ -677,6 +677,9 @@ class InheritanceLink(SubModel):
             return f"^({'|'.join(data)})$"
         return data
 
+    def key(self) -> BaseKey:
+        return ('tag', self.name)
+
 
 class ExternalRepoLink(SubModel):
     name: str = Field(alias='name')
@@ -684,6 +687,9 @@ class ExternalRepoLink(SubModel):
 
     arches: Optional[List[str]] = Field(alias='arches', default=None)
     merge_mode: Literal['koji', 'simple', 'bare'] = Field(alias='merge-mode', default='koji')
+
+    def key(self) -> BaseKey:
+        return ('external-repo', self.name)
 
 
 def _simplified_link(data: Any) -> Any:
