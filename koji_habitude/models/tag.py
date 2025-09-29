@@ -8,16 +8,24 @@ License: GNU General Public License v3
 AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
-from dataclasses import dataclass
-from typing import Any, ClassVar, Dict, List, Optional, Sequence, Union, Literal
 
-from koji import ClientSession, MultiCallSession, VirtualCall, MultiCallNotReady
+from dataclasses import dataclass
+import logging
+from pyexpat import features
+from typing import (
+    Any, ClassVar, Dict, List, Literal, Optional, Sequence, TYPE_CHECKING,
+    Union,
+)
+
 from pydantic import Field, field_validator, model_validator
+from koji import ClientSession, MultiCallNotReady, MultiCallSession, VirtualCall
 
 from .base import Base, BaseKey, BaseKojiObject, SubModel
 from .change import Change, ChangeReport
 
-import logging
+if TYPE_CHECKING:
+    from ..resolver import Resolver
+
 
 logger = logging.getLogger("koji_habitude.models.tag")
 
@@ -334,14 +342,41 @@ class TagRemoveInheritance(Change):
 @dataclass
 class TagAddExternalRepo(Change):
     name: str
-    repo: str
-    priority: int
+    repo: 'ExternalRepoLink'
 
     def impl_apply(self, session: MultiCallSession):
-        return session.addExternalRepoToTag(self.name, self.repo, self.priority)
+        arches = ' '.join(self.repo.arches) if self.repo.arches else None
+        return session.addExternalRepoToTag(
+            self.name, self.repo.name,
+            priority=self.repo.priority,
+            merge_mode=self.repo.merge_mode,
+            arches=arches)
 
     def explain(self) -> str:
-        return f"Add external repo '{self.repo}' to tag '{self.name}' with priority {self.priority}"
+        return (f"Add external repo '{self.repo.name}' to tag '{self.name}"
+                f", priority:{self.repo.priority}"
+                f", arches: {self.repo.arches!r}"
+                f", merge_mode: {self.repo.merge_mode!r}")
+
+
+@dataclass
+class TagUpdateExternalRepo(Change):
+    name: str
+    repo: 'ExternalRepoLink'
+
+    def impl_apply(self, session: MultiCallSession):
+        arches = ' '.join(self.repo.arches) if self.repo.arches else None
+        return session.editTagExternalRepo(
+            self.name, self.repo.name,
+            priority=self.repo.priority,
+            merge_mode=self.repo.merge_mode,
+            arches=arches)
+
+    def explain(self) -> str:
+        return (f"Update external repo '{self.repo.name}' in tag '{self.name}"
+                f", priority:{self.repo.priority}"
+                f", arches: {self.repo.arches!r}"
+                f", merge_mode: {self.repo.merge_mode!r}")
 
 
 @dataclass
@@ -423,7 +458,10 @@ class TagChangeReport(ChangeReport):
         self.add(TagRemoveInheritance(self.obj.name, parent_id))
 
     def add_external_repo(self, repo: 'InheritanceLink'):
-        self.add(TagAddExternalRepo(self.obj.name, repo.name, repo.priority))
+        self.add(TagAddExternalRepo(self.obj.name, repo))
+
+    def update_external_repo(self, repo: 'ExternalRepoLink'):
+        self.add(TagUpdateExternalRepo(self.obj.name, repo))
 
     def remove_external_repo(self, repo: str):
         self.add(TagRemoveExternalRepo(self.obj.name, repo))
@@ -463,7 +501,8 @@ class TagChangeReport(ChangeReport):
         if info['perm'] != self.obj.permission:
             self.set_tag_permission()
 
-        if info['arches'].split() != self.obj.arches:
+        arches = set(info['arches'].split()) if info['arches'] else None
+        if arches != (set(self.obj.arches) if self.obj.arches else None):
             self.set_tag_arches()
 
         if info['maven_support'] != self.obj.maven_support or \
@@ -474,13 +513,15 @@ class TagChangeReport(ChangeReport):
 
         self._compare_groups()
         self._compare_inheritance()
+        self._compare_external_repos()
 
 
     def _compare_inheritance(self):
-        # Helper function to compare inheritance
+        # Tag Inheritance
 
-        for parent in self.obj.parent_tags:
-            logger.debug(f"Checking if parent tag '{parent.name}' exists already")
+        # tag inheritance links are by ID, not name, so we need to ensure we
+        # have those values.
+        for parent in self.obj.inheritance:
             tag = self.resolver.resolve(parent.key())
             tinfo = tag.exists
             if tinfo:
@@ -490,7 +531,7 @@ class TagChangeReport(ChangeReport):
                 logger.debug(f"Parent tag '{parent.name}' does not exist")
 
         koji_inher = {parent['name']: parent for parent in self._inheritance.result}
-        inher = {parent.name: parent for parent in self.obj.parent_tags}
+        inher = {parent.name: parent for parent in self.obj.inheritance}
 
         for name, parent in koji_inher.items():
             if name not in inher:
@@ -508,12 +549,22 @@ class TagChangeReport(ChangeReport):
                    koji_parent['intransitive'] != parent.intransitive:
                     self.update_inheritance(parent, koji_parent['parent_id'])
 
+
+    def _compare_external_repos(self):
+        # External Repos
         koji_ext_repos = {repo['external_repo_name']: repo for repo in self._external_repos.result}
         ext_repos = {repo.name: repo for repo in self.obj.external_repos}
 
-        for name, repo in koji_ext_repos.items():
+        for name, koji_repo in koji_ext_repos.items():
             if name not in ext_repos:
                 self.remove_external_repo(name)
+            else:
+                repo = ext_repos[name]
+                arches = set(koji_repo['arches'].split()) if koji_repo['arches'] else None
+                if koji_repo['priority'] != repo.priority or \
+                   koji_repo['merge_mode'] != repo.merge_mode or \
+                   arches != (set(repo.arches) if repo.arches else None):
+                    self.update_external_repo(repo)
 
         for name, repo in ext_repos.items():
             if name not in koji_ext_repos:
@@ -612,7 +663,6 @@ class TagGroup(SubModel):
 class InheritanceLink(SubModel):
     name: str = Field(alias='name')
     priority: int = Field(alias='priority')
-    type: Literal['tag', 'external-repo'] = Field(alias='type', default='tag')
     maxdepth: Optional[int] = Field(alias='max-depth', default=None)
     noconfig: bool = Field(alias='no-config', default=False)
     pkgfilter: str = Field(alias='pkg-filter', default='')
@@ -620,15 +670,57 @@ class InheritanceLink(SubModel):
 
     _parent_tag_id: Optional[int] = None
 
-    def key(self) -> BaseKey:
-        return (self.type, self.name)
-
     @field_validator('pkgfilter', mode='before')
     @classmethod
     def convert_pkgfilter_from_simplified(cls, data: Any) -> Any:
         if isinstance(data, list):
             return f"^({'|'.join(data)})$"
         return data
+
+
+class ExternalRepoLink(SubModel):
+    name: str = Field(alias='name')
+    priority: int = Field(alias='priority')
+
+    arches: Optional[List[str]] = Field(alias='arches', default=None)
+    merge_mode: Literal['koji', 'simple', 'bare'] = Field(alias='merge-mode', default='koji')
+
+
+def _simplified_link(data: Any) -> Any:
+    priorities = set()
+    priority_increment = 10
+
+    if isinstance(data, str):
+        data = [{'name': data, 'priority': 0}]
+
+    elif isinstance(data, list):
+        fixed: List[Dict[str, Any]] = []
+
+        priority = 0
+        for item in data:
+
+            if isinstance(item, str):
+                item = {'name': item, 'priority': priority}
+                fixed.append(item)
+                priorities.add(priority)
+                priority += priority_increment
+
+            elif isinstance(item, dict):
+                priority = item.setdefault('priority', priority)
+                priorities.add(priority)
+
+                priority = max(priorities)
+                offset = priority_increment - (priority % priority_increment)
+                priority += offset
+
+                fixed.append(item)
+
+            else:
+                # this will raise a validation error later on
+                fixed.append(item)
+
+        data = fixed
+    return data
 
 
 class Tag(BaseKojiObject):
@@ -647,7 +739,9 @@ class Tag(BaseKojiObject):
     extras: Dict[str, Any] = Field(alias='extras', default_factory=dict)
     groups: Dict[str, TagGroup] = Field(alias='groups', default_factory=dict)
     exact_groups: bool = Field(alias='exact-groups', default=False)
+
     inheritance: List[InheritanceLink] = Field(alias='inheritance', default_factory=list)
+    external_repos: List[ExternalRepoLink] = Field(alias='external-repos', default_factory=list)
 
 
     def model_post_init(self, __context: Any) -> None:
@@ -706,52 +800,13 @@ class Tag(BaseKojiObject):
     @field_validator('inheritance', mode='before')
     @classmethod
     def convert_inheritance_from_simplified(cls, data: Any) -> Any:
-
-        priorities = set()
-        priority_increment = 10
-
-        if isinstance(data, str):
-            data = [{'name': data, 'type': 'tag', 'priority': 0}]
-
-        elif isinstance(data, list):
-            fixed: List[Dict[str, Any]] = []
-
-            priority = 0
-            for item in data:
-
-                if isinstance(item, str):
-                    item = {'name': item, 'type': 'tag', 'priority': priority}
-                    fixed.append(item)
-                    priorities.add(priority)
-                    priority += priority_increment
-
-                elif isinstance(item, dict):
-                    priority = item.setdefault('priority', priority)
-                    priorities.add(priority)
-
-                    priority = max(priorities)
-                    offset = priority_increment - (priority % priority_increment)
-                    priority += offset
-
-                    fixed.append(item)
-
-                else:
-                    # this will raise a validation error later on
-                    fixed.append(item)
-
-            data = fixed
-
-        return data
+        return _simplified_link(data)
 
 
-    @property
-    def parent_tags(self) -> List[InheritanceLink]:
-        return [parent for parent in self.inheritance if parent.type == 'tag']
-
-
-    @property
-    def external_repos(self) -> List[InheritanceLink]:
-        return [parent for parent in self.inheritance if parent.type == 'external-repo']
+    @field_validator('external_repos', mode='before')
+    @classmethod
+    def convert_external_repos_from_simplified(cls, data: Any) -> Any:
+        return _simplified_link(data)
 
 
     def split(self) -> 'Tag':
@@ -774,7 +829,7 @@ class Tag(BaseKojiObject):
             deps.append(('permission', self.permission))
 
         # Check for inheritance dependencies
-        for parent in self.parent_tags:
+        for parent in self.inheritance:
             deps.append(('tag', parent.name))
 
         # Check for external repository dependencies
