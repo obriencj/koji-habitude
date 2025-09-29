@@ -1,9 +1,6 @@
 # koji-habitude
 
-> **✅ Production Ready**: This project provides a complete solution for
-> synchronizing local koji data expectations with hub instances. Core
-> architecture is fully implemented including CLI framework, data models,
-> dependency resolution, and koji integration.
+> ** WORK IN PROGRESS **
 
 ## Current Status
 
