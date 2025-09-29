@@ -92,13 +92,14 @@ class MissingObject(Base):
         return MissingChangeReport(self)
 
 
-class Report(BaseModel):
+@dataclass
+class Report:
     """
     A Report is a container for a set of missing dependencies.
     """
 
-    missing: Dict[BaseKey, Base] = Field(default_factory=dict)
-    found: Dict[BaseKey, Base] = Field(default_factory=dict)
+    missing: Dict[BaseKey, Base]
+    found: Dict[BaseKey, Base]
 
 
 class Resolver:
