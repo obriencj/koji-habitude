@@ -98,7 +98,7 @@ class Report(BaseModel):
     """
 
     missing: Dict[BaseKey, Base] = Field(default_factory=dict)
-    found: List[BaseKey] = Field(default_factory=list)
+    found: Dict[BaseKey, Base] = Field(default_factory=dict)
 
 
 class Resolver:
