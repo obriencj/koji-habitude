@@ -15,16 +15,15 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 from dataclasses import dataclass
 from enum import Enum
-from itertools import chain
+from itertools import chain, islice
 import logging
-from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
+from typing import Callable, Dict, Iterable, Iterator, List, Optional
 
 from koji import ClientSession, VirtualCall
 
 from .koji import multicall
 from .models import Base, BaseKey, ChangeReport
 from .resolver import Resolver
-from .solver import Solver
 
 
 logger = logging.getLogger(__name__)
@@ -87,8 +86,8 @@ class Processor:
     def __init__(
         self,
         koji_session: ClientSession,
-        stream_origin: Solver,
-        resolver: Resolver = None,
+        dataseries: Iterable[Base],
+        resolver: Resolver,
         chunk_size: int = 100):
         """
         Initialize the processor.
@@ -100,7 +99,7 @@ class Processor:
         """
 
         self.koji_session: ClientSession = koji_session
-        self.object_stream: Iterator[Base] = iter(stream_origin)
+        self.dataseries: Iterator[Base] = iter(dataseries)
         self.resolver: Resolver = resolver
         self.chunk_size: int = chunk_size
 
@@ -131,9 +130,11 @@ class Processor:
             chunk_size = self.chunk_size
 
         if self.state == ProcessorState.READY_CHUNK:
-            if not self._load_next_chunk(chunk_size):
+            self.current_chunk = list(islice(self.dataseries, chunk_size))
+            if not self.current_chunk:
                 self.state = ProcessorState.EXHAUSTED
                 return False
+
             self.state = ProcessorState.READY_READ
 
         elif self.state == ProcessorState.EXHAUSTED:
@@ -156,33 +157,6 @@ class Processor:
 
         else:
             return count
-
-
-    def _load_next_chunk(self, chunk_size: int) -> bool:
-        """
-        Load the next chunk of objects from the stream. Discards the current
-        chunk.
-
-        Note: this method ignores states, and should only be called from
-        the `step()` method.
-
-        Returns:
-            True if chunk was loaded, False if stream is exhausted
-        """
-
-        self.current_chunk = []
-
-        for _ in range(chunk_size):
-            try:
-                obj = next(self.object_stream)
-                self.current_chunk.append(obj)
-            except StopIteration:
-                break
-
-        if not self.current_chunk:
-            return False
-
-        return True
 
 
     def step_read(self) -> None:

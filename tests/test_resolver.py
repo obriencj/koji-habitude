@@ -72,6 +72,7 @@ class TestResolver(unittest.TestCase):
             ('tag', 'existing-tag'): Tag(name='existing-tag', type='tag'),
             ('user', 'existing-user'): User(name='existing-user', type='user'),
         }
+        self.namespace.get = self.namespace._ns.get
 
         self.resolver = Resolver(self.namespace)
 

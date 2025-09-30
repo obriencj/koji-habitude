@@ -88,7 +88,7 @@ class Solver:
         into: Dict[BaseKey, Base] = {}
 
         if self.work is None:
-            for key in self.resolver.namespace._ns:
+            for key in self.resolver.namespace_keys():
                 self.resolver.chain_resolve(key, into)
         else:
             for key in self.work:

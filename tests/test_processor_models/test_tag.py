@@ -11,11 +11,22 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 from unittest import TestCase
 from unittest.mock import Mock
 
-from koji_habitude.processor import Processor, DiffOnlyProcessor, ProcessorState, ProcessorSummary
 from koji_habitude.models import Tag
-from koji_habitude.models.tag import InheritanceLink, ExternalRepoLink
+from koji_habitude.models.tag import ExternalRepoLink, InheritanceLink
+from koji_habitude.processor import (
+    DiffOnlyProcessor,
+    Processor,
+    ProcessorState,
+    ProcessorSummary,
+)
 
-from . import create_test_koji_session, create_solver_with_objects, create_resolver_with_objects, MulticallMocking
+from . import (
+    MulticallMocking,
+    create_empty_resolver,
+    create_resolver_with_objects,
+    create_solver_with_objects,
+    create_test_koji_session,
+)
 
 
 def create_test_tag(name: str, locked: bool = False, permission: str = None,
@@ -111,8 +122,8 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
-            resolver=None,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
@@ -201,7 +212,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
             resolver=create_resolver_with_objects({
                 ('tag', 'parent-tag'): {'id': 123, 'name': 'parent-tag'}
             }),
@@ -276,7 +287,8 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
@@ -325,7 +337,8 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
@@ -374,7 +387,8 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
@@ -423,7 +437,8 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
@@ -468,7 +483,8 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
@@ -556,7 +572,8 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
@@ -627,7 +644,8 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
@@ -685,7 +703,8 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
@@ -745,7 +764,8 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
@@ -803,7 +823,8 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
@@ -861,7 +882,8 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
@@ -924,7 +946,8 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
@@ -1002,7 +1025,8 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
@@ -1071,7 +1095,7 @@ class TestProcessorTagDependencies(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
             resolver=resolver,
             chunk_size=10
         )
@@ -1122,7 +1146,8 @@ class TestProcessorTagDependencies(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
@@ -1233,7 +1258,7 @@ class TestProcessorTagDependencies(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
             resolver=resolver,
             chunk_size=10
         )

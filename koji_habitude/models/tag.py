@@ -723,9 +723,13 @@ class Tag(BaseObject):
 
         for parent in self.inheritance:
             if parent.priority in seen:
-                raise ValueError(f"Duplicate priority {parent.priority} for {parent.type} {parent.name}")
+                raise ValueError(f"Duplicate tag priority {parent.priority} for {parent.name}")
             seen[parent.priority] = parent
 
+        for parent in self.external_repos:
+            if parent.priority in seen:
+                raise ValueError(f"Duplicate external repo priority {parent.priority} for {parent.name}")
+            seen[parent.priority] = parent
 
     @field_validator('groups', mode='before')
     @classmethod
