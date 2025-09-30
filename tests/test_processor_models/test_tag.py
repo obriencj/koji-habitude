@@ -33,7 +33,7 @@ def create_test_tag(name: str, locked: bool = False, permission: str = None,
                    arches: list = None, maven_support: bool = False,
                    maven_include_all: bool = False, extras: dict = None,
                    groups: dict = None, inheritance: list = None,
-                   external_repos: list = None) -> Tag:
+                   external_repos: list = None, packages: list = None) -> Tag:
     """
     Create a test tag with the specified parameters.
 
@@ -48,6 +48,7 @@ def create_test_tag(name: str, locked: bool = False, permission: str = None,
         groups: Tag groups dict (default empty dict)
         inheritance: List of inheritance links (default empty list)
         external_repos: List of external repo links (default empty list)
+        packages: List of package entries (default empty list)
 
     Returns:
         Tag object for testing
@@ -63,6 +64,7 @@ def create_test_tag(name: str, locked: bool = False, permission: str = None,
         groups=groups or {},
         inheritance=inheritance or [],
         external_repos=external_repos or [],
+        packages=packages or [],
         filename='test.yaml',
         lineno=1
     )
@@ -97,6 +99,9 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         get_tag_post_mock = Mock()
         get_tag_post_mock.return_value = None
 
+        list_packages_mock = Mock()
+        list_packages_mock.return_value = []
+
         get_groups_mock = Mock()
         get_groups_mock.return_value = []
 
@@ -113,6 +118,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         set_extras_mock.return_value = None
 
         self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('listPackages', list_packages_mock)
         self.queue_client_response('getTagGroups', get_groups_mock)
         self.queue_client_response('getInheritanceData', get_inheritance_mock)
         self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
@@ -134,6 +140,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         get_tag_mock.assert_called_once_with('new-tag', strict=False)
         get_tag_post_mock.assert_called_once_with('new-tag', strict=False)
         # When tag doesn't exist, deferred calls are not made
+        list_packages_mock.assert_not_called()
         get_groups_mock.assert_not_called()
         get_inheritance_mock.assert_not_called()
         get_external_repos_mock.assert_not_called()
@@ -167,6 +174,9 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         get_tag_post_mock = Mock()
         get_tag_post_mock.return_value = None
 
+        list_packages_mock = Mock()
+        list_packages_mock.return_value = []
+
         get_groups_mock = Mock()
         get_groups_mock.return_value = []
 
@@ -198,6 +208,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         add_external_repo_mock.return_value = None
 
         self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('listPackages', list_packages_mock)
         self.queue_client_response('getTagGroups', get_groups_mock)
         self.queue_client_response('getInheritanceData', get_inheritance_mock)
         self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
@@ -227,6 +238,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         get_tag_mock.assert_called_once_with('complex-tag', strict=False)
         get_tag_post_mock.assert_called_once_with('complex-tag', strict=False)
         # When tag doesn't exist, deferred calls are not made
+        list_packages_mock.assert_not_called()
         get_groups_mock.assert_not_called()
         get_inheritance_mock.assert_not_called()
         get_external_repos_mock.assert_not_called()
@@ -267,6 +279,9 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
             'extra': {}
         }
 
+        list_packages_mock = Mock()
+        list_packages_mock.return_value = []
+
         get_groups_mock = Mock()
         get_groups_mock.return_value = []
 
@@ -280,6 +295,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         set_locked_mock.return_value = None
 
         self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('listPackages', list_packages_mock)
         self.queue_client_response('getTagGroups', get_groups_mock)
         self.queue_client_response('getInheritanceData', get_inheritance_mock)
         self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
@@ -296,6 +312,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         self.assertTrue(result)  # Should process 1 object
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
+        list_packages_mock.assert_called_once_with(tagID='existing-tag')
         get_tag_mock.assert_called_once_with('existing-tag', strict=False)
         set_locked_mock.assert_called_once_with('existing-tag', locked=True)
 
@@ -317,6 +334,9 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
             'extra': {}
         }
 
+        list_packages_mock = Mock()
+        list_packages_mock.return_value = []
+
         get_groups_mock = Mock()
         get_groups_mock.return_value = []
 
@@ -330,6 +350,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         set_permission_mock.return_value = None
 
         self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('listPackages', list_packages_mock)
         self.queue_client_response('getTagGroups', get_groups_mock)
         self.queue_client_response('getInheritanceData', get_inheritance_mock)
         self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
@@ -346,6 +367,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         self.assertTrue(result)  # Should process 1 object
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
+        list_packages_mock.assert_called_once_with(tagID='existing-tag')
         get_tag_mock.assert_called_once_with('existing-tag', strict=False)
         set_permission_mock.assert_called_once_with('existing-tag', perm='admin')
 
@@ -367,6 +389,9 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
             'extra': {}
         }
 
+        list_packages_mock = Mock()
+        list_packages_mock.return_value = []
+
         get_groups_mock = Mock()
         get_groups_mock.return_value = []
 
@@ -380,6 +405,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         set_arches_mock.return_value = None
 
         self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('listPackages', list_packages_mock)
         self.queue_client_response('getTagGroups', get_groups_mock)
         self.queue_client_response('getInheritanceData', get_inheritance_mock)
         self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
@@ -396,6 +422,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         self.assertTrue(result)  # Should process 1 object
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
+        list_packages_mock.assert_called_once_with(tagID='existing-tag')
         get_tag_mock.assert_called_once_with('existing-tag', strict=False)
         set_arches_mock.assert_called_once_with('existing-tag', arches='x86_64 aarch64')
 
@@ -417,6 +444,9 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
             'extra': {}
         }
 
+        list_packages_mock = Mock()
+        list_packages_mock.return_value = []
+
         get_groups_mock = Mock()
         get_groups_mock.return_value = []
 
@@ -430,6 +460,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         set_maven_mock.return_value = None
 
         self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('listPackages', list_packages_mock)
         self.queue_client_response('getTagGroups', get_groups_mock)
         self.queue_client_response('getInheritanceData', get_inheritance_mock)
         self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
@@ -446,6 +477,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         self.assertTrue(result)  # Should process 1 object
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
+        list_packages_mock.assert_called_once_with(tagID='existing-tag')
         get_tag_mock.assert_called_once_with('existing-tag', strict=False)
         set_maven_mock.assert_called_once_with('existing-tag', maven_support=True, maven_include_all=True)
 
@@ -467,6 +499,9 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
             'extra': {}
         }
 
+        list_packages_mock = Mock()
+        list_packages_mock.return_value = []
+
         get_groups_mock = Mock()
         get_groups_mock.return_value = []
 
@@ -477,6 +512,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         get_external_repos_mock.return_value = []
 
         self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('listPackages', list_packages_mock)
         self.queue_client_response('getTagGroups', get_groups_mock)
         self.queue_client_response('getInheritanceData', get_inheritance_mock)
         self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
@@ -493,6 +529,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
         get_tag_mock.assert_called_once_with('existing-tag', strict=False)
+        list_packages_mock.assert_called_once_with(tagID='existing-tag')
         get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
         get_inheritance_mock.assert_called_once_with('existing-tag')
         get_external_repos_mock.assert_called_once_with(tag_info='existing-tag')
@@ -620,6 +657,9 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
             'extra': {}
         }
 
+        list_packages_mock = Mock()
+        list_packages_mock.return_value = []
+
         get_groups_mock = Mock()
         get_groups_mock.return_value = []  # No groups currently
 
@@ -636,6 +676,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         add_group_pkg_mock.return_value = None
 
         self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('listPackages', list_packages_mock)
         self.queue_client_response('getTagGroups', get_groups_mock)
         self.queue_client_response('getInheritanceData', get_inheritance_mock)
         self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
@@ -654,6 +695,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
         get_tag_mock.assert_called_once_with('existing-tag', strict=False)
+        list_packages_mock.assert_called_once_with(tagID='existing-tag')
         get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
         add_group_mock.assert_called_once_with('existing-tag', 'build', description=None, block=False, force=True)
         add_group_pkg_mock.assert_called_once_with('existing-tag', 'build', 'package1', block=False, force=True)
@@ -677,6 +719,9 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
             'extra': {}
         }
 
+        list_packages_mock = Mock()
+        list_packages_mock.return_value = []
+
         # Mock existing group with different properties
         get_groups_mock = Mock()
         get_groups_mock.return_value = [{
@@ -696,6 +741,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         update_group_mock.return_value = None
 
         self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('listPackages', list_packages_mock)
         self.queue_client_response('getTagGroups', get_groups_mock)
         self.queue_client_response('getInheritanceData', get_inheritance_mock)
         self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
@@ -713,6 +759,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
         get_tag_mock.assert_called_once_with('existing-tag', strict=False)
+        list_packages_mock.assert_called_once_with(tagID='existing-tag')
         get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
         # Should update group because block status differs
         update_group_mock.assert_called_once_with('existing-tag', 'build', description=None, block=False, force=True)
@@ -738,6 +785,9 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
             'extra': {}
         }
 
+        list_packages_mock = Mock()
+        list_packages_mock.return_value = []
+
         # Mock existing group that should be removed
         get_groups_mock = Mock()
         get_groups_mock.return_value = [{
@@ -757,6 +807,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         remove_group_mock.return_value = None
 
         self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('listPackages', list_packages_mock)
         self.queue_client_response('getTagGroups', get_groups_mock)
         self.queue_client_response('getInheritanceData', get_inheritance_mock)
         self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
@@ -774,6 +825,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
         get_tag_mock.assert_called_once_with('existing-tag', strict=False)
+        list_packages_mock.assert_called_once_with(tagID='existing-tag')
         get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
         # Should remove the group because exact_groups=True and group not in desired state
         remove_group_mock.assert_called_once_with('existing-tag', 'build')
@@ -797,6 +849,9 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
             'extra': {}
         }
 
+        list_packages_mock = Mock()
+        list_packages_mock.return_value = []
+
         # Mock existing group with only one package
         get_groups_mock = Mock()
         get_groups_mock.return_value = [{
@@ -816,6 +871,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         add_group_pkg_mock.return_value = None
 
         self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('listPackages', list_packages_mock)
         self.queue_client_response('getTagGroups', get_groups_mock)
         self.queue_client_response('getInheritanceData', get_inheritance_mock)
         self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
@@ -833,6 +889,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
         get_tag_mock.assert_called_once_with('existing-tag', strict=False)
+        list_packages_mock.assert_called_once_with(tagID='existing-tag')
         get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
         # Should add the missing package
         add_group_pkg_mock.assert_called_once_with('existing-tag', 'build', 'package2', block=False, force=True)
@@ -856,6 +913,9 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
             'extra': {}
         }
 
+        list_packages_mock = Mock()
+        list_packages_mock.return_value = []
+
         # Mock existing group with package that has different block status
         get_groups_mock = Mock()
         get_groups_mock.return_value = [{
@@ -875,6 +935,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         update_group_pkg_mock.return_value = None
 
         self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('listPackages', list_packages_mock)
         self.queue_client_response('getTagGroups', get_groups_mock)
         self.queue_client_response('getInheritanceData', get_inheritance_mock)
         self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
@@ -892,6 +953,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
         get_tag_mock.assert_called_once_with('existing-tag', strict=False)
+        list_packages_mock.assert_called_once_with(tagID='existing-tag')
         get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
         # Should update the package because block status differs
         update_group_pkg_mock.assert_called_once_with('existing-tag', 'build', 'package1', block=True, force=True)
@@ -917,6 +979,9 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
             'extra': {}
         }
 
+        list_packages_mock = Mock()
+        list_packages_mock.return_value = []
+
         # Mock existing group with extra package that should be removed
         get_groups_mock = Mock()
         get_groups_mock.return_value = [{
@@ -939,6 +1004,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         remove_group_pkg_mock.return_value = None
 
         self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('listPackages', list_packages_mock)
         self.queue_client_response('getTagGroups', get_groups_mock)
         self.queue_client_response('getInheritanceData', get_inheritance_mock)
         self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
@@ -956,6 +1022,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
         get_tag_mock.assert_called_once_with('existing-tag', strict=False)
+        list_packages_mock.assert_called_once_with(tagID='existing-tag')
         get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
         # Should remove the extra package because exact_packages=True
         remove_group_pkg_mock.assert_called_once_with('existing-tag', 'build', 'package2')
@@ -987,6 +1054,9 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
             'extra': {}
         }
 
+        list_packages_mock = Mock()
+        list_packages_mock.return_value = []
+
         # Mock existing group with packages that need various changes
         get_groups_mock = Mock()
         get_groups_mock.return_value = [{
@@ -1016,6 +1086,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         remove_group_pkg2_mock.return_value = None
 
         self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('listPackages', list_packages_mock)
         self.queue_client_response('getTagGroups', get_groups_mock)
         self.queue_client_response('getInheritanceData', get_inheritance_mock)
         self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
@@ -1035,6 +1106,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
         get_tag_mock.assert_called_once_with('existing-tag', strict=False)
+        list_packages_mock.assert_called_once_with(tagID='existing-tag')
         get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
 
         # Should add new package3
@@ -1071,6 +1143,9 @@ class TestProcessorTagDependencies(MulticallMocking, TestCase):
             'extra': {}
         }
 
+        list_packages_mock = Mock()
+        list_packages_mock.return_value = []
+
         get_groups_mock = Mock()
         get_groups_mock.return_value = []
 
@@ -1084,6 +1159,7 @@ class TestProcessorTagDependencies(MulticallMocking, TestCase):
         add_inheritance_mock.return_value = None
 
         self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('listPackages', list_packages_mock)
         self.queue_client_response('getTagGroups', get_groups_mock)
         self.queue_client_response('getInheritanceData', get_inheritance_mock)
         self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
@@ -1126,6 +1202,9 @@ class TestProcessorTagDependencies(MulticallMocking, TestCase):
             'extra': {}
         }
 
+        list_packages_mock = Mock()
+        list_packages_mock.return_value = []
+
         get_groups_mock = Mock()
         get_groups_mock.return_value = []
 
@@ -1139,6 +1218,7 @@ class TestProcessorTagDependencies(MulticallMocking, TestCase):
         add_external_repo_mock.return_value = None
 
         self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('listPackages', list_packages_mock)
         self.queue_client_response('getTagGroups', get_groups_mock)
         self.queue_client_response('getInheritanceData', get_inheritance_mock)
         self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
@@ -1297,6 +1377,698 @@ class TestProcessorTagDependencies(MulticallMocking, TestCase):
         self.assertEqual(len(inheritance_data), 1)
         self.assertEqual(inheritance_data[0]['parent_id'], 1)  # parent tag ID
         self.assertEqual(inheritance_data[0]['priority'], 10)
+
+
+class TestProcessorTagPackages(MulticallMocking, TestCase):
+    """
+    Test Tag processor integration for package list management.
+
+    Covers adding, updating, blocking/unblocking, and removing packages from tags.
+    """
+
+    def test_add_package_to_tag(self):
+        """Test adding a single package to an existing tag."""
+
+        tag = create_test_tag(
+            'existing-tag',
+            packages=[{'name': 'my-package', 'owner': 'testuser'}])
+        solver = create_solver_with_objects([tag])
+        mock_session = create_test_koji_session()
+
+        # Mock the getTag call to return existing tag
+        get_tag_mock = Mock()
+        get_tag_mock.return_value = {
+            'name': 'existing-tag',
+            'locked': False,
+            'perm': None,
+            'arches': '',
+            'maven_support': False,
+            'maven_include_all': False,
+            'extra': {}
+        }
+
+        list_packages_mock = Mock()
+        list_packages_mock.return_value = []  # No packages currently
+
+        get_groups_mock = Mock()
+        get_groups_mock.return_value = []
+
+        get_inheritance_mock = Mock()
+        get_inheritance_mock.return_value = []
+
+        get_external_repos_mock = Mock()
+        get_external_repos_mock.return_value = []
+
+        add_package_mock = Mock()
+        add_package_mock.return_value = None
+
+        self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('listPackages', list_packages_mock)
+        self.queue_client_response('getTagGroups', get_groups_mock)
+        self.queue_client_response('getInheritanceData', get_inheritance_mock)
+        self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
+        self.queue_client_response('packageListAdd', add_package_mock)
+
+        processor = Processor(
+            koji_session=mock_session,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
+            chunk_size=10
+        )
+
+        result = processor.step()
+        self.assertTrue(result)
+        self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
+
+        get_tag_mock.assert_called_once_with('existing-tag', strict=False)
+        list_packages_mock.assert_called_once_with(tagID='existing-tag')
+        add_package_mock.assert_called_once_with(
+            'existing-tag',
+            'my-package',
+            owner='testuser',
+            block=False,
+            extra_arches=None
+        )
+
+    def test_add_package_with_extra_arches(self):
+        """Test adding a package with extra_arches specified."""
+
+        tag = create_test_tag('existing-tag', packages=[{'name': 'my-package', 'owner': 'testuser', 'extra-arches': ['i686', 'ppc64le']}])
+        solver = create_solver_with_objects([tag])
+        mock_session = create_test_koji_session()
+
+        # Mock the getTag call to return existing tag
+        get_tag_mock = Mock()
+        get_tag_mock.return_value = {
+            'name': 'existing-tag',
+            'locked': False,
+            'perm': None,
+            'arches': '',
+            'maven_support': False,
+            'maven_include_all': False,
+            'extra': {}
+        }
+
+        list_packages_mock = Mock()
+        list_packages_mock.return_value = []
+
+        get_groups_mock = Mock()
+        get_groups_mock.return_value = []
+
+        get_inheritance_mock = Mock()
+        get_inheritance_mock.return_value = []
+
+        get_external_repos_mock = Mock()
+        get_external_repos_mock.return_value = []
+
+        add_package_mock = Mock()
+        add_package_mock.return_value = None
+
+        self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('listPackages', list_packages_mock)
+        self.queue_client_response('getTagGroups', get_groups_mock)
+        self.queue_client_response('getInheritanceData', get_inheritance_mock)
+        self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
+        self.queue_client_response('packageListAdd', add_package_mock)
+
+        processor = Processor(
+            koji_session=mock_session,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
+            chunk_size=10
+        )
+
+        result = processor.step()
+        self.assertTrue(result)
+        self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
+
+        add_package_mock.assert_called_once_with(
+            'existing-tag',
+            'my-package',
+            owner='testuser',
+            block=False,
+            extra_arches='i686 ppc64le'
+        )
+
+    def test_block_package(self):
+        """Test blocking an existing unblocked package."""
+
+        tag = create_test_tag('existing-tag', packages=[{'name': 'my-package', 'owner': 'testuser', 'blocked': True}])
+        solver = create_solver_with_objects([tag])
+        mock_session = create_test_koji_session()
+
+        # Mock the getTag call to return existing tag
+        get_tag_mock = Mock()
+        get_tag_mock.return_value = {
+            'name': 'existing-tag',
+            'locked': False,
+            'perm': None,
+            'arches': '',
+            'maven_support': False,
+            'maven_include_all': False,
+            'extra': {}
+        }
+
+        list_packages_mock = Mock()
+        list_packages_mock.return_value = [{
+            'package_name': 'my-package',
+            'owner_name': 'testuser',
+            'blocked': False,  # Currently not blocked
+            'extra_arches': None
+        }]
+
+        get_groups_mock = Mock()
+        get_groups_mock.return_value = []
+
+        get_inheritance_mock = Mock()
+        get_inheritance_mock.return_value = []
+
+        get_external_repos_mock = Mock()
+        get_external_repos_mock.return_value = []
+
+        block_package_mock = Mock()
+        block_package_mock.return_value = None
+
+        self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('listPackages', list_packages_mock)
+        self.queue_client_response('getTagGroups', get_groups_mock)
+        self.queue_client_response('getInheritanceData', get_inheritance_mock)
+        self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
+        self.queue_client_response('packageListBlock', block_package_mock)
+
+        processor = Processor(
+            koji_session=mock_session,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
+            chunk_size=10
+        )
+
+        result = processor.step()
+        self.assertTrue(result)
+        self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
+
+        list_packages_mock.assert_called_once_with(tagID='existing-tag')
+        block_package_mock.assert_called_once_with('existing-tag', 'my-package', force=True)
+
+    def test_unblock_package(self):
+        """Test unblocking a previously blocked package."""
+
+        tag = create_test_tag(
+            'existing-tag',
+            packages=[{'name': 'my-package', 'owner': 'testuser', 'blocked': False}])
+        solver = create_solver_with_objects([tag])
+        mock_session = create_test_koji_session()
+
+        # Mock the getTag call to return existing tag
+        get_tag_mock = Mock()
+        get_tag_mock.return_value = {
+            'name': 'existing-tag',
+            'locked': False,
+            'perm': None,
+            'arches': '',
+            'maven_support': False,
+            'maven_include_all': False,
+            'extra': {}
+        }
+
+        list_packages_mock = Mock()
+        list_packages_mock.return_value = [{
+            'package_name': 'my-package',
+            'owner_name': 'testuser',
+            'blocked': True,  # Currently blocked
+            'extra_arches': None
+        }]
+
+        get_groups_mock = Mock()
+        get_groups_mock.return_value = []
+
+        get_inheritance_mock = Mock()
+        get_inheritance_mock.return_value = []
+
+        get_external_repos_mock = Mock()
+        get_external_repos_mock.return_value = []
+
+        unblock_package_mock = Mock()
+        unblock_package_mock.return_value = None
+
+        self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('listPackages', list_packages_mock)
+        self.queue_client_response('getTagGroups', get_groups_mock)
+        self.queue_client_response('getInheritanceData', get_inheritance_mock)
+        self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
+        self.queue_client_response('packageListUnblock', unblock_package_mock)
+
+        processor = Processor(
+            koji_session=mock_session,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
+            chunk_size=10
+        )
+
+        result = processor.step()
+        self.assertTrue(result)
+        self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
+
+        unblock_package_mock.assert_called_once_with('existing-tag', 'my-package', force=True)
+
+    def test_update_package_owner(self):
+        """Test changing the owner of an existing package."""
+
+        tag = create_test_tag('existing-tag', packages=[{'name': 'my-package', 'owner': 'newuser'}])
+        solver = create_solver_with_objects([tag])
+        mock_session = create_test_koji_session()
+
+        # Mock the getTag call to return existing tag
+        get_tag_mock = Mock()
+        get_tag_mock.return_value = {
+            'name': 'existing-tag',
+            'locked': False,
+            'perm': None,
+            'arches': '',
+            'maven_support': False,
+            'maven_include_all': False,
+            'extra': {}
+        }
+
+        list_packages_mock = Mock()
+        list_packages_mock.return_value = [{
+            'package_name': 'my-package',
+            'owner_name': 'olduser',  # Different owner
+            'blocked': False,
+            'extra_arches': None
+        }]
+
+        get_groups_mock = Mock()
+        get_groups_mock.return_value = []
+
+        get_inheritance_mock = Mock()
+        get_inheritance_mock.return_value = []
+
+        get_external_repos_mock = Mock()
+        get_external_repos_mock.return_value = []
+
+        set_owner_mock = Mock()
+        set_owner_mock.return_value = None
+
+        self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('listPackages', list_packages_mock)
+        self.queue_client_response('getTagGroups', get_groups_mock)
+        self.queue_client_response('getInheritanceData', get_inheritance_mock)
+        self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
+        self.queue_client_response('packageListSetOwner', set_owner_mock)
+
+        processor = Processor(
+            koji_session=mock_session,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
+            chunk_size=10
+        )
+
+        result = processor.step()
+        self.assertTrue(result)
+        self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
+
+        set_owner_mock.assert_called_once_with('existing-tag', 'my-package', 'newuser', force=True)
+
+    def test_update_package_extra_arches(self):
+        """Test changing extra_arches of an existing package."""
+
+        tag = create_test_tag('existing-tag', packages=[{'name': 'my-package', 'owner': 'testuser', 'extra-arches': ['i686']}])
+        solver = create_solver_with_objects([tag])
+        mock_session = create_test_koji_session()
+
+        # Mock the getTag call to return existing tag
+        get_tag_mock = Mock()
+        get_tag_mock.return_value = {
+            'name': 'existing-tag',
+            'locked': False,
+            'perm': None,
+            'arches': '',
+            'maven_support': False,
+            'maven_include_all': False,
+            'extra': {}
+        }
+
+        list_packages_mock = Mock()
+        list_packages_mock.return_value = [{
+            'package_name': 'my-package',
+            'owner_name': 'testuser',
+            'blocked': False,
+            'extra_arches': None  # Different from desired state
+        }]
+
+        get_groups_mock = Mock()
+        get_groups_mock.return_value = []
+
+        get_inheritance_mock = Mock()
+        get_inheritance_mock.return_value = []
+
+        get_external_repos_mock = Mock()
+        get_external_repos_mock.return_value = []
+
+        set_arches_mock = Mock()
+        set_arches_mock.return_value = None
+
+        self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('listPackages', list_packages_mock)
+        self.queue_client_response('getTagGroups', get_groups_mock)
+        self.queue_client_response('getInheritanceData', get_inheritance_mock)
+        self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
+        self.queue_client_response('packageListSetArches', set_arches_mock)
+
+        processor = Processor(
+            koji_session=mock_session,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
+            chunk_size=10
+        )
+
+        result = processor.step()
+        self.assertTrue(result)
+        self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
+
+        # koji call expects arches to be a space separated string
+        set_arches_mock.assert_called_once_with('existing-tag', 'my-package', 'i686', force=True)
+
+    def test_remove_package_with_exact_packages(self):
+        """Test removing packages not in desired state when exact_packages=True."""
+
+        tag = create_test_tag('existing-tag', packages=[{'name': 'keep-package', 'owner': 'testuser'}])
+        tag.exact_packages = True
+        solver = create_solver_with_objects([tag])
+        mock_session = create_test_koji_session()
+
+        # Mock the getTag call to return existing tag
+        get_tag_mock = Mock()
+        get_tag_mock.return_value = {
+            'name': 'existing-tag',
+            'locked': False,
+            'perm': None,
+            'arches': '',
+            'maven_support': False,
+            'maven_include_all': False,
+            'extra': {}
+        }
+
+        list_packages_mock = Mock()
+        list_packages_mock.return_value = [
+            {
+                'package_name': 'keep-package',
+                'owner_name': 'testuser',
+                'blocked': False,
+                'extra_arches': None
+            },
+            {
+                'package_name': 'remove-package',  # Should be removed
+                'owner_name': 'testuser',
+                'blocked': False,
+                'extra_arches': None
+            }
+        ]
+
+        get_groups_mock = Mock()
+        get_groups_mock.return_value = []
+
+        get_inheritance_mock = Mock()
+        get_inheritance_mock.return_value = []
+
+        get_external_repos_mock = Mock()
+        get_external_repos_mock.return_value = []
+
+        remove_package_mock = Mock()
+        remove_package_mock.return_value = None
+
+        self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('listPackages', list_packages_mock)
+        self.queue_client_response('getTagGroups', get_groups_mock)
+        self.queue_client_response('getInheritanceData', get_inheritance_mock)
+        self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
+        self.queue_client_response('packageListRemove', remove_package_mock)
+
+        processor = Processor(
+            koji_session=mock_session,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
+            chunk_size=10
+        )
+
+        result = processor.step()
+        self.assertTrue(result)
+        self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
+
+        remove_package_mock.assert_called_once_with('existing-tag', 'remove-package', force=True)
+
+    def test_no_package_removal_without_exact_packages(self):
+        """Test that packages aren't removed when exact_packages=False."""
+
+        tag = create_test_tag('existing-tag', packages=[{'name': 'keep-package', 'owner': 'testuser'}])
+        tag.exact_packages = False  # Default behavior
+        solver = create_solver_with_objects([tag])
+        mock_session = create_test_koji_session()
+
+        # Mock the getTag call to return existing tag
+        get_tag_mock = Mock()
+        get_tag_mock.return_value = {
+            'name': 'existing-tag',
+            'locked': False,
+            'perm': None,
+            'arches': '',
+            'maven_support': False,
+            'maven_include_all': False,
+            'extra': {}
+        }
+
+        list_packages_mock = Mock()
+        list_packages_mock.return_value = [
+            {
+                'package_name': 'keep-package',
+                'owner_name': 'testuser',
+                'blocked': False,
+                'extra_arches': None
+            },
+            {
+                'package_name': 'extra-package',  # Should NOT be removed
+                'owner_name': 'testuser',
+                'blocked': False,
+                'extra_arches': None
+            }
+        ]
+
+        get_groups_mock = Mock()
+        get_groups_mock.return_value = []
+
+        get_inheritance_mock = Mock()
+        get_inheritance_mock.return_value = []
+
+        get_external_repos_mock = Mock()
+        get_external_repos_mock.return_value = []
+
+        self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('listPackages', list_packages_mock)
+        self.queue_client_response('getTagGroups', get_groups_mock)
+        self.queue_client_response('getInheritanceData', get_inheritance_mock)
+        self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
+
+        processor = Processor(
+            koji_session=mock_session,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
+            chunk_size=10
+        )
+
+        result = processor.step()
+        self.assertTrue(result)
+        self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
+
+        # No packageListRemove should have been queued
+        # We verify this implicitly - if there was a call, it would fail because we didn't queue a mock for it
+
+    def test_mixed_package_operations(self):
+        """Test applying multiple package operations in one step."""
+
+        tag = create_test_tag('existing-tag', packages=[
+            {'name': 'keep-package', 'owner': 'testuser'},  # Keep as-is
+            {'name': 'add-package', 'owner': 'testuser'},   # Add new
+            {'name': 'update-owner-package', 'owner': 'newowner'},  # Update owner
+            {'name': 'block-package', 'owner': 'testuser', 'blocked': True},  # Block
+        ])
+        tag.exact_packages = True
+        solver = create_solver_with_objects([tag])
+        mock_session = create_test_koji_session()
+
+        # Mock the getTag call to return existing tag
+        get_tag_mock = Mock()
+        get_tag_mock.return_value = {
+            'name': 'existing-tag',
+            'locked': False,
+            'perm': None,
+            'arches': '',
+            'maven_support': False,
+            'maven_include_all': False,
+            'extra': {}
+        }
+
+        list_packages_mock = Mock()
+        list_packages_mock.return_value = [
+            {
+                'package_name': 'keep-package',
+                'owner_name': 'testuser',
+                'blocked': False,
+                'extra_arches': None
+            },
+            {
+                'package_name': 'update-owner-package',
+                'owner_name': 'oldowner',
+                'blocked': False,
+                'extra_arches': None
+            },
+            {
+                'package_name': 'block-package',
+                'owner_name': 'testuser',
+                'blocked': False,  # Will be blocked
+                'extra_arches': None
+            },
+            {
+                'package_name': 'remove-package',
+                'owner_name': 'testuser',
+                'blocked': False,
+                'extra_arches': None
+            }
+        ]
+
+        get_groups_mock = Mock()
+        get_groups_mock.return_value = []
+
+        get_inheritance_mock = Mock()
+        get_inheritance_mock.return_value = []
+
+        get_external_repos_mock = Mock()
+        get_external_repos_mock.return_value = []
+
+        add_package_mock = Mock()
+        add_package_mock.return_value = None
+
+        set_owner_mock = Mock()
+        set_owner_mock.return_value = None
+
+        block_package_mock = Mock()
+        block_package_mock.return_value = None
+
+        remove_package_mock = Mock()
+        remove_package_mock.return_value = None
+
+        self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('listPackages', list_packages_mock)
+        self.queue_client_response('getTagGroups', get_groups_mock)
+        self.queue_client_response('getInheritanceData', get_inheritance_mock)
+        self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
+        self.queue_client_response('packageListAdd', add_package_mock)
+        self.queue_client_response('packageListBlock', block_package_mock)
+        self.queue_client_response('packageListSetOwner', set_owner_mock)
+        self.queue_client_response('packageListRemove', remove_package_mock)
+
+        processor = Processor(
+            koji_session=mock_session,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
+            chunk_size=10
+        )
+
+        result = processor.step()
+        self.assertTrue(result)
+        self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
+
+        # Verify all operations were called
+        add_package_mock.assert_called_once_with(
+            'existing-tag',
+            'add-package',
+            owner='testuser',
+            block=False,
+            extra_arches=None
+        )
+        block_package_mock.assert_called_once_with('existing-tag', 'block-package', force=True)
+        set_owner_mock.assert_called_once_with('existing-tag', 'update-owner-package', 'newowner', force=True)
+        remove_package_mock.assert_called_once_with('existing-tag', 'remove-package', force=True)
+
+    def test_create_tag_with_packages(self):
+        """Test creating a new tag with packages from the start."""
+
+        tag = create_test_tag('new-tag', arches=['x86_64'], packages=[
+            {'name': 'package1', 'owner': 'testuser'},
+            {'name': 'package2', 'owner': 'testuser', 'blocked': True}
+        ])
+        solver = create_solver_with_objects([tag])
+        mock_session = create_test_koji_session()
+
+        get_tag_mock = Mock()
+        get_tag_mock.return_value = None  # Tag doesn't exist
+
+        get_tag_post_mock = Mock()
+        get_tag_post_mock.return_value = None
+
+        list_packages_mock = Mock()
+        list_packages_mock.return_value = []
+
+        get_groups_mock = Mock()
+        get_groups_mock.return_value = []
+
+        get_inheritance_mock = Mock()
+        get_inheritance_mock.return_value = []
+
+        get_external_repos_mock = Mock()
+        get_external_repos_mock.return_value = []
+
+        create_mock = Mock()
+        create_mock.return_value = None
+
+        set_extras_mock = Mock()
+        set_extras_mock.return_value = None
+
+        add_package1_mock = Mock()
+        add_package1_mock.return_value = None
+
+        add_package2_mock = Mock()
+        add_package2_mock.return_value = None
+
+        self.queue_client_response('getTag', get_tag_mock)
+        self.queue_client_response('listPackages', list_packages_mock)
+        self.queue_client_response('getTagGroups', get_groups_mock)
+        self.queue_client_response('getInheritanceData', get_inheritance_mock)
+        self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
+        self.queue_client_response('createTag', create_mock)
+        self.queue_client_response('editTag2', set_extras_mock)
+        self.queue_client_response('packageListAdd', add_package1_mock)
+        self.queue_client_response('packageListAdd', add_package2_mock)
+        self.queue_client_response('getTag', get_tag_post_mock)
+
+        processor = Processor(
+            koji_session=mock_session,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
+            chunk_size=10
+        )
+
+        result = processor.step()
+        self.assertTrue(result)
+        self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
+
+        get_tag_mock.assert_called_once_with('new-tag', strict=False)
+        create_mock.assert_called_once()
+        # Verify both packages were added during creation
+        add_package1_mock.assert_called_once_with(
+            'new-tag',
+            'package1',
+            owner='testuser',
+            block=False,
+            extra_arches=None
+        )
+        add_package2_mock.assert_called_once_with(
+            'new-tag',
+            'package2',
+            owner='testuser',
+            block=True,
+            extra_arches=None
+        )
 
 
 # The end.
