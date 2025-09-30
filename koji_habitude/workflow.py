@@ -120,7 +120,7 @@ class Workflow:
     def load_data(self, paths: List[str | Path], templates: TemplateNamespace = None) -> Namespace:
         data_ns = self.cls_namespace()
         if templates:
-            data_ns._templates.update(templates._templates)
+            data_ns.merge_templates(templates)
         data_ns.feedall_raw(self.load_yaml(paths))
         data_ns.expand()
         return data_ns

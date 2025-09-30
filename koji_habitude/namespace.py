@@ -15,7 +15,18 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 from enum import Enum, auto
 import logging
-from typing import Any, Dict, Iterator, List, Mapping, Optional, Sequence, Tuple, Type
+from typing import (
+    Any,
+    Dict,
+    Iterator,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Type,
+)
 
 from .models import Base, BaseKey, BaseObject, CORE_MODELS
 from .templates import Template, TemplateCall
@@ -128,6 +139,18 @@ def add_into(
         assert False, f"Unknown redefine setting {redefine!r}"
 
 
+def merge_into(
+        into: Dict,
+        other: Dict,
+        redefine: Redefine = Redefine.ERROR,
+        logger: Optional[logging.Logger] = None) -> None:
+    """
+    Merge a dictionary into another dictionary, following the redefine semantics.
+    """
+    for key, obj in other.items():
+        add_into(into, key, obj, redefine, logger)
+
+
 class RedefineError(Exception):
     """
     Indicates a redefinition of an object in the namespace
@@ -221,6 +244,19 @@ class Namespace:
         """
 
         return self._templates.values()
+
+
+    def merge_templates(
+        self,
+        other: 'Namespace',
+        redefine: Optional[Redefine] = None) -> None:
+        """
+        Merge the templates from another namespace into this one, following the
+        redefine semantics of this namespace. If redefine is provided, use those
+        rules instead.
+        """
+        redefine = redefine or self.redefine
+        merge_into(self._templates, other._templates, redefine, self.logger)
 
 
     def get_type(self, typename: str, no_call: bool = False) -> Type[Base] | None:

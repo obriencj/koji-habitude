@@ -88,6 +88,9 @@ class Base(Protocol):
     def to_dict(self) -> Dict[str, Any]:
         ...
 
+    def change_report(self, resolver: 'Resolver') -> 'ChangeReport':
+        ...
+
 
 class SubModel(BaseModel):
     """

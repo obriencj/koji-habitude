@@ -22,15 +22,34 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 from dataclasses import dataclass
 import logging
-from typing import ClassVar, Dict, Optional, Sequence, Tuple, Type, Any, TYPE_CHECKING
+from typing import (
+    Any,
+    ClassVar,
+    Dict,
+    Iterator,
+    Optional,
+    Sequence,
+    TYPE_CHECKING,
+    Tuple,
+    Type,
+)
 
 from koji import MultiCallSession
-from .models import Base, BaseKey, ChangeReport, Change
+
+from .models import Base, BaseKey, ChangeReport
 
 
 if TYPE_CHECKING:
     from .namespace import Namespace
     from .resolver import Resolver
+
+
+__all__ = (
+    'MissingChangeReport',
+    'MissingObject',
+    'Report',
+    'Resolver',
+)
 
 
 logger = logging.getLogger(__name__)
@@ -119,8 +138,40 @@ class Resolver:
         self._missing: Dict[BaseKey, Base] = {}
 
 
+    def namespace_keys(self) -> Iterator[BaseKey]:
+        """
+        Iterator over the keys of the objects in the namespace.
+        """
+
+        return self.namespace.keys()
+
+
+    def missing_keys(self, exists: Optional[bool] = None) -> Iterator[BaseKey]:
+        """
+        Snapshot of the keys of objects not defined in the namespace, but which have
+        been requested via the `resolve` method.
+
+        If `exists` is True, filter to only include objects which have been
+        found (so far) to exist in a Koji instance.
+
+        If `exists` is False, filter to only include objects which have not been
+        found to exist in the Koji instance.
+
+        Missing objects typically determine whether they exist or not via the
+        invocation of their `check_exists` method, which is part of the Processor's
+        `read` and `compare` steps.
+        """
+
+        if exists is None:
+            return iter(self._missing.keys())
+        elif exists:
+            return iter([key for key, obj in self._missing.items() if obj.exists()])
+        else:
+            return iter([key for key, obj in self._missing.items() if not obj.exists()])
+
+
     def resolve(self, key: BaseKey) -> Base:
-        obj = self.namespace._ns.get(key) or self._missing.get(key)
+        obj = self.namespace.get(key) or self._missing.get(key)
         if obj is None:
             tp = self.namespace.get_type(key[0], True)
             obj = self._missing[key] = MissingObject(tp, key)
