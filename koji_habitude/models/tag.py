@@ -30,6 +30,15 @@ if TYPE_CHECKING:
 logger = logging.getLogger("koji_habitude.models.tag")
 
 
+def _compare_arches(koji_arches: Optional[str], arches: Optional[List[str]]) -> bool:
+    if koji_arches is None:
+        return arches is None
+    elif arches is None:
+        return False
+    else:
+        return set(koji_arches.split()) == set(arches)
+
+
 @dataclass
 class TagCreate(Change):
     obj: 'Tag'
@@ -399,10 +408,94 @@ class TagRemoveExternalRepo(Change):
         return f"Remove external repo '{self.repo}' from tag '{self.name}'"
 
 
+@dataclass
+class TagPackageListAdd(Change):
+    name: str
+    package: 'PackageEntry'
+
+    def impl_apply(self, session: MultiCallSession):
+        arches = self.package.extra_arches
+        arches = ' '.join(arches) if arches else None
+        return session.packageListAdd(
+            self.name,
+            self.package.name,
+            owner=self.package.owner,
+            block=self.package.block,
+            extra_arches=arches)
+
+    def explain(self) -> str:
+        return f"Add package '{self.package.name}' to tag '{self.name}'"
+
+
+@dataclass
+class TagPackageListBlock(Change):
+    name: str
+    package: str
+
+    def impl_apply(self, session: MultiCallSession):
+        return session.packageListBlock(self.name, self.package, force=True)
+
+    def explain(self) -> str:
+        return f"Block package '{self.package}' in tag '{self.name}'"
+
+
+@dataclass
+class TagPackageListUnblock(Change):
+    name: str
+    package: str
+
+    def impl_apply(self, session: MultiCallSession):
+        return session.packageListUnblock(self.name, self.package, force=True)
+
+    def explain(self) -> str:
+        return f"Unblock package '{self.package}' in tag '{self.name}'"
+
+
+@dataclass
+class TagPackageListSetOwner(Change):
+    name: str
+    package: str
+    owner: str
+
+    def impl_apply(self, session: MultiCallSession):
+        return session.packageListSetOwner(self.name, self.package, self.owner, force=True)
+
+    def explain(self) -> str:
+        return f"Set owner for package '{self.package}' in tag '{self.name}' to '{self.owner}'"
+
+
+@dataclass
+class TagPackageListSetArches(Change):
+    name: str
+    package: str
+    arches: List[str]
+
+    def impl_apply(self, session: MultiCallSession):
+        arches = self.package.extra_arches
+        arches = ' '.join(arches) if arches else None
+        return session.packageListSetArches(self.name, self.package, arches, force=True)
+
+    def explain(self) -> str:
+        return f"Set extra_arches for package '{self.package}' in tag '{self.name}' to '{self.arches}'"
+
+
+@dataclass
+class TagPackageListRemove(Change):
+    name: str
+    package: str
+
+    def impl_apply(self, session: MultiCallSession):
+        return session.packageListRemove(self.name, self.package, force=True)
+
+    def explain(self) -> str:
+        return f"Remove package '{self.package}' from tag '{self.name}'"
+
+
 class TagChangeReport(ChangeReport):
 
     def impl_read(self, session: MultiCallSession):
         self._taginfo: VirtualCall = self.obj.query_exists(session)
+        self._packages: VirtualCall = None
         self._groups: VirtualCall = None
         self._inheritance: VirtualCall = None
         self._external_repos: VirtualCall = None
@@ -414,6 +507,7 @@ class TagChangeReport(ChangeReport):
         if self._taginfo.result is None:
             return
 
+        self._packages = session.listPackages(tagID=self.obj.name)
         self._groups = session.getTagGroups(self.obj.name, inherit=False, incl_blocked=True)
         self._inheritance = session.getInheritanceData(self.obj.name)
         self._external_repos = session.getTagExternalRepos(tag_info=self.obj.name)
@@ -442,6 +536,8 @@ class TagChangeReport(ChangeReport):
                 yield TagAddInheritance(self.obj.name, parent)
             for repo in self.obj.external_repos:
                 yield TagAddExternalRepo(self.obj.name, repo)
+            for package in self.obj.packages:
+                yield TagPackageListAdd(self.obj.name, package)
             return
 
         if info['locked'] != self.obj.locked:
@@ -459,9 +555,33 @@ class TagChangeReport(ChangeReport):
         if info['extra'] != self.obj.extras:
             yield TagSetExtras(self.obj.name, self.obj.extras)
 
+        yield from self._compare_packages()
         yield from self._compare_groups()
         yield from self._compare_inheritance()
         yield from self._compare_external_repos()
+
+
+    def _compare_packages(self):
+        koji_pkgs = {pkg['package_name']: pkg for pkg in self._packages.result}
+        for package in self.obj.packages:
+            if package.name not in koji_pkgs:
+                yield TagPackageListAdd(self.obj.name, package)
+            else:
+                koji_pkg = koji_pkgs[package.name]
+                if koji_pkg['blocked'] != package.block:
+                    if package.block:
+                        yield TagPackageListBlock(self.obj.name, package.name)
+                    else:
+                        yield TagPackageListUnblock(self.obj.name, package.name)
+                if koji_pkg['owner_name'] != package.owner:
+                    yield TagPackageListSetOwner(self.obj.name, package.name, package.owner)
+                if not _compare_arches(koji_pkg['extra_arches'], package.extra_arches):
+                    yield TagPackageListSetArches(self.obj.name, package.name, package.extra_arches)
+
+        if self.obj.exact_packages:
+            for package_name in koji_pkgs:
+                if package_name not in self.obj.packages:
+                    yield TagPackageListRemove(self.obj.name, package_name)
 
 
     def _compare_inheritance(self):
@@ -611,6 +731,17 @@ class TagGroup(SubModel):
     exact_packages: bool = Field(alias='exact-packages', default=False)
 
 
+class PackageEntry(SubModel):
+
+    name: str = Field(alias='name')
+    block: bool = Field(alias='blocked', default=False)
+    owner: Optional[str] = Field(alias='owner', default=None)
+    extra_arches: Optional[List[str]] = Field(alias='extra-arches', default=None)
+
+    def key(self) -> BaseKey:
+        return ('package', self.name)
+
+
 class InheritanceLink(SubModel):
 
     name: str = Field(alias='name')
@@ -692,6 +823,27 @@ def _simplified_link(data: Any) -> Any:
     return data
 
 
+def _simplified_packages(data: Any) -> Any:
+    """
+    we allow the packages field to be specified in a simplified manner, as a
+    list of strings or a list of dictionaries. If it's a string, the value is
+    considered to be the name of the package.
+    """
+
+    if isinstance(data, list):
+        data = [{'name': data}]
+
+    elif isinstance(data, list):
+        fixed = List[Dict[str, Any]] = []
+        for item in data:
+            if isinstance(item, str):
+                item = {'name': item}
+            fixed.append(item)
+        data = fixed
+
+    return data
+
+
 class Tag(BaseObject):
     """
     Koji tag object model.
@@ -711,6 +863,9 @@ class Tag(BaseObject):
 
     inheritance: List[InheritanceLink] = Field(alias='inheritance', default_factory=list)
     external_repos: List[ExternalRepoLink] = Field(alias='external-repos', default_factory=list)
+
+    packages: List[PackageEntry] = Field(alias='packages', default_factory=list)
+    exact_packages: bool = Field(alias='exact-packages', default=False)
 
     _auto_split: ClassVar[bool] = True
     _is_split: bool = False
@@ -785,6 +940,12 @@ class Tag(BaseObject):
         return _simplified_link(data)
 
 
+    @field_validator('packages', mode='before')
+    @classmethod
+    def convert_packages_from_simplified(cls, data: Any) -> Any:
+        return _simplified_packages(data)
+
+
     def split(self) -> 'Tag':
         # normally a split only creates the object by name, and we worry about doing
         # full configuration in a separate step. For tag we'll do a full creation in
@@ -826,6 +987,10 @@ class Tag(BaseObject):
         # Check for external repository dependencies
         for ext_repo in self.external_repos:
             deps.append(ext_repo.key())
+
+        for package in self.packages:
+            if package.owner:
+                deps.append(('user', package.owner))
 
         return deps
 
