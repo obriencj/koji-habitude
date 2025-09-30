@@ -81,19 +81,6 @@ class ChannelChangeReport(ChangeReport):
     Change report for channel objects.
     """
 
-    def create_channel(self):
-        self.add(ChannelCreate(self.obj.name, self.obj.description))
-
-    def set_description(self):
-        self.add(ChannelSetDescription(self.obj.name, self.obj.description))
-
-    def add_host(self, host: str):
-        self.add(ChannelAddHost(self.obj.name, host))
-
-    def remove_host(self, host: str):
-        self.add(ChannelRemoveHost(self.obj.name, host))
-
-
     def impl_read(self, session: MultiCallSession):
         self._channelinfo: VirtualCall = self.obj.query_exists(session)
         self._hosts: VirtualCall = session.listHosts(channelID=self.obj.name)
@@ -105,24 +92,24 @@ class ChannelChangeReport(ChangeReport):
             if not self.obj.was_split():
                 # we don't exist, and we didn't split our create to an earlier
                 # call, so create now.
-                self.create_channel()
+                yield ChannelCreate(self.obj.name, self.obj.description)
 
             for host in self.obj.hosts:
-                self.add_host(host)
+                yield ChannelAddHost(self.obj.name, host)
             return
 
         if self.obj.description is not None and info['description'] != self.obj.description:
-            self.set_description()
+            yield ChannelSetDescription(self.obj.name, self.obj.description)
 
         hosts = {host['name']: host for host in self._hosts.result}
         for host in self.obj.hosts:
             if host not in hosts:
-                self.add_host(host)
+                yield ChannelAddHost(self.obj.name, host)
 
         if self.obj.exact_hosts:
             for host in hosts:
                 if host not in self.obj.hosts:
-                    self.remove_host(host)
+                    yield ChannelRemoveHost(self.obj.name, host)
 
 
 class Channel(BaseObject):

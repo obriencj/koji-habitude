@@ -54,8 +54,8 @@ class MissingChangeReport(ChangeReport):
         self.obj._exists = self.obj.tp.check_exists(session, self.obj.key())
         logger.debug(f"MissingChangeReport.impl_read: {self.obj.key()} checked: {self.obj._exists}")
 
-    def impl_compare(self) -> None:
-        pass
+    def impl_compare(self):
+        yield from ()
 
 
 class MissingObject(Base):

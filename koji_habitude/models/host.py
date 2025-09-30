@@ -115,29 +115,9 @@ class HostRemoveChannel(Change):
 
 class HostChangeReport(ChangeReport):
 
-    def create_host(self):
-        self.add(HostCreate(self.obj.name, self.obj.arches))
-
-    def set_host_arches(self):
-        self.add(HostSetArches(self.obj.name, self.obj.arches))
-
-    def set_host_capacity(self):
-        self.add(HostSetCapacity(self.obj.name, self.obj.capacity))
-
-    def set_host_enabled(self):
-        self.add(HostSetEnabled(self.obj.name, self.obj.enabled))
-
-    def set_host_description(self):
-        self.add(HostSetDescription(self.obj.name, self.obj.description))
-
-    def add_host_channel(self, channel: str):
-        self.add(HostAddChannel(self.obj.name, channel))
-
-    def remove_host_channel(self, channel: str):
-        self.add(HostRemoveChannel(self.obj.name, channel))
-
     def impl_read(self, session: MultiCallSession):
         self._hostinfo: VirtualCall = self.obj.query_exists(session)
+
 
     def impl_compare(self):
         info = self._hostinfo.result
@@ -145,37 +125,37 @@ class HostChangeReport(ChangeReport):
             if not self.obj.was_split():
                 # we don't exist, and we didn't split our create to an earlier
                 # call, so create now.
-                self.create_host()
+                yield HostCreate(self.obj.name, self.obj.arches)
 
             if self.obj.capacity is not None:
-                self.set_host_capacity()
+                yield HostSetCapacity(self.obj.name, self.obj.capacity)
             if self.obj.enabled is not None and not self.obj.enabled:
-                self.set_host_enabled()
+                yield HostSetEnabled(self.obj.name, self.obj.enabled)
             if self.obj.description is not None:
-                self.set_host_description()
+                yield HostSetDescription(self.obj.name, self.obj.description)
             for channel in self.obj.channels:
-                self.add_host_channel(channel)
+                yield HostAddChannel(self.obj.name, channel)
             return
 
         arches = set(info['arches'].split())
         if arches != set(self.obj.arches):
-            self.set_host_arches()
+            yield HostSetArches(self.obj.name, self.obj.arches)
         if self.obj.capacity is not None and info['capacity'] != self.obj.capacity:
-            self.set_host_capacity()
+            yield HostSetCapacity(self.obj.name, self.obj.capacity)
         if info['enabled'] != self.obj.enabled:
-            self.set_host_enabled()
+            yield HostSetEnabled(self.obj.name, self.obj.enabled)
         if self.obj.description is not None and info['description'] != self.obj.description:
-            self.set_host_description()
+            yield HostSetDescription(self.obj.name, self.obj.description)
 
         channels = info['channels']
         for channel in self.obj.channels:
             if channel not in channels:
-                self.add_host_channel(channel)
+                yield HostAddChannel(self.obj.name, channel)
 
         if self.obj.exact_channels:
             for channel in channels:
                 if channel not in self.obj.channels:
-                    self.remove_host_channel(channel)
+                    yield HostRemoveChannel(self.obj.name, channel)
 
 
 class Host(BaseObject):

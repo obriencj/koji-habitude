@@ -52,14 +52,6 @@ class TargetEdit(Change):
 
 class TargetChangeReport(ChangeReport):
 
-    def create_target(self):
-        self.add(TargetCreate(self.obj.name, self.obj.build_tag, self.obj.dest_tag))
-
-
-    def edit_target(self):
-        self.add(TargetEdit(self.obj.name, self.obj.build_tag, self.obj.dest_tag))
-
-
     def impl_read(self, session: MultiCallSession):
         self._targetinfo: VirtualCall = self.obj.query_exists(session)
 
@@ -67,14 +59,14 @@ class TargetChangeReport(ChangeReport):
     def impl_compare(self):
         info = self._targetinfo.result
         if info is None:
-            self.create_target()
+            yield TargetCreate(self.obj.name, self.obj.build_tag, self.obj.dest_tag)
             return
 
         build_tag = info['build_tag_name']
         dest_tag = info['dest_tag_name']
 
         if build_tag != self.obj.build_tag or dest_tag != self.obj.dest_tag:
-            self.edit_target()
+            yield TargetEdit(self.obj.name, self.obj.build_tag, self.obj.dest_tag)
 
 
 class Target(BaseObject):

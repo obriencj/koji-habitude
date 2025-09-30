@@ -50,13 +50,6 @@ class ExternalRepoSetURL(Change):
 
 class ExternalRepoChangeReport(ChangeReport):
 
-    def create_external_repo(self):
-        self.add(ExternalRepoCreate(self.obj.name, self.obj.url))
-
-    def set_url(self):
-        self.add(ExternalRepoSetURL(self.obj.name, self.obj.url))
-
-
     def impl_read(self, session: MultiCallSession):
         self._external_repoinfo: VirtualCall = self.obj.query_exists(session)
 
@@ -64,11 +57,11 @@ class ExternalRepoChangeReport(ChangeReport):
     def impl_compare(self):
         info = self._external_repoinfo.result
         if not info:
-            self.create_external_repo()
+            yield ExternalRepoCreate(self.obj.name, self.obj.url)
             return
 
         if info['url'] != self.obj.url:
-            self.set_url()
+            yield ExternalRepoSetURL(self.obj.name, self.obj.url)
 
 
 class ExternalRepo(BaseObject):

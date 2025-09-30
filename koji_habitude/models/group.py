@@ -107,28 +107,6 @@ class GroupRemovePermission(Change):
 
 class GroupChangeReport(ChangeReport):
 
-    def create_group(self):
-        self.add(GroupCreate(self.obj.name))
-
-    def enable_group(self):
-        self.add(GroupEnable(self.obj.name))
-
-    def disable_group(self):
-        self.add(GroupDisable(self.obj.name))
-
-    def add_member(self, member: str):
-        self.add(GroupAddMember(self.obj.name, member))
-
-    def remove_member(self, member: str):
-        self.add(GroupRemoveMember(self.obj.name, member))
-
-    def add_permission(self, permission: str):
-        self.add(GroupAddPermission(self.obj.name, permission))
-
-    def remove_permission(self, permission: str):
-        self.add(GroupRemovePermission(self.obj.name, permission))
-
-
     def impl_read(self, session: MultiCallSession):
         self._groupinfo: VirtualCall = self.obj.query_exists(session)
         self._members: VirtualCall = None
@@ -149,39 +127,39 @@ class GroupChangeReport(ChangeReport):
             if not self.obj.was_split():
                 # we don't exist, and we didn't split our create to an earlier
                 # call, so create now.
-                self.create_group()
+                yield GroupCreate(self.obj.name)
 
             for member in self.obj.members:
-                self.add_member(member)
+                yield GroupAddMember(self.obj.name, member)
             for permission in self.obj.permissions:
-                self.add_permission(permission)
+                yield GroupAddPermission(self.obj.name, permission)
             return
 
         if info['status'] != (0 if self.obj.enabled else 1):
             if self.obj.enabled:
-                self.enable_group()
+                yield GroupEnable(self.obj.name)
             else:
-                self.disable_group()
+                yield GroupDisable(self.obj.name)
 
         members = { m['name']: m for m in self._members.result }
         for member in self.obj.members:
             if member not in members:
-                self.add_member(member)
+                yield GroupAddMember(self.obj.name, member)
 
         if self.obj.exact_members:
             for member in members:
                 if member not in self.obj.members:
-                    self.remove_member(member)
+                    yield GroupRemoveMember(self.obj.name, member)
 
         permissions = self._permissions.result
         for permission in self.obj.permissions:
             if permission not in permissions:
-                self.add_permission(permission)
+                yield GroupAddPermission(self.obj.name, permission)
 
         if self.obj.exact_permissions:
             for permission in permissions:
                 if permission not in self.obj.permissions:
-                    self.remove_permission(permission)
+                    yield GroupRemovePermission(self.obj.name, permission)
 
 
 class Group(BaseObject):

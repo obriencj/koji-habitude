@@ -114,28 +114,6 @@ class UserChangeReport(ChangeReport):
     Change report for user objects.
     """
 
-    def create_user(self):
-        self.add(UserCreate(self.obj.name, self.obj.enabled))
-
-    def enable_user(self):
-        self.add(UserEnable(self.obj.name))
-
-    def disable_user(self):
-        self.add(UserDisable(self.obj.name))
-
-    def grant_permission(self, permission: str):
-        self.add(UserGrantPermission(self.obj.name, permission))
-
-    def revoke_permission(self, permission: str):
-        self.add(UserRevokePermission(self.obj.name, permission))
-
-    def add_to_group(self, group: str):
-        self.add(UserAddToGroup(self.obj.name, group))
-
-    def remove_from_group(self, group: str):
-        self.add(UserRemoveFromGroup(self.obj.name, group))
-
-
     def impl_read(self, session: MultiCallSession):
         self._userinfo: VirtualCall = self.obj.query_exists(session)
         self._permissions: VirtualCall = session.getUserPerms(self.obj.name)
@@ -147,40 +125,40 @@ class UserChangeReport(ChangeReport):
             if not self.obj.was_split():
                 # we don't exist, and we didn't split our create to an earlier
                 # call, so create now.
-                self.create_user()
+                yield UserCreate(self.obj.name, self.obj.enabled)
 
             for permission in self.obj.permissions:
-                self.grant_permission(permission)
+                yield UserGrantPermission(self.obj.name, permission)
             for group in self.obj.groups:
-                self.add_to_group(group)
+                yield UserAddToGroup(self.obj.name, group)
             return
 
         if self.obj.enabled is not None:
             if info['status'] != (0 if self.obj.enabled else 1):
                 if self.obj.enabled:
-                    self.enable_user()
+                    yield UserEnable(self.obj.name)
                 else:
-                    self.disable_user()
+                    yield UserDisable(self.obj.name)
 
         groups = info['groups']
         for group in self.obj.groups:
             if group not in groups:
-                self.add_to_group(group)
+                yield UserAddToGroup(self.obj.name, group)
 
         if self.obj.exact_groups:
             for group in groups:
                 if group not in self.obj.groups:
-                    self.remove_from_group(group)
+                    yield UserRemoveFromGroup(self.obj.name, group)
 
         perms = self._permissions.result
         for perm in self.obj.permissions:
             if perm not in perms:
-                self.grant_permission(perm)
+                yield UserGrantPermission(self.obj.name, perm)
 
         if self.obj.exact_permissions:
             for perm in perms:
                 if perm not in self.obj.permissions:
-                    self.revoke_permission(perm)
+                    yield UserRevokePermission(self.obj.name, perm)
 
 
 class User(BaseObject):
