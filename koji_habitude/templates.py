@@ -101,13 +101,27 @@ class Template(BaseObject):
 
     @property
     def base_path(self) -> Optional[Path]:
-        """Access the base path."""
+        """
+        The base path for the template file, used for resolving relative paths
+        """
         return self._base_path
+
 
     @property
     def jinja2_template(self) -> Jinja2Template:
-        """Access the Jinja2 template object."""
+        """
+        Access the Jinja2 template object
+        """
         return self._jinja2_template
+
+
+    @property
+    def undeclared(self):
+        """
+        The list of variable names which are referenced in the Jinja2
+        template, but which are not defined in the defaults
+        """
+        return self._undeclared
 
 
     def model_post_init(self, __context: Any):
@@ -152,34 +166,26 @@ class Template(BaseObject):
         self._jinja2_template = jinja_env.from_string(ast)
 
 
-    def __repr__(self) -> str:
-        """
-        Return a string representation of the template.
-        """
+    # def to_dict(self):
+    #     data = {
+    #         'name': self.name,
+    #     }
+    #     if self.filename:
+    #         data['__file__'] = self.filename
+    #     if self.lineno:
+    #         data['__line__'] = self.lineno
+    #     if self.trace:
+    #         data['__trace__'] = self.trace
+    #     if self.defaults:
+    #         data['defaults'] = self.defaults
+    #     if self.template_file:
+    #         data['file'] = self.template_file
+    #     if self.template_content:
+    #         data['content'] = self.template_content
+    #     if self.template_schema:
+    #         data['schema'] = self.template_schema
 
-        return f"<Template(name={self.name})>"
-
-
-    def to_dict(self):
-        data = {
-            'name': self.name,
-        }
-        if self.filename:
-            data['__file__'] = self.filename
-        if self.lineno:
-            data['__line__'] = self.lineno
-        if self.trace:
-            data['__trace__'] = self.trace
-        if self.defaults:
-            data['defaults'] = self.defaults
-        if self.template_file:
-            data['file'] = self.template_file
-        if self.template_content:
-            data['content'] = self.template_content
-        if self.template_schema:
-            data['schema'] = self.template_schema
-
-        return data
+    #     return data
 
 
     def validate_call(self, data: Dict[str, Any]) -> bool:
@@ -263,11 +269,6 @@ class Template(BaseObject):
                     self.filename, self.lineno)
             obj.update(merge)
             yield obj
-
-
-    @property
-    def undeclared(self):
-        return self._undeclared
 
 
     def render_call(self, call: TemplateCall):

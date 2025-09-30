@@ -61,7 +61,7 @@ class TagCreate(Change):
             maven_info = f" with Maven support (include_all={self.obj.maven_include_all})"
         perm_info = f" with permission '{self.obj.permission}'" if self.obj.permission else ''
         locked_info = " (locked)" if self.obj.locked else ''
-        return f"Create tag '{self.name}' with arches [{arches_str}]{maven_info}{perm_info}{locked_info}"
+        return f"Create tag '{self.obj.name}' with arches [{arches_str}]{maven_info}{perm_info}{locked_info}"
 
 
 @dataclass

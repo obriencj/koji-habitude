@@ -242,7 +242,7 @@ class TestTemplate(unittest.TestCase):
         template = Template.from_dict(template_data)
 
         repr_str = repr(template)
-        self.assertEqual('<Template(name=test-template)>', repr_str)
+        self.assertEqual('<Template(test-template)>', repr_str)
 
     def test_validate_data_no_schema(self):
         """
