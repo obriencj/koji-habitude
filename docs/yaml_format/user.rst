@@ -3,6 +3,7 @@ User Object Schema
 
 The ``user`` type represents a Koji user object.
 
+
 Basic Structure
 ---------------
 
@@ -11,66 +12,70 @@ Basic Structure
    ---
    type: user
    name: my-user
-   # ... user-specific fields
+
+   # Optional fields
+
+   # List of groups this user belongs to
+   groups:
+     - my-group
+
+   # If true, remove any existing groups not listed above
+   exact-groups: false
+
+   # List of permissions for this user
+   permissions:
+     - admin
+     - build
+
+   # If true, remove any existing permissions not listed above
+   exact-permissions: false
+
+   # Whether this user is enabled (None means use default)
+   enabled: true
+
 
 YAML Fields
 -----------
+
+Required Fields
+~~~~~~~~~~~~~~~
+
+``type`` (str)
+   The type of the object, must be ``user``
+
+``name`` (str)
+   The name of the user
+
 
 Optional Fields
 ~~~~~~~~~~~~~~~
 
 ``groups`` (list of str)
-   Package groups and their package lists
+   List of groups this user belongs to
 
-``exact_groups`` (boolean) - Default: False
-   Configuration for exact_groups
+``exact-groups`` (boolean) - Default: False
+   If true, remove any existing groups not listed in the groups field
 
 ``permissions`` (list of str)
-   List of permissions for this group
+   List of permissions for this user
 
 ``exact-permissions`` (boolean) - Default: False
-   Configuration for exact permissions
+   If true, remove any existing permissions not listed in the permissions field
 
-``enabled`` (boolean) - Default: True
-   Whether this host is enabled for builds
+``enabled`` (boolean)
+   Whether this user is enabled. If not specified, uses the default behavior
 
-Examples
---------
-
-Basic User
-~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: yaml
-
-   ---
-   type: user
-   name: my-user
-   groups:
-     my-group:
-       - package1
-       - package2
-   permissions:
-     - admin
-     - build
-   enabled: true
-
-Validation Rules
-----------------
-
-- All field types are automatically validated
-- Required fields must be present
-- Field constraints are enforced (min/max values, string patterns, etc.)
-- Duplicate priorities are not allowed in inheritance or external-repos lists
 
 Dependencies
 ------------
 
-This object type can depend on other objects. Dependencies are automatically
-resolved during processing to ensure proper creation order.
+This object type depends on the ``group`` object type for each group listed in the
+``groups`` field and the ``permission`` object type for each permission listed in the
+``permissions`` field.
+
 
 Technical Reference
 -------------------
 
 For developers: The ``user`` object is implemented by the
 :class:`koji_habitude.models.user.User` class.
-

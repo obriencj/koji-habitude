@@ -3,6 +3,7 @@ Permission Object Schema
 
 The ``permission`` type represents a Koji permission object.
 
+
 Basic Structure
 ---------------
 
@@ -11,46 +12,41 @@ Basic Structure
    ---
    type: permission
    name: my-permission
-   # ... permission-specific fields
+
+   # Optional fields
+
+   # Description of this permission
+   description: My permission description
+
 
 YAML Fields
 -----------
 
+Required Fields
+~~~~~~~~~~~~~~~
+
+``type`` (str)
+   The type of the object, must be ``permission``
+
+``name`` (str)
+   The name of the permission
+
+
 Optional Fields
 ~~~~~~~~~~~~~~~
 
-``description`` (Optional)
-   Configuration for description
+``description`` (str)
+   Description of this permission
 
-Examples
---------
-
-Basic Permission
-~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: yaml
-
-   ---
-   type: permission
-   name: my-permission
-
-Validation Rules
-----------------
-
-- All field types are automatically validated
-- Required fields must be present
-- Field constraints are enforced (min/max values, string patterns, etc.)
-- Duplicate priorities are not allowed in inheritance or external-repos lists
 
 Dependencies
 ------------
 
-This object type can depend on other objects. Dependencies are automatically
-resolved during processing to ensure proper creation order.
+This object type has no dependencies on other koji-habitude objects.
+
 
 Technical Reference
 -------------------
 
 For developers: The ``permission`` object is implemented by the
 :class:`koji_habitude.models.permission.Permission` class.
-

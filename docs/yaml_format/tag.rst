@@ -3,6 +3,7 @@ Tag Object Schema
 
 The ``tag`` type represents a Koji tag object.
 
+
 Basic Structure
 ---------------
 
@@ -11,10 +12,59 @@ Basic Structure
    ---
    type: tag
    name: my-tag
-   # ... tag-specific fields
+
+   # Optional fields
+
+   # Whether the tag is locked (prevents builds and other modifications)
+   locked: false
+
+   # Permission required to use this tag
+   permission: admin
+
+   # List of architectures this tag supports
+   arches:
+     - x86_64
+     - aarch64
+
+   # Whether Maven support is enabled for this tag
+   maven-support: false
+
+   # Whether to include all Maven artifacts in this tag
+   maven-include-all: false
+
+   # Additional tag metadata as key-value pairs
+   extras:
+     description: "My tag description"
+
+   # Package groups and their package lists
+   groups:
+     my-group:
+       - package1
+       - package2
+
+   # List of parent tags with their priorities
+   inheritance:
+     - parent: parent-tag
+       priority: 10
+
+   # List of external repositories attached to this tag
+   external-repos:
+     - name: my-repo
+       priority: 100
+
 
 YAML Fields
 -----------
+
+Required Fields
+~~~~~~~~~~~~~~~
+
+``type`` (str)
+   The type of the object, must be ``tag``
+
+``name`` (str)
+   The name of the tag
+
 
 Optional Fields
 ~~~~~~~~~~~~~~~
@@ -22,7 +72,7 @@ Optional Fields
 ``locked`` (boolean) - Default: False
    Whether the tag is locked (prevents builds and other modifications)
 
-``permission`` (Optional)
+``permission`` (str)
    Permission required to use this tag
 
 ``arches`` (list of str)
@@ -46,54 +96,17 @@ Optional Fields
 ``external-repos`` (list of InheritanceLink)
    List of external repositories attached to this tag
 
-Examples
---------
-
-Basic Tag
-~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: yaml
-
-   ---
-   type: tag
-   name: my-tag
-   locked: false
-   permission: admin
-   arches:
-     - x86_64
-     - aarch64
-   maven-support: false
-   maven-include-all: false
-   extras:
-     description: "My tag description"
-   groups:
-     my-group:
-       - package1
-       - package2
-   inheritance:
-     - parent: parent-tag
-       priority: 10
-   external-repos:
-     - name: my-repo
-       priority: 100
-
-Validation Rules
-----------------
-
-- All field types are automatically validated
-- Required fields must be present
-- Field constraints are enforced (min/max values, string patterns, etc.)
-- Duplicate priorities are not allowed in inheritance or external-repos lists
 
 Dependencies
 ------------
 
-This object type can depend on other objects. Dependencies are automatically
-resolved during processing to ensure proper creation order.
+This object type depends on the ``tag`` object type for each parent tag listed in the
+``inheritance`` field and the ``external-repo`` object type for each external repository listed in the
+``external-repos`` field.
+
 
 Technical Reference
 -------------------
 
 For developers: The ``tag`` object is implemented by the
 :class:`koji_habitude.models.tag.Tag` class.
-

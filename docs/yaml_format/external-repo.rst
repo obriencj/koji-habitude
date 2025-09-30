@@ -3,6 +3,7 @@ External-Repo Object Schema
 
 The ``external-repo`` type represents a Koji external repo object.
 
+
 Basic Structure
 ---------------
 
@@ -11,7 +12,12 @@ Basic Structure
    ---
    type: external-repo
    name: my-external-repo
-   # ... external-repo-specific fields
+
+   # Required fields
+
+   # URL for this external repository (must start with http:// or https://)
+   url: https://example.com/repo/
+
 
 YAML Fields
 -----------
@@ -19,39 +25,24 @@ YAML Fields
 Required Fields
 ~~~~~~~~~~~~~~~
 
-``url`` (string)
-   URL for this external repository
+``type`` (str)
+   The type of the object, must be ``external-repo``
 
-Examples
---------
+``name`` (str)
+   The name of the external repository
 
-Basic External-Repo
-~~~~~~~~~~~~~~~~~~~~~~
+``url`` (str)
+   URL for this external repository. Must start with ``http://`` or ``https://``
 
-.. code-block:: yaml
-
-   ---
-   type: external-repo
-   name: my-external-repo
-   url: https://example.com/repo/
-
-Validation Rules
-----------------
-
-- All field types are automatically validated
-- Required fields must be present
-- Field constraints are enforced (min/max values, string patterns, etc.)
-- Duplicate priorities are not allowed in inheritance or external-repos lists
 
 Dependencies
 ------------
 
-This object type can depend on other objects. Dependencies are automatically
-resolved during processing to ensure proper creation order.
+This object type has no dependencies on other koji-habitude objects.
+
 
 Technical Reference
 -------------------
 
 For developers: The ``external-repo`` object is implemented by the
 :class:`koji_habitude.models.external_repo.ExternalRepo` class.
-

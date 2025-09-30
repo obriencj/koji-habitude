@@ -3,6 +3,7 @@ Target Object Schema
 
 The ``target`` type represents a Koji target object.
 
+
 Basic Structure
 ---------------
 
@@ -11,7 +12,17 @@ Basic Structure
    ---
    type: target
    name: my-target
-   # ... target-specific fields
+
+   # Required fields
+
+   # The build tag for this target
+   build-tag: my-build-tag
+
+   # Optional fields
+
+   # The destination tag for this target (defaults to target name if not specified)
+   dest-tag: my-dest-tag
+
 
 YAML Fields
 -----------
@@ -19,44 +30,32 @@ YAML Fields
 Required Fields
 ~~~~~~~~~~~~~~~
 
-``build-tag`` (string)
-   Configuration for build tag
+``type`` (str)
+   The type of the object, must be ``target``
+
+``name`` (str)
+   The name of the target
+
+``build-tag`` (str)
+   The build tag for this target
+
 
 Optional Fields
 ~~~~~~~~~~~~~~~
 
-``dest-tag`` (Optional)
-   Configuration for dest tag
+``dest-tag`` (str)
+   The destination tag for this target. If not specified, defaults to the target name
 
-Examples
---------
-
-Basic Target
-~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: yaml
-
-   ---
-   type: target
-   name: my-target
-
-Validation Rules
-----------------
-
-- All field types are automatically validated
-- Required fields must be present
-- Field constraints are enforced (min/max values, string patterns, etc.)
-- Duplicate priorities are not allowed in inheritance or external-repos lists
 
 Dependencies
 ------------
 
-This object type can depend on other objects. Dependencies are automatically
-resolved during processing to ensure proper creation order.
+This object type depends on the ``tag`` object type for the ``build-tag`` field and the
+``tag`` object type for the ``dest-tag`` field (or the target name if dest-tag is not specified).
+
 
 Technical Reference
 -------------------
 
 For developers: The ``target`` object is implemented by the
 :class:`koji_habitude.models.target.Target` class.
-

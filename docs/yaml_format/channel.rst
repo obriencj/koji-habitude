@@ -1,7 +1,8 @@
 Channel Object Schema
-======================
+=====================
 
 The ``channel`` type represents a Koji channel object.
+
 
 Basic Structure
 ---------------
@@ -11,10 +12,34 @@ Basic Structure
    ---
    type: channel
    name: my-channel
-   # ... channel-specific fields
+
+   # Optional fields
+
+   # A short summary of the channel's use
+   description: My channel description
+
+   # List of hosts assigned to this channel
+   hosts:
+     - host1.example.com
+
+   # behavior when applying changes. If true then any
+   # existing hosts in this channel will be removed if the
+   # are not specified above.
+   exact-hosts: true
+
 
 YAML Fields
 -----------
+
+Required Fields
+~~~~~~~~~~~~~~~
+
+``type`` (str)
+   The type of the object, must be ``channel``
+
+``name`` (str)
+   The name of the channel
+
 
 Optional Fields
 ~~~~~~~~~~~~~~~
@@ -28,37 +53,16 @@ Optional Fields
 ``exact-hosts`` (boolean) - Default: False
    Configuration for exact hosts
 
-Examples
---------
-
-Basic Channel
-~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: yaml
-
-   ---
-   type: channel
-   name: my-channel
-   hosts:
-     - buildhost1.example.com
-
-Validation Rules
-----------------
-
-- All field types are automatically validated
-- Required fields must be present
-- Field constraints are enforced (min/max values, string patterns, etc.)
-- Duplicate priorities are not allowed in inheritance or external-repos lists
 
 Dependencies
 ------------
 
-This object type can depend on other objects. Dependencies are automatically
-resolved during processing to ensure proper creation order.
+This object type depends on the ``host`` object type for each host listed in the
+``hosts`` field.
+
 
 Technical Reference
 -------------------
 
 For developers: The ``channel`` object is implemented by the
 :class:`koji_habitude.models.channel.Channel` class.
-

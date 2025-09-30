@@ -3,6 +3,7 @@ Group Object Schema
 
 The ``group`` type represents a Koji group object.
 
+
 Basic Structure
 ---------------
 
@@ -11,59 +12,71 @@ Basic Structure
    ---
    type: group
    name: my-group
-   # ... group-specific fields
+
+   # Optional fields
+
+   # Whether this group is enabled
+   enabled: true
+
+   # List of user members in this group
+   members:
+     - user1
+     - user2
+
+   # List of permissions for this group
+   permissions:
+     - admin
+     - build
+
+   # If true, remove any existing members not listed above
+   exact-members: false
+
+   # If true, remove any existing permissions not listed above
+   exact-permissions: false
+
 
 YAML Fields
 -----------
+
+Required Fields
+~~~~~~~~~~~~~~~
+
+``type`` (str)
+   The type of the object, must be ``group``
+
+``name`` (str)
+   The name of the group
+
 
 Optional Fields
 ~~~~~~~~~~~~~~~
 
 ``enabled`` (boolean) - Default: True
-   Whether this host is enabled for builds
+   Whether this group is enabled
 
 ``members`` (list of str)
-   List of members in this group
+   List of user members in this group
 
 ``permissions`` (list of str)
    List of permissions for this group
 
-Examples
---------
+``exact-members`` (boolean) - Default: False
+   If true, remove any existing members not listed in the members field
 
-Basic Group
-~~~~~~~~~~~~~~~~~~~~~~
+``exact-permissions`` (boolean) - Default: False
+   If true, remove any existing permissions not listed in the permissions field
 
-.. code-block:: yaml
-
-   ---
-   type: group
-   name: my-group
-   enabled: true
-   members:
-     - user1
-     - user2
-   permissions:
-     - admin
-     - build
-
-Validation Rules
-----------------
-
-- All field types are automatically validated
-- Required fields must be present
-- Field constraints are enforced (min/max values, string patterns, etc.)
-- Duplicate priorities are not allowed in inheritance or external-repos lists
 
 Dependencies
 ------------
 
-This object type can depend on other objects. Dependencies are automatically
-resolved during processing to ensure proper creation order.
+This object type depends on the ``user`` object type for each user listed in the
+``members`` field and the ``permission`` object type for each permission listed in the
+``permissions`` field.
+
 
 Technical Reference
 -------------------
 
 For developers: The ``group`` object is implemented by the
 :class:`koji_habitude.models.group.Group` class.
-
