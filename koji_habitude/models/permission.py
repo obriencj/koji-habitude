@@ -8,18 +8,23 @@ License: GNU General Public License v3
 AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
+# Vibe-Coding State: AI Generated with Human Rework
+
 
 from dataclasses import dataclass
 from functools import partial
 import logging
-from typing import ClassVar, Optional, Any
+from typing import ClassVar, Optional, Any, TYPE_CHECKING
 
 from koji import MultiCallSession, VirtualCall, ClientSession
 from pydantic import Field
 
-from .base import BaseKojiObject, BaseKey
+from .base import BaseObject, BaseKey
 from .change import Change, ChangeReport
 from ..koji import call_processor
+
+if TYPE_CHECKING:
+    from ..resolver import Resolver
 
 
 logger = logging.getLogger(__name__)
@@ -81,6 +86,7 @@ class PermissionChangeReport(ChangeReport):
     def set_description(self):
         self.add(PermissionSetDescription(self.obj.name, self.obj.description))
 
+
     def impl_read(self, session: MultiCallSession):
         self._permissioninfo: VirtualCall = self.obj.query_exists(session)
 
@@ -95,7 +101,7 @@ class PermissionChangeReport(ChangeReport):
             self.set_description()
 
 
-class Permission(BaseKojiObject):
+class Permission(BaseObject):
     """
     Koji permission object model.
     """
@@ -105,13 +111,12 @@ class Permission(BaseKojiObject):
     description: Optional[str] = Field(alias='description', default=None)
 
 
-    def change_report(self) -> PermissionChangeReport:
-        return PermissionChangeReport(self)
+    def change_report(self, resolver: 'Resolver') -> PermissionChangeReport:
+        return PermissionChangeReport(self, resolver)
 
 
     @classmethod
     def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
-        # XXX TODO: NOT WORKING
         return getPermission(session, key[1])
 
 

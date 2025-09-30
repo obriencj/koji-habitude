@@ -30,7 +30,7 @@ class TestUserModel(unittest.TestCase):
         self.assertEqual(user.name, 'test-user')
         self.assertEqual(user.groups, [])
         self.assertEqual(user.permissions, [])
-        self.assertTrue(user.enabled)
+        self.assertIsNone(user.enabled)
         self.assertTrue(user.can_split())
 
     def test_user_creation_with_all_fields(self):

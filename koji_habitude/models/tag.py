@@ -20,7 +20,7 @@ from typing import (
 from pydantic import Field, field_validator, model_validator
 from koji import ClientSession, MultiCallNotReady, MultiCallSession, VirtualCall
 
-from .base import Base, BaseKey, BaseKojiObject, SubModel
+from .base import BaseKey, BaseObject, SubModel
 from .change import Change, ChangeReport
 
 if TYPE_CHECKING:
@@ -32,39 +32,47 @@ logger = logging.getLogger("koji_habitude.models.tag")
 
 @dataclass
 class TagCreate(Change):
-    obj: Base
-    name: str
-    locked: bool
-    permission: Optional[str]
-    arches: List[str]
-    maven_support: bool
-    maven_include_all: bool
+    obj: 'Tag'
 
     def impl_apply(self, session: MultiCallSession):
-        session.createTag(
-            self.name,
-            locked=self.locked,
-            perm=self.permission,
-            arches=' '.join(self.arches),
-            maven_support=self.maven_support,
-            maven_include_all=self.maven_include_all)
+        res = session.createTag(
+            self.obj.name,
+            locked=self.obj.locked,
+            perm=self.obj.permission,
+            arches=' '.join(self.obj.arches),
+            maven_support=self.obj.maven_support,
+            maven_include_all=self.obj.maven_include_all)
 
         # We have to queue up a new getTag call so that the Tag object can be
         # considered as existing, and so we can fetch its ID later. Tag
         # Inheritance is the only place that cannot operate except by using the
         # parent tag's ID (not by name)
 
-        logger.debug(f"Queueing getTag call for tag '{self.name}'")
+        if not self.obj._is_split:
+            logger.debug(f"Queueing getTag call for tag '{self.obj.name}'")
+            self.obj.query_exists(session)
+
+        return res
+
+    def explain(self) -> str:
+        arches_str = ', '.join(self.obj.arches)
+        maven_info = ''
+        if self.obj.maven_support or self.obj.maven_include_all:
+            maven_info = f" with Maven support (include_all={self.obj.maven_include_all})"
+        perm_info = f" with permission '{self.obj.permission}'" if self.obj.permission else ''
+        locked_info = " (locked)" if self.obj.locked else ''
+        return f"Create tag '{self.name}' with arches [{arches_str}]{maven_info}{perm_info}{locked_info}"
+
+
+@dataclass
+class SplitTagCheckup(Change):
+    obj: 'Tag'
+
+    def impl_apply(self, session: MultiCallSession):
         return self.obj.query_exists(session)
 
     def explain(self) -> str:
-        arches_str = ', '.join(self.arches)
-        maven_info = ''
-        if self.maven_support:
-            maven_info = f" with Maven support (include_all={self.maven_include_all})"
-        perm_info = f" with permission '{self.permission}'" if self.permission else ''
-        locked_info = " (locked)" if self.locked else ''
-        return f"Create tag '{self.name}' with arches [{arches_str}]{maven_info}{perm_info}{locked_info}"
+        return f"Post-split tag checkup for '{self.obj.name}'"
 
 
 @dataclass
@@ -283,7 +291,7 @@ class TagAddInheritance(Change):
         logger.debug(f"Resolved parent tag '{self.parent.name}' to {tag}")
 
         try:
-            tinfo = tag.exists
+            tinfo = tag.exists()
         except MultiCallNotReady:
             logger.debug(f"MultiCallNotReady, breaking out of multicall")
             return True
@@ -394,14 +402,10 @@ class TagRemoveExternalRepo(Change):
 class TagChangeReport(ChangeReport):
 
     def create_tag(self):
-        self.add(TagCreate(
-            self.obj,
-            self.obj.name,
-            locked=self.obj.locked,
-            permission=self.obj.permission,
-            arches=self.obj.arches,
-            maven_support=self.obj.maven_support,
-            maven_include_all=self.obj.maven_include_all))
+        self.add(TagCreate(self.obj))
+
+    def post_split_tag_checkup(self):
+        self.add(SplitTagCheckup(self.obj))
 
     def set_tag_locked(self):
         self.add(TagSetLocked(self.obj.name, self.obj.locked))
@@ -466,6 +470,7 @@ class TagChangeReport(ChangeReport):
     def remove_external_repo(self, repo: str):
         self.add(TagRemoveExternalRepo(self.obj.name, repo))
 
+
     def impl_read(self, session: MultiCallSession):
         self._taginfo: VirtualCall = self.obj.query_exists(session)
         self._groups: VirtualCall = None
@@ -473,6 +478,7 @@ class TagChangeReport(ChangeReport):
         self._external_repos: VirtualCall = None
 
         return self._impl_read_defer
+
 
     def _impl_read_defer(self, session: MultiCallSession):
         if self._taginfo.result is None:
@@ -482,10 +488,21 @@ class TagChangeReport(ChangeReport):
         self._inheritance = session.getInheritanceData(self.obj.name)
         self._external_repos = session.getTagExternalRepos(tag_info=self.obj.name)
 
+
     def impl_compare(self):
         info = self._taginfo.result
         if info is None:
-            self.create_tag()
+            if self.obj.was_split():
+                # we know we've split, but we don't exist yet, so we trust that we have
+                # a split create for ourself already queued up in the same multicall.
+                # In order for the tag inheritance hacks to work, we'll add a change
+                # whose only job is to queue up a getTag call for ourself, so we can
+                # answer for our existence later and give dependents our ID.
+                self.post_split_tag_checkup()
+            else:
+                # we didn't need to split, so just do a normal create.
+                self.create_tag()
+
             self.set_tag_extras()
             for group_name, group in self.obj.groups.items():
                 self.add_group(group)
@@ -523,7 +540,7 @@ class TagChangeReport(ChangeReport):
         # have those values.
         for parent in self.obj.inheritance:
             tag = self.resolver.resolve(parent.key())
-            tinfo = tag.exists
+            tinfo = tag.exists()
             if tinfo:
                 parent._parent_tag_id = tinfo['id']
                 logger.debug(f"Parent tag '{parent.name}' exists already, ID: {tinfo['id']}")
@@ -626,6 +643,7 @@ class TagGroupPackage(SubModel):
     type: str = Field(alias='type', default='package')
     block: bool = Field(alias='blocked', default=False)
 
+
     @model_validator(mode='before')
     @classmethod
     def convert_from_simplified(cls, data: Any) -> Any:
@@ -653,6 +671,7 @@ class TagGroupPackage(SubModel):
 
 
 class TagGroup(SubModel):
+
     name: str = Field(alias='name')
     description: Optional[str] = Field(alias='description', default=None)
     block: bool = Field(alias='blocked', default=False)
@@ -661,6 +680,7 @@ class TagGroup(SubModel):
 
 
 class InheritanceLink(SubModel):
+
     name: str = Field(alias='name')
     priority: int = Field(alias='priority')
     maxdepth: Optional[int] = Field(alias='max-depth', default=None)
@@ -670,6 +690,7 @@ class InheritanceLink(SubModel):
 
     _parent_tag_id: Optional[int] = None
 
+
     @field_validator('pkgfilter', mode='before')
     @classmethod
     def convert_pkgfilter_from_simplified(cls, data: Any) -> Any:
@@ -677,22 +698,32 @@ class InheritanceLink(SubModel):
             return f"^({'|'.join(data)})$"
         return data
 
+
     def key(self) -> BaseKey:
         return ('tag', self.name)
 
 
 class ExternalRepoLink(SubModel):
+
     name: str = Field(alias='name')
     priority: int = Field(alias='priority')
 
     arches: Optional[List[str]] = Field(alias='arches', default=None)
     merge_mode: Literal['koji', 'simple', 'bare'] = Field(alias='merge-mode', default='koji')
 
+
     def key(self) -> BaseKey:
         return ('external-repo', self.name)
 
 
 def _simplified_link(data: Any) -> Any:
+    """
+    we allow the inheritance and external-repo fields to be specified in a
+    simplified manner, as a strings (for a single parent), a list of strings
+    (for automatically-priority-numbered parents), or as a list of full
+    dictionaries representing the individual settings of each parent.
+    """
+
     priorities = set()
     priority_increment = 10
 
@@ -729,7 +760,7 @@ def _simplified_link(data: Any) -> Any:
     return data
 
 
-class Tag(BaseKojiObject):
+class Tag(BaseObject):
     """
     Koji tag object model.
     """
@@ -748,6 +779,9 @@ class Tag(BaseKojiObject):
 
     inheritance: List[InheritanceLink] = Field(alias='inheritance', default_factory=list)
     external_repos: List[ExternalRepoLink] = Field(alias='external-repos', default_factory=list)
+
+    _auto_split: ClassVar[bool] = True
+    _is_split: bool = False
 
 
     def model_post_init(self, __context: Any) -> None:
@@ -816,7 +850,22 @@ class Tag(BaseKojiObject):
 
 
     def split(self) -> 'Tag':
-        return Tag(name=self.name, arches=self.arches)
+        # normally a split only creates the object by name, and we worry about doing
+        # full configuration in a separate step. For tag we'll do a full creation in
+        # the split step, and have some extra logic handling in the change report
+        # to queue up our self-lookup.
+
+        child = Tag(
+            name=self.name,
+            arches=self.arches,
+            permission=self.permission,
+            locked=self.locked,
+            maven_support=self.maven_support,
+            maven_include_all=self.maven_include_all,
+        )
+        child._is_split = True
+        self._was_split = True
+        return child
 
 
     def dependency_keys(self) -> Sequence[BaseKey]:
@@ -836,17 +885,17 @@ class Tag(BaseKojiObject):
 
         # Check for inheritance dependencies
         for parent in self.inheritance:
-            deps.append(('tag', parent.name))
+            deps.append(parent.key())
 
         # Check for external repository dependencies
         for ext_repo in self.external_repos:
-            deps.append(('external-repo', ext_repo.name))
+            deps.append(ext_repo.key())
 
         return deps
 
 
-    def change_report(self) -> TagChangeReport:
-        return TagChangeReport(self)
+    def change_report(self, resolver: 'Resolver') -> TagChangeReport:
+        return TagChangeReport(self, resolver)
 
 
     @classmethod

@@ -8,14 +8,20 @@ License: GNU General Public License v3
 AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
+# Vibe-Coding State: AI Generated with Human Rework
+
+
 from dataclasses import dataclass
-from typing import ClassVar, List, Tuple, Any
+from typing import ClassVar, List, Tuple, Any, TYPE_CHECKING
 
 from koji import ClientSession, MultiCallSession, VirtualCall
 from pydantic import Field
 
-from .base import BaseKojiObject, BaseKey
+from .base import BaseObject, BaseKey
 from .change import Change, ChangeReport
+
+if TYPE_CHECKING:
+    from ..resolver import Resolver
 
 
 @dataclass
@@ -140,7 +146,11 @@ class GroupChangeReport(ChangeReport):
     def impl_compare(self):
         info = self._groupinfo.result
         if not info:
-            self.create_group()
+            if not self.obj.was_split():
+                # we don't exist, and we didn't split our create to an earlier
+                # call, so create now.
+                self.create_group()
+
             for member in self.obj.members:
                 self.add_member(member)
             for permission in self.obj.permissions:
@@ -157,30 +167,38 @@ class GroupChangeReport(ChangeReport):
         for member in self.obj.members:
             if member not in members:
                 self.add_member(member)
-        for member in members:
-            if member not in self.obj.members:
-                self.remove_member(member)
+
+        if self.obj.exact_members:
+            for member in members:
+                if member not in self.obj.members:
+                    self.remove_member(member)
 
         permissions = self._permissions.result
         for permission in self.obj.permissions:
             if permission not in permissions:
                 self.add_permission(permission)
-        for permission in permissions:
-            if permission not in self.obj.permissions:
-                self.remove_permission(permission)
+
+        if self.obj.exact_permissions:
+            for permission in permissions:
+                if permission not in self.obj.permissions:
+                    self.remove_permission(permission)
 
 
-class Group(BaseKojiObject):
+class Group(BaseObject):
     """
     Koji group object model.
     """
 
     typename: ClassVar[str] = "group"
-    _can_split: ClassVar[bool] = True
 
     enabled: bool = Field(alias='enabled', default=True)
     members: List[str] = Field(alias='members', default_factory=list)
     permissions: List[str] = Field(alias='permissions', default_factory=list)
+
+    exact_members: bool = Field(alias='exact-members', default=False)
+    exact_permissions: bool = Field(alias='exact-permissions', default=False)
+
+    _auto_split: ClassVar[bool] = True
 
 
     def dependency_keys(self) -> List[BaseKey]:
@@ -203,8 +221,8 @@ class Group(BaseKojiObject):
         return deps
 
 
-    def change_report(self) -> GroupChangeReport:
-        return GroupChangeReport(self)
+    def change_report(self, resolver: 'Resolver') -> GroupChangeReport:
+        return GroupChangeReport(self, resolver)
 
 
     @classmethod

@@ -10,13 +10,16 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import ClassVar, List, Optional, Any
+from typing import ClassVar, List, Optional, Any, TYPE_CHECKING
 
 from koji import MultiCallSession, VirtualCall, ClientSession
 from pydantic import Field
 
-from .base import BaseKojiObject, BaseKey
+from .base import BaseKey, BaseObject
 from .change import Change, ChangeReport
+
+if TYPE_CHECKING:
+    from ..resolver import Resolver
 
 
 @dataclass
@@ -25,7 +28,11 @@ class UserCreate(Change):
     enabled: Optional[bool]
 
     def impl_apply(self, session: MultiCallSession):
-        return session.createUser(self.name, status=self.enabled)
+        if self.enabled is None:
+            status = 0
+        else:
+            status = 0 if self.enabled else 1
+        return session.createUser(self.name, status=status)
 
     def explain(self) -> str:
         status_info = f" (enabled={self.enabled})" if self.enabled is not None else ""
@@ -137,18 +144,23 @@ class UserChangeReport(ChangeReport):
     def impl_compare(self):
         info = self._userinfo.result
         if not info:
-            self.create_user()
+            if not self.obj.was_split():
+                # we don't exist, and we didn't split our create to an earlier
+                # call, so create now.
+                self.create_user()
+
             for permission in self.obj.permissions:
                 self.grant_permission(permission)
             for group in self.obj.groups:
                 self.add_to_group(group)
             return
 
-        if info['status'] != (0 if self.obj.enabled else 1):
-            if self.obj.enabled:
-                self.enable_user()
-            else:
-                self.disable_user()
+        if self.obj.enabled is not None:
+            if info['status'] != (0 if self.obj.enabled else 1):
+                if self.obj.enabled:
+                    self.enable_user()
+                else:
+                    self.disable_user()
 
         groups = info['groups']
         for group in self.obj.groups:
@@ -171,13 +183,12 @@ class UserChangeReport(ChangeReport):
                     self.revoke_permission(perm)
 
 
-class User(BaseKojiObject):
+class User(BaseObject):
     """
     Koji user object model.
     """
 
     typename: ClassVar[str] = "user"
-    _can_split: ClassVar[bool] = True
 
     groups: List[str] = Field(alias='groups', default_factory=list)
     exact_groups: bool = Field(validation_alias='exact-groups', default=False)
@@ -185,11 +196,15 @@ class User(BaseKojiObject):
     permissions: List[str] = Field(alias='permissions', default_factory=list)
     exact_permissions: bool = Field(alias='exact-permissions', default=False)
 
-    enabled: bool = Field(alias='enabled', default=True)
+    enabled: Optional[bool] = Field(alias='enabled', default=None)
+
+    _auto_split: ClassVar[bool] = True
 
 
     def split(self) -> 'User':
+        self._was_split = True
         return User(name=self.name, enabled=self.enabled)
+
 
     def dependency_keys(self) -> List[BaseKey]:
         """
@@ -209,8 +224,8 @@ class User(BaseKojiObject):
         return deps
 
 
-    def change_report(self) -> UserChangeReport:
-        return UserChangeReport(self)
+    def change_report(self, resolver: 'Resolver') -> UserChangeReport:
+        return UserChangeReport(self, resolver)
 
 
     @classmethod

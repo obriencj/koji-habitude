@@ -8,15 +8,20 @@ License: GNU General Public License v3
 AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
+# Vibe-Coding State: AI Generated with Human Rework
+
 
 from dataclasses import dataclass
-from typing import ClassVar, List, Optional, Any
+from typing import ClassVar, List, Optional, Any, TYPE_CHECKING
 
 from koji import ClientSession, MultiCallSession, VirtualCall
 from pydantic import Field
 
-from .base import BaseKojiObject, BaseKey
+from .base import BaseObject, BaseKey
 from .change import ChangeReport, Change
+
+if TYPE_CHECKING:
+    from ..resolver import Resolver
 
 
 @dataclass
@@ -97,7 +102,11 @@ class ChannelChangeReport(ChangeReport):
     def impl_compare(self):
         info = self._channelinfo.result
         if not info:
-            self.create_channel()
+            if not self.obj.was_split():
+                # we don't exist, and we didn't split our create to an earlier
+                # call, so create now.
+                self.create_channel()
+
             for host in self.obj.hosts:
                 self.add_host(host)
             return
@@ -116,17 +125,18 @@ class ChannelChangeReport(ChangeReport):
                     self.remove_host(host)
 
 
-class Channel(BaseKojiObject):
+class Channel(BaseObject):
     """
     Koji channel object model.
     """
 
     typename: ClassVar[str] = "channel"
-    _can_split: ClassVar[bool] = True
 
     description: Optional[str] = Field(alias='description', default=None)
     hosts: List[str] = Field(alias='hosts', default_factory=list)
     exact_hosts: bool = Field(alias='exact-hosts', default=False)
+
+    _auto_split: ClassVar[bool] = True
 
 
     def dependency_keys(self) -> List[BaseKey]:
@@ -138,8 +148,8 @@ class Channel(BaseKojiObject):
         return [('host', host) for host in self.hosts]
 
 
-    def change_report(self) -> ChannelChangeReport:
-        return ChannelChangeReport(self)
+    def change_report(self, resolver: 'Resolver') -> ChannelChangeReport:
+        return ChannelChangeReport(self, resolver)
 
 
     @classmethod

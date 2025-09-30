@@ -8,15 +8,20 @@ License: GNU General Public License v3
 AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
+# Vibe-Coding State: AI Generated with Human Rework
+
 
 from dataclasses import dataclass
-from typing import ClassVar, List, Sequence, Optional, Any
+from typing import ClassVar, List, Sequence, Optional, Any, TYPE_CHECKING
 
 from koji import MultiCallSession, VirtualCall, ClientSession
 from pydantic import Field
 
-from .base import BaseKojiObject, BaseKey
+from .base import BaseObject, BaseKey
 from .change import ChangeReport, Change
+
+if TYPE_CHECKING:
+    from ..resolver import Resolver
 
 
 @dataclass
@@ -137,7 +142,11 @@ class HostChangeReport(ChangeReport):
     def impl_compare(self):
         info = self._hostinfo.result
         if not info:
-            self.create_host()
+            if not self.obj.was_split():
+                # we don't exist, and we didn't split our create to an earlier
+                # call, so create now.
+                self.create_host()
+
             if self.obj.capacity is not None:
                 self.set_host_capacity()
             if self.obj.enabled is not None and not self.obj.enabled:
@@ -169,13 +178,12 @@ class HostChangeReport(ChangeReport):
                     self.remove_host_channel(channel)
 
 
-class Host(BaseKojiObject):
+class Host(BaseObject):
     """
     Koji build host object model.
     """
 
     typename: ClassVar[str] = "host"
-    _can_split: ClassVar[bool] = True
 
     arches: List[str] = Field(alias='arches', default_factory=list)
     capacity: Optional[float] = Field(alias='capacity', default=None)
@@ -183,6 +191,8 @@ class Host(BaseKojiObject):
     description: Optional[str] = Field(alias='description', default=None)
     channels: List[str] = Field(alias='channels', default_factory=list)
     exact_channels: bool = Field(alias='exact-channels', default=False)
+
+    _auto_split: ClassVar[bool] = True
 
 
     def split(self) -> 'Host':
@@ -201,8 +211,9 @@ class Host(BaseKojiObject):
         return [('channel', channel) for channel in self.channels]
 
 
-    def change_report(self) -> HostChangeReport:
-        return HostChangeReport(self)
+    def change_report(self, resolver: 'Resolver') -> HostChangeReport:
+        return HostChangeReport(self, resolver)
+
 
     @classmethod
     def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:

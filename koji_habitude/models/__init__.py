@@ -15,7 +15,7 @@ from typing import Tuple, Type
 from types import MappingProxyType
 
 
-from .base import Base, BaseKojiObject, BaseObject, BaseKey
+from .base import Base, BaseObject, BaseKey
 from .change import ChangeReport, Change
 from .channel import Channel
 from .external_repo import ExternalRepo
@@ -34,7 +34,6 @@ __all__ = (
     'Base',
     'BaseObject',
     'BaseKey',
-    'BaseKojiObject',
     'ChangeReport',
     'Change',
 
@@ -49,7 +48,7 @@ __all__ = (
 )
 
 
-CORE_TYPES: Tuple[Type[BaseKojiObject], ...] = (
+CORE_TYPES: Tuple[Type[BaseObject], ...] = (
     Channel,
     ExternalRepo,
     Group,
@@ -60,7 +59,7 @@ CORE_TYPES: Tuple[Type[BaseKojiObject], ...] = (
     User,
 )
 
-CORE_MODELS: MappingProxyType[str, Type[BaseKojiObject]] = MappingProxyType({tp.typename: tp for tp in CORE_TYPES})
+CORE_MODELS: MappingProxyType[str, Type[BaseObject]] = MappingProxyType({tp.typename: tp for tp in CORE_TYPES})
 
 
 # The end.

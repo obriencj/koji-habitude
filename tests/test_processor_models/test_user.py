@@ -80,7 +80,7 @@ class TestProcessorUserBehavior(MulticallMocking, TestCase):
 
         get_user_mock.assert_called_once_with('new-user', strict=False, groups=True)
         get_perms_mock.assert_called_once_with('new-user')
-        create_mock.assert_called_once_with('new-user', status=True)
+        create_mock.assert_called_once_with('new-user', status=0)
 
     def test_user_creation_with_groups_and_permissions(self):
         """Test creating a user with groups and permissions."""
@@ -132,7 +132,7 @@ class TestProcessorUserBehavior(MulticallMocking, TestCase):
         # Verify all calls were made
         get_user_mock.assert_called_once_with('new-user', strict=False, groups=True)
         get_perms_mock.assert_called_once_with('new-user')
-        create_mock.assert_called_once_with('new-user', status=True)
+        create_mock.assert_called_once_with('new-user', status=0)
         grant_perm1_mock.assert_called_once_with('new-user', 'perm1', create=True)
         grant_perm2_mock.assert_called_once_with('new-user', 'perm2', create=True)
         add_group1_mock.assert_called_once_with('group1', 'new-user', strict=False)
@@ -483,8 +483,8 @@ class TestProcessorUserBehavior(MulticallMocking, TestCase):
         get_user2_mock.assert_called_once_with('user2', strict=False, groups=True)
         get_perms1_mock.assert_called_once_with('user1')
         get_perms2_mock.assert_called_once_with('user2')
-        create1_mock.assert_called_once_with('user1', status=True)
-        create2_mock.assert_called_once_with('user2', status=False)
+        create1_mock.assert_called_once_with('user1', status=0)
+        create2_mock.assert_called_once_with('user2', status=1)
         add_group1_mock.assert_called_once_with('group1', 'user1', strict=False)
         grant_perm1_mock.assert_called_once_with('user2', 'perm1', create=True)
 

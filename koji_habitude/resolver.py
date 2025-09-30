@@ -21,13 +21,17 @@ License v3 AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 from dataclasses import dataclass
 import logging
-from typing import Callable, ClassVar, Dict, List, Optional, Sequence, Tuple, Type, Any
+from typing import Callable, ClassVar, Dict, List, Optional, Sequence, Tuple, Type, Any, TYPE_CHECKING
 
 from pydantic import BaseModel, Field
 
 from koji import ClientSession, MultiCallSession, VirtualCall
 from .models import Base, BaseKey, ChangeReport, Change
-from .namespace import Namespace
+
+
+if TYPE_CHECKING:
+    from .namespace import Namespace
+    from .resolver import Resolver
 
 
 logger = logging.getLogger(__name__)
@@ -68,7 +72,7 @@ class MissingObject(Base):
         self._exists = None  # None means not checked yet
         logger.debug(f"MissingObject created: {self.key()}")
 
-    @property
+
     def exists(self) -> Any:
         return self._exists.result if self._exists is not None else None
 
@@ -87,9 +91,9 @@ class MissingObject(Base):
     def dependency_keys(self) -> Sequence[BaseKey]:
         return ()
 
-    def change_report(self) -> MissingChangeReport:
+    def change_report(self, resolver: 'Resolver') -> MissingChangeReport:
         logger.debug(f"MissingObject change_report: {self.key()}")
-        return MissingChangeReport(self)
+        return MissingChangeReport(self, resolver)
 
 
 @dataclass
@@ -110,12 +114,12 @@ class Resolver:
 
     def __init__(
             self,
-            namespace: Namespace):
+            namespace: 'Namespace'):
 
         if namespace is None:
             raise ValueError("namespace is required")
 
-        self.namespace: Namespace = namespace
+        self.namespace: 'Namespace' = namespace
         self._missing: Dict[BaseKey, Base] = {}
 
 
@@ -166,7 +170,7 @@ class Resolver:
         missing = {}
         found = {}
         for key, obj in self._missing.items():
-            if obj.exists:
+            if obj.exists():
                 found[key] = obj
             else:
                 missing[key] = obj

@@ -22,12 +22,14 @@ from typing import (
 
 if TYPE_CHECKING:
     from .change import ChangeReport
+    from ..resolver import Resolver
 
 
 __all__ = (
     'Base',
+    'BaseKey',
     'BaseObject',
-    'BaseKojiObject',
+    'SubModel',
 )
 
 
@@ -38,6 +40,11 @@ A tuple of (typename, name), used as the key for objects across this package
 
 
 class Base(Protocol):
+    """
+    Base protocol for all object models intended to be used in a Namespace, or
+    fed to a Solver or Processor
+    """
+
     typename: ClassVar[str]
 
     name: str
@@ -55,13 +62,19 @@ class Base(Protocol):
     def can_split(self) -> bool:
         ...
 
+    def was_split(self) -> bool:
+        ...
+
     def split(self) -> Optional['Base']:
         ...
 
     def dependency_keys(self) -> Sequence[BaseKey]:
         ...
 
-    def prove_exists(self, session: ClientSession) -> Any:
+    def exists(self) -> Any:
+        ...
+
+    def query_exists(self, session: ClientSession) -> VirtualCall:
         ...
 
     @classmethod
@@ -106,6 +119,9 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
     _data: Optional[Dict[str, Any]] = None
     _exists: Optional[VirtualCall] = None
 
+    _auto_split: ClassVar[bool] = False
+    _was_split: bool = False
+
     model_config = ConfigDict(validate_by_alias=True, validate_by_name=True)
 
 
@@ -117,9 +133,10 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
 
         self._exists = None
 
-    @property
+
     def exists(self) -> Any:
         return self._exists.result
+
 
     def query_exists(self, session: ClientSession) -> VirtualCall:
         res = self.check_exists(session, self.key())
@@ -130,9 +147,11 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
             self._exists._result = res
         return self._exists
 
+
     @classmethod
     def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
         raise NotImplementedError(f"Subclasses of BaseObject must implement check_exists")
+
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'BaseObject':
@@ -144,11 +163,13 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
         obj._data = data
         return obj
 
+
     def to_dict(self) -> Dict[str, Any]:
         """
         Return a dictionary representation of this object.
         """
         return self.model_dump(by_alias=True)
+
 
     @property
     def data(self) -> Dict[str, Any] | None:
@@ -157,17 +178,20 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
         """
         return self._data
 
+
     def key(self) -> BaseKey:
         """
         Return the key of this object as a tuple of (typename, name)
         """
         return (self.yaml_type or self.typename, self.name)
 
+
     def filepos(self) -> Tuple[Optional[str], Optional[int]]:
         """
         Return the file position of this object as a tuple of (filename, lineno)
         """
         return (self.filename, self.lineno)
+
 
     def filepos_str(self) -> str:
         """
@@ -179,11 +203,20 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
         else:
             return filename
 
+
     def can_split(self) -> bool:
         """
         True if this object can be split in order to break cyclic dependencies
         """
-        return False
+        return self._auto_split
+
+
+    def was_split(self) -> bool:
+        """
+        True if this object was split by a change report
+        """
+        return self._was_split
+
 
     def split(self) -> 'BaseObject':
         """
@@ -191,7 +224,12 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
         specifying only that it needs to exist, with a dependant link on the
         original object. Otherwise raise a TypeError.
         """
-        raise TypeError(f"Cannot split {self.typename}")
+        if self._auto_split:
+            self._was_split = True
+            return type(self)(name=self.name)
+        else:
+            raise TypeError(f"Cannot split {self.typename}")
+
 
     def dependency_keys(self) -> Sequence[BaseKey]:
         """
@@ -199,42 +237,13 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
         """
         return ()
 
-    def change_report(self) -> 'ChangeReport':
+
+    def change_report(self, resolver: 'Resolver') -> 'ChangeReport':
         raise NotImplementedError(f"Subclasses of BaseObject must implement change_report")
 
+
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__}({self.typename}, {self.name})>"
-
-
-class BaseKojiObject(BaseObject):
-    """
-    Base class for all koji object models.
-    """
-
-    # override in subclasses
-    typename: ClassVar[str] = 'koji-object'
-
-    # override in subclasses to support automatic splitting
-    _can_split: ClassVar[bool] = False
-
-
-    def can_split(self):
-        return self._can_split
-
-
-    def split(self) -> 'BaseKojiObject':
-        """
-        Create a minimal copy of this object specifying only that it needs
-        to exist, with a dependant link on the original object.
-
-        This allows us to create cross-dependencies of the same tier without
-        any internal references that break ordering. Then the next tier can
-        add the links.
-        """
-        if self._can_split:
-            return type(self)(name=self.name)
-        else:
-            raise TypeError(f"Cannot split {self.typename}")
+        return f"<{self.__class__.__name__}({self.name})>"
 
 
 # The end.

@@ -9,13 +9,16 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
 from dataclasses import dataclass
-from typing import Any, ClassVar, Optional, Sequence
+from typing import Any, ClassVar, Optional, Sequence, TYPE_CHECKING
 
 from koji import ClientSession, MultiCallSession, VirtualCall
 from pydantic import Field
 
-from .base import BaseKojiObject, BaseKey
+from .base import BaseKey, BaseObject
 from .change import Change, ChangeReport
+
+if TYPE_CHECKING:
+    from ..resolver import Resolver
 
 
 @dataclass
@@ -74,7 +77,7 @@ class TargetChangeReport(ChangeReport):
             self.edit_target()
 
 
-class Target(BaseKojiObject):
+class Target(BaseObject):
     """
     Koji build target object model.
     """
@@ -100,8 +103,8 @@ class Target(BaseKojiObject):
         ]
 
 
-    def change_report(self) -> TargetChangeReport:
-        return TargetChangeReport(self)
+    def change_report(self, resolver: 'Resolver') -> TargetChangeReport:
+        return TargetChangeReport(self, resolver)
 
 
     @classmethod

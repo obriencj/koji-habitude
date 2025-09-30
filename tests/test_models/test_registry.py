@@ -11,7 +11,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 import unittest
 
 from koji_habitude.models import (
-    CORE_MODELS, CORE_TYPES, BaseKojiObject, Channel, ExternalRepo,
+    CORE_MODELS, CORE_TYPES, BaseObject, Channel, ExternalRepo,
     Group, Host, Permission, Tag, Target, User,
 )
 
@@ -62,26 +62,6 @@ class TestCoreModelsRegistry(unittest.TestCase):
             expected_typename = expected_typenames[model_class]
             self.assertEqual(model_class.typename, expected_typename)
 
-    def test_core_models_can_split_support(self):
-        """
-        Test that CORE_TYPES have correct can_split support.
-        """
-
-        expected_split_support = {
-            Channel: True,
-            ExternalRepo: False,
-            Group: True,
-            Host: True,
-            Permission: False,
-            Tag: True,
-            Target: False,
-            User: True,
-        }
-
-        for model_class in CORE_TYPES:
-            expected_support = expected_split_support[model_class]
-            self.assertEqual(model_class._can_split, expected_support)
-
     def test_core_models_instantiation_with_minimal_data(self):
         """
         Test that all CORE_TYPES can be instantiated with minimal data.
@@ -101,7 +81,7 @@ class TestCoreModelsRegistry(unittest.TestCase):
         for model_class in CORE_TYPES:
             data = minimal_data_templates[model_class]
             obj = model_class.from_dict(data)
-            self.assertIsInstance(obj, BaseKojiObject)
+            self.assertIsInstance(obj, BaseObject)
             self.assertEqual(obj.name, 'test')
 
     def test_core_models_dependency_keys_return_tuples(self):

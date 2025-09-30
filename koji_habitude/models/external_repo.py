@@ -8,15 +8,20 @@ License: GNU General Public License v3
 AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
+# Vibe-Coding State: AI Generated with Human Rework
+
 
 from dataclasses import dataclass
-from typing import ClassVar, Any
+from typing import ClassVar, Any, TYPE_CHECKING
 
 from koji import ClientSession, MultiCallSession, VirtualCall
 from pydantic import Field
 
-from .base import BaseKojiObject, BaseKey
+from .base import BaseObject, BaseKey
 from .change import ChangeReport, Change
+
+if TYPE_CHECKING:
+    from ..resolver import Resolver
 
 
 @dataclass
@@ -66,7 +71,7 @@ class ExternalRepoChangeReport(ChangeReport):
             self.set_url()
 
 
-class ExternalRepo(BaseKojiObject):
+class ExternalRepo(BaseObject):
     """
     Koji external repository object model.
     """
@@ -76,8 +81,8 @@ class ExternalRepo(BaseKojiObject):
     url: str = Field(alias='url', pattern=r'^https?://')
 
 
-    def change_report(self) -> ExternalRepoChangeReport:
-        return ExternalRepoChangeReport(self)
+    def change_report(self, resolver: 'Resolver') -> ExternalRepoChangeReport:
+        return ExternalRepoChangeReport(self, resolver)
 
 
     @classmethod

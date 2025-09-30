@@ -10,7 +10,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 import unittest
 
-from koji_habitude.models import BaseObject, BaseKojiObject
+from koji_habitude.models import BaseObject
 
 
 class TestBaseModels(unittest.TestCase):
@@ -111,7 +111,7 @@ class TestBaseModels(unittest.TestCase):
         obj = BaseObject.from_dict(data)
 
         repr_str = repr(obj)
-        self.assertEqual(repr_str, '<BaseObject(object, test-name)>')
+        self.assertEqual(repr_str, '<BaseObject(test-name)>')
 
     def test_raw_object_alias(self):
         """
@@ -123,42 +123,6 @@ class TestBaseModels(unittest.TestCase):
 
         self.assertIsInstance(obj, BaseObject)
         self.assertEqual(obj.typename, 'object')
-
-    def test_base_koji_object_creation(self):
-        """
-        Test BaseKojiObject creation.
-        """
-
-        data = {'type': 'koji-object', 'name': 'test-name'}
-        obj = BaseKojiObject.from_dict(data)
-
-        self.assertEqual(obj.typename, 'koji-object')
-        self.assertEqual(obj.name, 'test-name')
-
-    def test_base_koji_object_can_split_default(self):
-        """
-        Test that BaseKojiObject cannot be split by default.
-        """
-
-        data = {'type': 'koji-object', 'name': 'test-name'}
-        obj = BaseKojiObject.from_dict(data)
-
-        self.assertFalse(obj.can_split())
-
-    def test_base_koji_object_split_raises(self):
-        """
-        Test that BaseKojiObject.split() creates a minimal copy.
-        """
-
-        data = {'type': 'koji-object', 'name': 'test-name'}
-        obj = BaseKojiObject.from_dict(data)
-
-        with self.assertRaises(TypeError):
-            obj.split()
-
-    def test_base_koji_object_diff_stub(self):
-        # TODO: Implement test for BaseKojiObject.diff()
-        pass
 
 
 # The end.

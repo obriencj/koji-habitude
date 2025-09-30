@@ -189,6 +189,7 @@ class TestProcessorGroupBehavior(MulticallMocking, TestCase):
     def test_group_remove_extra_members(self):
         """Test removing members from a group when they shouldn't be there."""
         group = create_test_group('existing-group', members=['user1'])
+        group.exact_members = True
         solver = create_solver_with_objects([group])
         mock_session = create_test_koji_session()
 
@@ -283,6 +284,7 @@ class TestProcessorGroupBehavior(MulticallMocking, TestCase):
     def test_group_remove_extra_permissions(self):
         """Test removing permissions from a group when they shouldn't be there."""
         group = create_test_group('existing-group', permissions=['perm1'])
+        group.exact_permissions = True
         solver = create_solver_with_objects([group])
         mock_session = create_test_koji_session()
 

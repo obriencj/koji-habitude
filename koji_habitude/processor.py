@@ -30,6 +30,10 @@ from .solver import Solver
 logger = logging.getLogger(__name__)
 
 
+class ProcessorStateError(Exception):
+    pass
+
+
 class ProcessorState(Enum):
     """
     Processor state machine for managing the read/compare/apply cycle.
@@ -68,10 +72,6 @@ class ProcessorSummary:
     @property
     def total_write_calls(self) -> int:
         return sum(len(calls) for calls in self.write_calls.values())
-
-
-class ProcessorStateError(Exception):
-    pass
 
 
 class Processor:
@@ -213,8 +213,7 @@ class Processor:
                 mc.associate(obj.key())
 
                 # create and load the change report for this object
-                change_report = obj.change_report()
-                change_report.resolver = self.resolver
+                change_report = obj.change_report(self.resolver)
                 defer = change_report.read(mc)
                 if defer and callable(defer):
                     # we allow the change report to return a callable to

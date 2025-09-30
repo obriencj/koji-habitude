@@ -75,7 +75,9 @@ def create_resolver_with_objects(objects: Dict[BaseKey, Base]) -> Resolver:
     """
 
     def resolve(key: BaseKey) -> Base:
-        return Mock(spec=Base, exists=objects.get(key))
+        m = Mock(spec=Base)
+        m.exists.return_value = objects.get(key)
+        return m
 
     mock_resolver = Mock(spec=Resolver)
     mock_resolver.resolve.side_effect = resolve
