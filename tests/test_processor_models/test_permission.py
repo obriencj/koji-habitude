@@ -11,10 +11,21 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 from unittest import TestCase
 from unittest.mock import Mock
 
-from koji_habitude.processor import Processor, DiffOnlyProcessor, ProcessorState, ProcessorSummary
 from koji_habitude.models import Permission
+from koji_habitude.processor import (
+    DiffOnlyProcessor,
+    Processor,
+    ProcessorState,
+    ProcessorSummary,
+)
 
-from . import create_test_koji_session, create_solver_with_objects, create_resolver_with_objects, create_empty_resolver, MulticallMocking
+from . import (
+    MulticallMocking,
+    create_empty_resolver,
+    create_resolver_with_objects,
+    create_solver_with_objects,
+    create_test_koji_session,
+)
 
 
 def create_test_permission(name: str, description: str = None) -> Permission:
@@ -62,7 +73,7 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
             resolver=create_empty_resolver(),
             chunk_size=10
         )
@@ -101,7 +112,8 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
@@ -135,7 +147,8 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
@@ -163,8 +176,8 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
-            resolver=None,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
@@ -195,7 +208,8 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
@@ -227,7 +241,8 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
@@ -282,7 +297,8 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 

@@ -8,12 +8,13 @@ create a placeholder for one if it does not exist.
 For example a namespace may define a tag which inherits some parent, but that
 parent is not defined in the namespace. In order for a Solver to be able to
 perform depsolving, it must have some way to identify that parent tag. Therefore
-an Resolver creates a simple MissingObject placeholder for that parent tag. A more
-complex OnlineResolver may actually query the koji instance to verify that the
-parent tag exists, and produce an Exists entry instead.
+an Resolver creates a simple MissingObject placeholder for that parent tag. A
+more complex OnlineResolver may actually query the koji instance to verify that
+the parent tag exists, and produce an Exists entry instead.
 
-Author: Christopher O'Brien  <obriencj@gmail.com> License: GNU General Public
-License v3 AI-Assistant: Claude 3.5 Sonnet via Cursor
+Author: Christopher O'Brien  <obriencj@gmail.com>
+License: GNU General Public License v3
+AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
 # Vibe-Coding State: AI Assisted, Mostly Human
@@ -21,11 +22,9 @@ License v3 AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 from dataclasses import dataclass
 import logging
-from typing import Callable, ClassVar, Dict, List, Optional, Sequence, Tuple, Type, Any, TYPE_CHECKING
+from typing import ClassVar, Dict, Optional, Sequence, Tuple, Type, Any, TYPE_CHECKING
 
-from pydantic import BaseModel, Field
-
-from koji import ClientSession, MultiCallSession, VirtualCall
+from koji import MultiCallSession
 from .models import Base, BaseKey, ChangeReport, Change
 
 
@@ -112,10 +111,7 @@ class Resolver:
     not exist.
     """
 
-    def __init__(
-            self,
-            namespace: 'Namespace'):
-
+    def __init__(self, namespace: 'Namespace'):
         if namespace is None:
             raise ValueError("namespace is required")
 

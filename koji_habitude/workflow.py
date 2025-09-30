@@ -179,7 +179,7 @@ class Workflow:
         if missing_report.missing:
             missing_processor = DiffOnlyProcessor(
                 koji_session=self.session,
-                stream_origin=missing_report.missing.values(),
+                dataseries=missing_report.missing.values(),  # type: ignore
                 resolver=self.resolver,
                 chunk_size=self.chunk_size
             )
@@ -191,7 +191,7 @@ class Workflow:
 
         self.processor = self.cls_processor(
             koji_session=self.session,
-            stream_origin=self.dataseries,
+            dataseries=self.dataseries,
             resolver=self.resolver,
             chunk_size=self.chunk_size
         )

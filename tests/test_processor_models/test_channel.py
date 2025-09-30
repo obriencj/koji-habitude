@@ -11,10 +11,15 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 from unittest import TestCase
 from unittest.mock import Mock
 
-from koji_habitude.processor import Processor, DiffOnlyProcessor, ProcessorState, ProcessorSummary
 from koji_habitude.models import Channel
+from koji_habitude.processor import Processor, ProcessorState, ProcessorSummary
 
-from . import create_test_koji_session, create_solver_with_objects, MulticallMocking
+from . import (
+    MulticallMocking,
+    create_empty_resolver,
+    create_solver_with_objects,
+    create_test_koji_session,
+)
 
 
 def create_test_channel(name: str, description: str = None, hosts: list = None,
@@ -64,7 +69,8 @@ class TestProcessorChannelBehavior(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
@@ -97,7 +103,8 @@ class TestProcessorChannelBehavior(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
@@ -138,7 +145,8 @@ class TestProcessorChannelBehavior(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
@@ -177,7 +185,8 @@ class TestProcessorChannelBehavior(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
@@ -218,7 +227,8 @@ class TestProcessorChannelBehavior(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
@@ -259,7 +269,8 @@ class TestProcessorChannelBehavior(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
@@ -296,7 +307,8 @@ class TestProcessorChannelBehavior(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
@@ -332,7 +344,8 @@ class TestProcessorChannelBehavior(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
@@ -390,7 +403,8 @@ class TestProcessorChannelBehavior(MulticallMocking, TestCase):
 
         processor = Processor(
             koji_session=mock_session,
-            stream_origin=solver,
+            dataseries=solver,
+            resolver=create_empty_resolver(),
             chunk_size=10
         )
 
