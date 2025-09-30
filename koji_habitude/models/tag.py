@@ -471,8 +471,7 @@ class TagPackageListSetArches(Change):
     arches: List[str]
 
     def impl_apply(self, session: MultiCallSession):
-        arches = self.package.extra_arches
-        arches = ' '.join(arches) if arches else None
+        arches = ' '.join(self.arches) if self.arches else None
         return session.packageListSetArches(self.name, self.package, arches, force=True)
 
     def explain(self) -> str:
@@ -495,19 +494,19 @@ class TagChangeReport(ChangeReport):
 
     def impl_read(self, session: MultiCallSession):
         self._taginfo: VirtualCall = self.obj.query_exists(session)
-        self._packages: VirtualCall = None
+        self._packagelist: VirtualCall = None
         self._groups: VirtualCall = None
         self._inheritance: VirtualCall = None
         self._external_repos: VirtualCall = None
 
-        return self._impl_read_defer
+        return self.impl_read_defer
 
 
-    def _impl_read_defer(self, session: MultiCallSession):
+    def impl_read_defer(self, session: MultiCallSession):
         if self._taginfo.result is None:
             return
 
-        self._packages = session.listPackages(tagID=self.obj.name)
+        self._packagelist = session.listPackages(tagID=self.obj.name)
         self._groups = session.getTagGroups(self.obj.name, inherit=False, incl_blocked=True)
         self._inheritance = session.getInheritanceData(self.obj.name)
         self._external_repos = session.getTagExternalRepos(tag_info=self.obj.name)
@@ -562,7 +561,7 @@ class TagChangeReport(ChangeReport):
 
 
     def _compare_packages(self):
-        koji_pkgs = {pkg['package_name']: pkg for pkg in self._packages.result}
+        koji_pkgs = {pkg['package_name']: pkg for pkg in self._packagelist.result}
         for package in self.obj.packages:
             if package.name not in koji_pkgs:
                 yield TagPackageListAdd(self.obj.name, package)
@@ -579,8 +578,9 @@ class TagChangeReport(ChangeReport):
                     yield TagPackageListSetArches(self.obj.name, package.name, package.extra_arches)
 
         if self.obj.exact_packages:
+            our_pkglist = {package.name for package in self.obj.packages}
             for package_name in koji_pkgs:
-                if package_name not in self.obj.packages:
+                if package_name not in our_pkglist:
                     yield TagPackageListRemove(self.obj.name, package_name)
 
 
@@ -738,9 +738,6 @@ class PackageEntry(SubModel):
     owner: Optional[str] = Field(alias='owner', default=None)
     extra_arches: Optional[List[str]] = Field(alias='extra-arches', default=None)
 
-    def key(self) -> BaseKey:
-        return ('package', self.name)
-
 
 class InheritanceLink(SubModel):
 
@@ -823,27 +820,6 @@ def _simplified_link(data: Any) -> Any:
     return data
 
 
-def _simplified_packages(data: Any) -> Any:
-    """
-    we allow the packages field to be specified in a simplified manner, as a
-    list of strings or a list of dictionaries. If it's a string, the value is
-    considered to be the name of the package.
-    """
-
-    if isinstance(data, list):
-        data = [{'name': data}]
-
-    elif isinstance(data, list):
-        fixed = List[Dict[str, Any]] = []
-        for item in data:
-            if isinstance(item, str):
-                item = {'name': item}
-            fixed.append(item)
-        data = fixed
-
-    return data
-
-
 class Tag(BaseObject):
     """
     Koji tag object model.
@@ -874,17 +850,18 @@ class Tag(BaseObject):
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
 
-        seen: Dict[int, InheritanceLink] = {}
-
+        seen = {}
         for parent in self.inheritance:
             if parent.priority in seen:
                 raise ValueError(f"Duplicate tag priority {parent.priority} for {parent.name}")
             seen[parent.priority] = parent
 
+        seen = {}
         for parent in self.external_repos:
             if parent.priority in seen:
                 raise ValueError(f"Duplicate external repo priority {parent.priority} for {parent.name}")
             seen[parent.priority] = parent
+
 
     @field_validator('groups', mode='before')
     @classmethod
@@ -943,7 +920,24 @@ class Tag(BaseObject):
     @field_validator('packages', mode='before')
     @classmethod
     def convert_packages_from_simplified(cls, data: Any) -> Any:
-        return _simplified_packages(data)
+        """
+        we allow the packages field to be specified in a simplified manner, as a
+        list of strings or a list of dictionaries. If it's a string, the value is
+        considered to be the name of the package.
+        """
+
+        if isinstance(data, str):
+            data = [{'name': data}]
+
+        elif isinstance(data, list):
+            fixed: List[Dict[str, Any]] = []
+            for item in data:
+                if isinstance(item, str):
+                    item = {'name': item}
+                fixed.append(item)
+            data = fixed
+
+        return data
 
 
     def split(self) -> 'Tag':
