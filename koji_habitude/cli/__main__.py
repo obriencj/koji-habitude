@@ -10,6 +10,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 import sys
+
 from . import main
 
 

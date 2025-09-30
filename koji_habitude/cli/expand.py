@@ -11,10 +11,10 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 import click
 
+from . import main
 from ..loader import MultiLoader, YAMLLoader, pretty_yaml_all
-from ..namespace import Namespace, TemplateNamespace, ExpanderNamespace
-
-from . import main, catchall
+from ..namespace import ExpanderNamespace, Namespace, TemplateNamespace
+from .util import catchall
 
 
 @main.command()
