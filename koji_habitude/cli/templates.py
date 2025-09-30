@@ -15,7 +15,8 @@ from ..loader import MultiLoader, YAMLLoader, pretty_yaml_all
 from ..namespace import TemplateNamespace
 from ..templates import Template
 
-from . import main, catchall
+from . import main
+from .util import catchall
 
 
 def print_template(tmpl: Template, full: bool = False):

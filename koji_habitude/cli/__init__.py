@@ -14,56 +14,8 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 import logging
 import os
-from functools import wraps
-from typing import List
 
 import click
-from koji import GSSAPIAuthError, GenericError
-from pydantic import ValidationError
-
-
-def resplit(strs: List[str], sep=',') -> List[str]:
-    """
-    Takes a list of strings which may be comma-separated to indicate multiple
-    values. Returns a list of strings with the commas removed and those values
-    expanded, whitespace stripped, and any empty strings omitted.
-
-    Example:
-        >>> resplit(['foo', ' ', 'bar,baz', 'qux,,quux'])
-        ['foo', 'bar', 'baz', 'qux', 'quux']
-    """
-
-    # joins 'em, splits 'em, strips 'em, and filters 'em
-    return list(filter(None, map(str.strip, sep.join(strs).split(sep))))
-
-
-def catchall(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-
-        except ValidationError as e:
-            click.echo(f"[ValidationError] {e}", err=True)
-            return 1
-
-        except GSSAPIAuthError as e:
-            click.echo(f"[GSSAPIAuthError] {e}", err=True)
-            return 1
-
-        except GenericError as e:
-            click.echo(f"[GenericError] {e}", err=True)
-            return 1
-
-        except KeyboardInterrupt:
-            click.echo("[Keyboard interrupt]", err=True)
-            return 130
-
-        except Exception as e:
-            click.echo(f"[Error] {e}", err=True)
-            raise
-
-    return wrapper
 
 
 class MagicGroup(click.Group):

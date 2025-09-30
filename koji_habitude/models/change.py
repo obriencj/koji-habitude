@@ -14,10 +14,10 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: Pure Human
 
 
-from enum import Enum
 from dataclasses import dataclass, field
-from typing import Any, Callable, Optional, List, TYPE_CHECKING
+from enum import Enum
 from logging import getLogger
+from typing import Any, Callable, Iterable, List, Optional, TYPE_CHECKING
 
 from koji import MultiCallSession, VirtualCall
 
@@ -184,8 +184,8 @@ class ChangeReport:
       necessary calls to compare the current koji state (as obtained during the
       `impl_read` call) with the expected state of the Base object.
 
-    * `impl_compare` causes individual differences to be recorded as Change
-      instances, which are added to the report via the `add` method.
+    * `impl_compare` yields individual differences to be recorded as Change
+      instances which are collected by the calling `compare` method.
 
     * state is COMPARED
 
@@ -272,7 +272,7 @@ class ChangeReport:
     def compare(self) -> None:
         """
         Compares the read Koji state with the expected state of the Base object
-        by calling the `impl_compare` method.
+        by calling the `impl_compare` method and collectings its results.
 
         Requires an initial state of `LOADED`, and will progress through the
         `COMPARING` and `COMPARED` states.
@@ -281,30 +281,19 @@ class ChangeReport:
         if self.state != ChangeReportState.LOADED:
             raise ChangeReportError(f"Change report is not loaded: {self.state}")
         self.state = ChangeReportState.COMPARING
-        self.impl_compare()
+        self.changes.extend(self.impl_compare())
         self.state = ChangeReportState.COMPARED
 
 
-    def impl_compare(self) -> None:
+    def impl_compare(self) -> Iterable[Change]:
         """
-        Must be implemented by subclasses to perform the actual work of comparing
-        the read Koji state with the expected state of the Base object.
+        Must be implemented by subclasses to perform the actual work of
+        comparing the read Koji state with the expected state of the Base
+        object, yielding Change instances as they are identified.
         """
 
         raise NotImplementedError("Subclasses of ChangeReport must implement impl_compare")
 
-
-    def add(self, change: Change) -> None:
-        """
-        Adds a change to the report. This should be called by subclasses during
-        their `impl_compare` method.
-
-        Requires an initial state of `COMPARING`
-        """
-
-        if self.state != ChangeReportState.COMPARING:
-            raise ChangeReportError(f"Change report is not comparing: {self.state}")
-        self.changes.append(change)
 
 
     def apply(self, session: MultiCallSession) -> None:

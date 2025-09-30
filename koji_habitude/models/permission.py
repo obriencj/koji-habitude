@@ -80,13 +80,6 @@ class PermissionChangeReport(ChangeReport):
     Change report for permission objects.
     """
 
-    def create_permission(self):
-        self.add(PermissionCreate(self.obj.name, self.obj.description))
-
-    def set_description(self):
-        self.add(PermissionSetDescription(self.obj.name, self.obj.description))
-
-
     def impl_read(self, session: MultiCallSession):
         self._permissioninfo: VirtualCall = self.obj.query_exists(session)
 
@@ -94,11 +87,11 @@ class PermissionChangeReport(ChangeReport):
     def impl_compare(self):
         info = self._permissioninfo.result
         if not info:
-            self.create_permission()
+            yield PermissionCreate(self.obj.name, self.obj.description)
             return
 
         if info['description'] != self.obj.description:
-            self.set_description()
+            yield PermissionSetDescription(self.obj.name, self.obj.description)
 
 
 class Permission(BaseObject):

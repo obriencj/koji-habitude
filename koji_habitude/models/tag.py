@@ -401,76 +401,6 @@ class TagRemoveExternalRepo(Change):
 
 class TagChangeReport(ChangeReport):
 
-    def create_tag(self):
-        self.add(TagCreate(self.obj))
-
-    def post_split_tag_checkup(self):
-        self.add(SplitTagCheckup(self.obj))
-
-    def set_tag_locked(self):
-        self.add(TagSetLocked(self.obj.name, self.obj.locked))
-
-    def set_tag_permission(self):
-        self.add(TagSetPermission(self.obj.name, self.obj.permission))
-
-    def set_tag_arches(self):
-        self.add(TagSetArches(self.obj.name, self.obj.arches))
-
-    def set_tag_maven(self):
-        self.add(TagSetMaven(self.obj.name, self.obj.maven_support, self.obj.maven_include_all))
-
-    def set_tag_extras(self):
-        self.add(TagSetExtras(self.obj.name, self.obj.extras))
-
-    def add_group(self, group: 'TagGroup'):
-        self.add(TagAddGroup(self.obj.name, group))
-
-    def update_group(self, group: 'TagGroup'):
-        self.add(TagUpdateGroup(self.obj.name, group))
-
-    def remove_group(self, group: str):
-        self.add(TagRemoveGroup(self.obj.name, group))
-
-    def add_group_package(self, group: str, package: 'TagGroupPackage'):
-        self.add(TagAddGroupPackage(self.obj.name, group, package))
-
-    def update_group_package(self, group: str, package: 'TagGroupPackage'):
-        self.add(TagUpdateGroupPackage(self.obj.name, group, package))
-
-    def remove_group_package(self, group: str, package: str):
-        self.add(TagRemoveGroupPackage(self.obj.name, group, package))
-
-    def add_group_packages(self, group: str, packages: List['TagGroupPackage']):
-        for package in packages:
-            self.add_group_package(group, package)
-
-    def update_group_packages(self, group: str, packages: List['TagGroupPackage']):
-        for package in packages:
-            self.update_group_package(group, package)
-
-    def remove_group_packages(self, group: str, packages: List[str]):
-        for package in packages:
-            self.remove_group_package(group, package)
-
-    def add_inheritance(self, parent: 'InheritanceLink'):
-        self.add(TagAddInheritance(self.obj.name, parent))
-
-    def update_inheritance(self, parent: 'InheritanceLink', parent_id: int):
-        self.add(TagUpdateInheritance(self.obj.name, parent, parent_id))
-
-    def remove_inheritance(self, parent_id: int):
-        self.add(TagRemoveInheritance(self.obj.name, parent_id))
-
-    def add_external_repo(self, repo: 'InheritanceLink'):
-        self.add(TagAddExternalRepo(self.obj.name, repo))
-
-    def update_external_repo(self, repo: 'ExternalRepoLink'):
-        self.add(TagUpdateExternalRepo(self.obj.name, repo))
-
-    def remove_external_repo(self, repo: str):
-        self.add(TagRemoveExternalRepo(self.obj.name, repo))
-
-
     def impl_read(self, session: MultiCallSession):
         self._taginfo: VirtualCall = self.obj.query_exists(session)
         self._groups: VirtualCall = None
@@ -498,39 +428,40 @@ class TagChangeReport(ChangeReport):
                 # In order for the tag inheritance hacks to work, we'll add a change
                 # whose only job is to queue up a getTag call for ourself, so we can
                 # answer for our existence later and give dependents our ID.
-                self.post_split_tag_checkup()
+                yield SplitTagCheckup(self.obj)
             else:
                 # we didn't need to split, so just do a normal create.
-                self.create_tag()
+                yield TagCreate(self.obj)
 
-            self.set_tag_extras()
+            yield TagSetExtras(self.obj.name, self.obj.extras)
             for group_name, group in self.obj.groups.items():
-                self.add_group(group)
-                self.add_group_packages(group_name, group.packages)
+                yield TagAddGroup(self.obj.name, group)
+                for package in group.packages:
+                    yield TagAddGroupPackage(self.obj.name, group_name, package)
             for parent in self.obj.inheritance:
-                self.add_inheritance(parent)
+                yield TagAddInheritance(self.obj.name, parent)
             for repo in self.obj.external_repos:
-                self.add_external_repo(repo)
+                yield TagAddExternalRepo(self.obj.name, repo)
             return
 
         if info['locked'] != self.obj.locked:
-            self.set_tag_locked()
+            yield TagSetLocked(self.obj.name, self.obj.locked)
         if info['perm'] != self.obj.permission:
-            self.set_tag_permission()
+            yield TagSetPermission(self.obj.name, self.obj.permission)
 
         arches = set(info['arches'].split()) if info['arches'] else None
         if arches != (set(self.obj.arches) if self.obj.arches else None):
-            self.set_tag_arches()
+            yield TagSetArches(self.obj.name, self.obj.arches)
 
         if info['maven_support'] != self.obj.maven_support or \
            info['maven_include_all'] != self.obj.maven_include_all:
-            self.set_tag_maven()
+            yield TagSetMaven(self.obj.name, self.obj.maven_support, self.obj.maven_include_all)
         if info['extra'] != self.obj.extras:
-            self.set_tag_extras()
+            yield TagSetExtras(self.obj.name, self.obj.extras)
 
-        self._compare_groups()
-        self._compare_inheritance()
-        self._compare_external_repos()
+        yield from self._compare_groups()
+        yield from self._compare_inheritance()
+        yield from self._compare_external_repos()
 
 
     def _compare_inheritance(self):
@@ -552,11 +483,11 @@ class TagChangeReport(ChangeReport):
 
         for name, parent in koji_inher.items():
             if name not in inher:
-                self.remove_inheritance(parent['parent_id'])
+                yield TagRemoveInheritance(self.obj.name, parent['parent_id'])
 
         for name, parent in inher.items():
             if name not in koji_inher:
-                self.add_inheritance(parent)
+                yield TagAddInheritance(self.obj.name, parent)
             else:
                 koji_parent = koji_inher[name]
                 if koji_parent['priority'] != parent.priority or \
@@ -564,7 +495,7 @@ class TagChangeReport(ChangeReport):
                    koji_parent['noconfig'] != parent.noconfig or \
                    koji_parent['pkg_filter'] != parent.pkgfilter or \
                    koji_parent['intransitive'] != parent.intransitive:
-                    self.update_inheritance(parent, koji_parent['parent_id'])
+                    yield TagUpdateInheritance(self.obj.name, parent, koji_parent['parent_id'])
 
 
     def _compare_external_repos(self):
@@ -574,18 +505,18 @@ class TagChangeReport(ChangeReport):
 
         for name, koji_repo in koji_ext_repos.items():
             if name not in ext_repos:
-                self.remove_external_repo(name)
+                yield TagRemoveExternalRepo(self.obj.name, name)
             else:
                 repo = ext_repos[name]
                 arches = set(koji_repo['arches'].split()) if koji_repo['arches'] else None
                 if koji_repo['priority'] != repo.priority or \
                    koji_repo['merge_mode'] != repo.merge_mode or \
                    arches != (set(repo.arches) if repo.arches else None):
-                    self.update_external_repo(repo)
+                    yield TagUpdateExternalRepo(self.obj.name, repo)
 
         for name, repo in ext_repos.items():
             if name not in koji_ext_repos:
-                self.add_external_repo(repo)
+                yield TagAddExternalRepo(self.obj.name, repo)
 
 
     def _compare_groups(self):
@@ -597,14 +528,15 @@ class TagChangeReport(ChangeReport):
         koji_groups = {group['name']: group for group in self._groups.result}
         for group_name, group in self.obj.groups.items():
             if group_name not in koji_groups:
-                self.add_group(group)
-                self.add_group_packages(group_name, group.packages)
+                yield TagAddGroup(self.obj.name, group)
+                for package in group.packages:
+                    yield TagAddGroupPackage(self.obj.name, group_name, package)
                 continue
 
             koji_group = koji_groups[group_name]
             if group.block != koji_group['blocked'] or \
                group.description != koji_group['description']:
-                self.update_group(group)
+                yield TagUpdateGroup(self.obj.name, group)
 
             to_add : List[TagGroupPackage] = []
             to_update : List[TagGroupPackage] = []
@@ -616,11 +548,11 @@ class TagChangeReport(ChangeReport):
                 elif pkg.block != koji_pkgs[pkg.name]['blocked']:
                     to_update.append(pkg)
 
-            if to_add:
-                self.add_group_packages(group_name, to_add)
+            for package in to_add:
+                yield TagAddGroupPackage(self.obj.name, group_name, package)
 
-            if to_update:
-                self.update_group_packages(group_name, to_update)
+            for package in to_update:
+                yield TagUpdateGroupPackage(self.obj.name, group_name, package)
 
             if group.exact_packages:
                 to_remove : List[str] = []
@@ -628,13 +560,13 @@ class TagChangeReport(ChangeReport):
                 for pkg_name in koji_pkgs:
                     if pkg_name not in pkgs:
                         to_remove.append(pkg_name)
-                if to_remove:
-                    self.remove_group_packages(group_name, to_remove)
+                for pkg_name in to_remove:
+                    yield TagRemoveGroupPackage(self.obj.name, group_name, pkg_name)
 
         if self.obj.exact_groups:
             for group_name in koji_groups:
                 if group_name not in self.obj.groups:
-                    self.remove_group(group_name)
+                    yield TagRemoveGroup(self.obj.name, group_name)
 
 
 class TagGroupPackage(SubModel):
