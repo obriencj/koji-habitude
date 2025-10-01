@@ -12,7 +12,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 import click
 
 from . import main
-from ..loader import MultiLoader, YAMLLoader, pretty_yaml_all
+from ..loader import load_yaml_files, pretty_yaml_all
 from ..namespace import ExpanderNamespace, Namespace, TemplateNamespace
 from .util import catchall
 
@@ -47,15 +47,13 @@ def expand(data, templates=None, validate=False, select=[]):
     # Load templates into TemplateNamespace
     template_ns = TemplateNamespace()
     if templates:
-        ml = MultiLoader([YAMLLoader])
-        template_ns.feedall_raw(ml.load(templates))
+        template_ns.feedall_raw(load_yaml_files(templates))
         template_ns.expand()
 
     namespace._templates.update(template_ns._templates)
 
     # Load and process data files
-    ml = MultiLoader([YAMLLoader])
-    namespace.feedall_raw(ml.load(data))
+    namespace.feedall_raw(load_yaml_files(data))
     namespace.expand()
 
     if select:

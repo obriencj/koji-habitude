@@ -16,7 +16,30 @@ import yaml
 
 from itertools import chain
 from pathlib import Path
-from typing import Any, Dict, Iterable, Iterator, List, Protocol, Sequence, Type, TypeGuard
+from typing import Any, Dict, Iterable, Iterator, List, Protocol, Sequence, Type
+
+
+__all__ = (
+    'MultiLoader',
+    'YAMLLoader',
+    'combine_find_files',
+    'find_files',
+    'load_yaml_files',
+    'pretty_yaml',
+    'pretty_yaml_all',
+)
+
+
+def load_yaml_files(paths: List[str | Path]) -> List[Dict[str, Any]]:
+    """
+    Load YAML file content from the given paths, in order, and return the
+    resulting documents as a list.
+
+    A shortcut for creating a MultiLoader with the YAMLLoader class and
+    using it to load the given paths.
+    """
+
+    return list(MultiLoader([YAMLLoader]).load(paths))
 
 
 class PrettyYAML(yaml.Dumper):
@@ -34,15 +57,37 @@ class PrettyYAML(yaml.Dumper):
             return super().represent_scalar(tag, value, style='')
 
 
-def pretty_yaml_all(sequence, out=sys.stdout, **opts):
+def pretty_yaml_all(sequence: Iterable[Dict[str, Any]], out=sys.stdout, **opts):
+    """
+    Pretty-print a sequence of YAML documents to the given output stream, with
+    document separators.
+
+    Uses pretty_yaml to pretty-print each document, and so handles the
+    special features of the koji-habitude YAML format, in particular the
+    __file__, __line__, and __trace__ keys.
+    """
+
     for doc in sequence:
+        out.write('---\n')
         pretty_yaml(doc, out, **opts)
         out.write('\n')
 
 
-def pretty_yaml(doc, out=sys.stdout, **opts):
+def pretty_yaml(doc: Dict[str, Any], out=sys.stdout, **opts):
+    """
+    Pretty-print a single YAML object to the given output stream.
+
+    Handles special features of the koji-habitude YAML format, in particular the
+    __file__, __line__, and __trace__ keys. These are removed from the main
+    document body and represented as comments preceeding the document.
+
+    Args:
+        doc: The YAML document to pretty-print out: The output stream to write
+        to opts: Additional options to pass to the yaml.dump function
+    """
+
+    # we're going to make modifications, so we'll need to make a copy
     doc = doc.copy()
-    out.write('---\n')
 
     filename = doc.pop('__file__', None)
     line = doc.pop('__line__', None)
@@ -75,10 +120,17 @@ def pretty_yaml(doc, out=sys.stdout, **opts):
     return yaml.dump(doc, Dumper=PrettyYAML, stream=out, **params)
 
 
-class NumberedSafeLoader(yaml.SafeLoader):
+class MagicSafeLoader(yaml.SafeLoader):
+    """
+    A SafeLoader with slightly tweaked behavior.
 
-    # allowing our anchors to persist across documents
+    * allows our anchors to persist across documents
+    * adds a __line__ key to each document, representing the line number in the
+      file that the document started on.
+    """
+
     def compose_document(self):
+        # Allowing our anchors to persist across documents
         self.get_event()
         node = self.compose_node(None, None)
         self.get_event()
@@ -87,10 +139,10 @@ class NumberedSafeLoader(yaml.SafeLoader):
         # self.anchors = {}
         return node
 
-    # Clever and simple trick borrowed from augurar, tweaked to only decorate
-    # the documents, not every dict
-    # * https://stackoverflow.com/questions/13319067/parsing-yaml-return-with-line-number
     def construct_document(self, node):
+        # Clever and simple trick borrowed from augurar, tweaked to only
+        # decorate the documents, not every dict
+        # * https://stackoverflow.com/questions/13319067/parsing-yaml-return-with-line-number
         mapping = super().construct_document(node)
         mapping['__line__'] = node.start_mark.line + 1
         return mapping
@@ -104,8 +156,7 @@ class LoaderProtocol(Protocol):
         ...
 
 
-class YAMLLoader:
-
+class YAMLLoader(LoaderProtocol):
     """
     Wraps the invocation of `yaml.load_all` using a customized
     `SafeLoader`, enabling the injection of a `'__file__'` and
@@ -116,7 +167,6 @@ class YAMLLoader:
     Can be added to a MultiLoader to enable handling of files with
     .yml and .yaml extensions
     """
-
 
     extensions = (".yml", ".yaml")
 
@@ -132,13 +182,12 @@ class YAMLLoader:
 
     def load(self):
         with open(self.filename, 'r') as fd:
-            for doc in yaml.load_all(fd, Loader=NumberedSafeLoader):
+            for doc in yaml.load_all(fd, Loader=MagicSafeLoader):
                 doc['__file__'] = self.filename
                 yield doc
 
 
 class MultiLoader:
-
     """
     While a YAMLLoader can load one file, a MultiLoader can be
     used to load a wide range of files and yield the resulting
@@ -195,7 +244,7 @@ class MultiLoader:
         # the extmap is just going to be used to loop over, and to
         # check whether a file suffix is 'in' it, both behaviours are
         # suppoted by dict, so don't bother converting via .keys()
-        filepaths = combine_find_files(paths, self.extmap)
+        filepaths = combine_find_files(paths, self.extmap, strict=True)
         return chain(*(self.loader(f).load() for f in filepaths))
 
 

@@ -11,11 +11,10 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 import click
 
-from ..loader import MultiLoader, YAMLLoader, pretty_yaml_all
+from . import main
+from ..loader import load_yaml_files, pretty_yaml_all
 from ..namespace import TemplateNamespace
 from ..templates import Template
-
-from . import main
 from .util import catchall
 
 
@@ -84,11 +83,10 @@ def list_templates(dirs=[], template_dirs=[], yaml=False, full=False, select=[])
     """
 
     ns = TemplateNamespace()
-    ml = MultiLoader([YAMLLoader])
     if template_dirs:
-        ns.feedall_raw(ml.load(template_dirs))
+        ns.feedall_raw(load_yaml_files(template_dirs))
     if dirs:
-        ns.feedall_raw(ml.load(dirs))
+        ns.feedall_raw(load_yaml_files(dirs))
     ns.expand()
 
     if select:
