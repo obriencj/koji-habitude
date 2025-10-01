@@ -13,9 +13,9 @@ import unittest
 from koji_habitude.models import Tag
 
 
-class TestTagModel(unittest.TestCase):
+class TestTagModelCore(unittest.TestCase):
     """
-    Test the Tag model.
+    Test core Tag model functionality - creation, defaults, and splitting.
     """
 
     def test_tag_creation_with_defaults(self):
@@ -120,44 +120,11 @@ class TestTagModel(unittest.TestCase):
         self.assertEqual(split_tag.inheritance, [])
         self.assertEqual(split_tag.external_repos, [])
 
-    def test_tag_dependency_keys(self):
-        """
-        Test Tag dependency resolution.
-        """
 
-        data = {
-            'type': 'tag',
-            'name': 'test-tag',
-            'inheritance': [
-                {'name': 'parent1', 'priority': 10},
-                {'name': 'parent2', 'priority': 20}
-            ],
-            'external-repos': [
-                {'name': 'repo1', 'priority': 30},
-                {'name': 'repo2', 'priority': 40}
-            ]
-        }
-        tag = Tag.from_dict(data)
-
-        deps = tag.dependency_keys()
-        expected = [
-            ('tag', 'parent1'),
-            ('tag', 'parent2'),
-            ('external-repo', 'repo1'),
-            ('external-repo', 'repo2')
-        ]
-        self.assertEqual(deps, expected)
-
-    def test_tag_dependency_keys_empty(self):
-        """
-        Test Tag dependency resolution with no inheritance or external repos.
-        """
-
-        data = {'type': 'tag', 'name': 'test-tag'}
-        tag = Tag.from_dict(data)
-
-        deps = tag.dependency_keys()
-        self.assertEqual(deps, [])
+class TestTagModelInheritanceField(unittest.TestCase):
+    """
+    Test Tag model inheritance field validation and simplified format conversion.
+    """
 
     def test_tag_inheritance_simple_string_list(self):
         """
@@ -233,6 +200,12 @@ class TestTagModel(unittest.TestCase):
 
         # Check that inheritance is empty
         self.assertEqual(len(tag.inheritance), 0)
+
+
+class TestTagModelExternalReposField(unittest.TestCase):
+    """
+    Test Tag model external-repos field validation and simplified format conversion.
+    """
 
     def test_tag_external_repos_simple_string_list(self):
         """
@@ -337,6 +310,12 @@ class TestTagModel(unittest.TestCase):
         self.assertEqual(tag.external_repos[1].priority, 20)
         self.assertEqual(tag.external_repos[1].arches, None)  # default
         self.assertEqual(tag.external_repos[1].merge_mode, 'simple')
+
+
+class TestTagModelGroupsField(unittest.TestCase):
+    """
+    Test Tag model groups field validation, formats, and error handling.
+    """
 
     def test_tag_groups_dict_format(self):
         """
@@ -541,6 +520,12 @@ class TestTagModel(unittest.TestCase):
 
         self.assertIn('Groups must be a dictionary or list', str(context.exception))
 
+
+class TestTagModelPackagesField(unittest.TestCase):
+    """
+    Test Tag model packages field validation and simplified format conversion.
+    """
+
     def test_tag_packages_simple_string_list(self):
         """
         Test Tag creation with packages as a simple list of strings.
@@ -733,6 +718,51 @@ class TestTagModel(unittest.TestCase):
         # Check third package (default not blocked)
         self.assertEqual(tag.packages[2].name, 'package3')
         self.assertEqual(tag.packages[2].block, False)
+
+
+class TestTagModelDependencyResolution(unittest.TestCase):
+    """
+    Test Tag model dependency key generation for resolver.
+    """
+
+    def test_tag_dependency_keys(self):
+        """
+        Test Tag dependency resolution.
+        """
+
+        data = {
+            'type': 'tag',
+            'name': 'test-tag',
+            'inheritance': [
+                {'name': 'parent1', 'priority': 10},
+                {'name': 'parent2', 'priority': 20}
+            ],
+            'external-repos': [
+                {'name': 'repo1', 'priority': 30},
+                {'name': 'repo2', 'priority': 40}
+            ]
+        }
+        tag = Tag.from_dict(data)
+
+        deps = tag.dependency_keys()
+        expected = [
+            ('tag', 'parent1'),
+            ('tag', 'parent2'),
+            ('external-repo', 'repo1'),
+            ('external-repo', 'repo2')
+        ]
+        self.assertEqual(deps, expected)
+
+    def test_tag_dependency_keys_empty(self):
+        """
+        Test Tag dependency resolution with no inheritance or external repos.
+        """
+
+        data = {'type': 'tag', 'name': 'test-tag'}
+        tag = Tag.from_dict(data)
+
+        deps = tag.dependency_keys()
+        self.assertEqual(deps, [])
 
     def test_tag_dependency_keys_with_package_owners(self):
         """
