@@ -144,16 +144,6 @@ class TestResolver(unittest.TestCase):
         can_split = self.resolver.can_split_key(key)
         self.assertFalse(can_split)
 
-    def test_can_split_object(self):
-        """Test can_split with an object directly."""
-        # Test with a splittable object
-        tag = Tag(name='test-tag', type='tag')
-        self.assertTrue(self.resolver.can_split(tag))
-
-        # Test with a non-splittable object
-        ext_repo = ExternalRepo(name='test-repo', type='external-repo', url='http://example.com')
-        self.assertFalse(self.resolver.can_split(ext_repo))
-
     def test_split_key_existing_object(self):
         """Test split_key with an existing object."""
         key = ('tag', 'existing-tag')
@@ -169,15 +159,6 @@ class TestResolver(unittest.TestCase):
         key = ('tag', 'missing-tag')
         with self.assertRaises(TypeError):
             self.resolver.split_key(key)
-
-    def test_split_object(self):
-        """Test split with an object directly."""
-        tag = Tag(name='test-tag', type='tag', arches=['x86_64'])
-        split_obj = self.resolver.split(tag)
-
-        self.assertIsInstance(split_obj, Tag)
-        self.assertEqual(split_obj.name, 'test-tag')
-        self.assertEqual(split_obj.arches, ['x86_64'])
 
     def test_report_returns_created_missing_objects(self):
         """Test that report() returns missing objects that were created."""

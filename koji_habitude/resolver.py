@@ -1,16 +1,12 @@
 """
 koji_habitude.resolver
 
-External resolver for dependency units not defined in a Namespace. A Resolver is
-used by a Solver to find a dependency object that isn't already defined, or to
-create a placeholder for one if it does not exist.
+Resolver for units not defined in a Namespace.
 
 For example a namespace may define a tag which inherits some parent, but that
 parent is not defined in the namespace. In order for a Solver to be able to
 perform depsolving, it must have some way to identify that parent tag. Therefore
-an Resolver creates a simple MissingObject placeholder for that parent tag. A
-more complex OnlineResolver may actually query the koji instance to verify that
-the parent tag exists, and produce an Exists entry instead.
+an Resolver creates a simple MissingObject placeholder for that parent tag.
 
 Author: Christopher O'Brien  <obriencj@gmail.com>
 License: GNU General Public License v3
@@ -34,7 +30,7 @@ from typing import (
     Type,
 )
 
-from koji import MultiCallSession
+from koji import ClientSession, MultiCallSession, VirtualCall
 
 from .models import Base, BaseKey, ChangeReport
 
@@ -65,12 +61,9 @@ class MissingChangeReport(ChangeReport):
     # itself.
 
     def impl_read(self, session: MultiCallSession) -> None:
-        logger.debug(f"MissingChangeReport.impl_read: {self.obj.key()}")
         if self.obj._exists is not None:
-            logger.debug(f"MissingChangeReport.impl_read: {self.obj.key()} already checked")
             return
-        self.obj._exists = self.obj.tp.check_exists(session, self.obj.key())
-        logger.debug(f"MissingChangeReport.impl_read: {self.obj.key()} checked: {self.obj._exists}")
+        self.obj.query_exists(session)
 
     def impl_compare(self):
         return ()
@@ -113,11 +106,29 @@ class MissingObject(Base):
         logger.debug(f"MissingObject change_report: {self.key()}")
         return MissingChangeReport(self, resolver)
 
+    def query_exists(self, session: ClientSession) -> VirtualCall:
+        res = self.tp.check_exists(session, self.key())
+        if isinstance(res, VirtualCall):
+            self._exists = res
+        else:
+            self._exists = VirtualCall(None, None, None)
+            self._exists._result = res
+        return self._exists
+
+    @classmethod
+    def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
+        raise NotImplementedError("MissingObject.check_exists shouldn't be called, use query_exists instead")
+
 
 @dataclass
 class Report:
     """
-    A Report is a container for a set of missing dependencies.
+    A snapshot of the missing and found objects in a Resolver, as returned by
+    `Resolver.report()`
+
+    The `missing` dict represents MissingObjects that *have not* been found to
+    exist in a Koji instance. The `found` dict represents MissingObjects that
+    *have* been found to exist in a Koji instance.
     """
 
     missing: Dict[BaseKey, Base]
@@ -126,8 +137,8 @@ class Report:
 
 class Resolver:
     """
-    A Resolver finds a dependency object, or a placeholder for one if one does
-    not exist.
+    A Resolver finds a dependency object from a Namespace, or provides a
+    placeholder for one if it does not exist in that Namespace.
     """
 
     def __init__(self, namespace: 'Namespace'):
@@ -171,6 +182,11 @@ class Resolver:
 
 
     def resolve(self, key: BaseKey) -> Base:
+        """
+        Resolve a key into either an object from the Namespace, or a
+        MissingObject placeholder.
+        """
+
         obj = self.namespace.get(key) or self._missing.get(key)
         if obj is None:
             tp = self.namespace.get_type(key[0], True)
@@ -179,6 +195,14 @@ class Resolver:
 
 
     def chain_resolve(self, key, into=None) -> Dict[BaseKey, Base]:
+        """
+        Resolve a key into either an object from the Namespace, or a
+        MissingObject placeholder. If that object has dependencies, resolve them
+        recursively as well.
+
+        Returns a dictionary of all resolved objects by their keys.
+        """
+
         into = into if into is not None else {}
 
         obj = self.resolve(key)
@@ -192,28 +216,36 @@ class Resolver:
 
 
     def clear(self) -> None:
+        """
+        Clear the internal cache of missing objects. Any attempt to resolve a
+        missing object will result in a new MissingObject placeholder being
+        created.
+        """
+
         self._missing.clear()
 
 
     def can_split_key(self, key: BaseKey) -> bool:
-        return self.can_split(self.resolve(key))
+        """
+        Convenience shortcut for `resolve(key).can_split()`
+        """
 
-
-    def can_split(self, obj: Base) -> bool:
-        return obj.can_split()
+        return self.resolve(key).can_split()
 
 
     def split_key(self, key: BaseKey) -> Base:
-        return self.split(self.resolve(key))
+        """
+        Convenience shortcut for `resolve(key).split()`
+        """
 
-
-    def split(self, obj: Base) -> Base:
-        # split the dependency into multiple tiers
-        return obj.split()
+        return self.resolve(key).split()
 
 
     def report(self) -> Report:
-        # The default Offline implementation does nothing
+        """
+        Return a Report containing a snapshot of the current missing objects.
+        """
+
         missing = {}
         found = {}
         for key, obj in self._missing.items():

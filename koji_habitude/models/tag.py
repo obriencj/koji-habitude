@@ -542,8 +542,7 @@ class TagChangeReport(ChangeReport):
         if info['perm'] != self.obj.permission:
             yield TagSetPermission(self.obj.name, self.obj.permission)
 
-        arches = set(info['arches'].split()) if info['arches'] else None
-        if arches != (set(self.obj.arches) if self.obj.arches else None):
+        if not _compare_arches(info['arches'], self.obj.arches):
             yield TagSetArches(self.obj.name, self.obj.arches)
 
         if info['maven_support'] != self.obj.maven_support or \
@@ -626,10 +625,9 @@ class TagChangeReport(ChangeReport):
                 yield TagRemoveExternalRepo(self.obj.name, name)
             else:
                 repo = ext_repos[name]
-                arches = set(koji_repo['arches'].split()) if koji_repo['arches'] else None
                 if koji_repo['priority'] != repo.priority or \
                    koji_repo['merge_mode'] != repo.merge_mode or \
-                   arches != (set(repo.arches) if repo.arches else None):
+                   not _compare_arches(koji_repo['arches'], repo.arches):
                     yield TagUpdateExternalRepo(self.obj.name, repo)
 
         for name, repo in ext_repos.items():

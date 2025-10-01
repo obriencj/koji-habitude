@@ -138,7 +138,7 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
 
 
     def exists(self) -> Any:
-        return self._exists.result
+        return self._exists.result if self._exists is not None else None
 
 
     def query_exists(self, session: ClientSession) -> VirtualCall:

@@ -120,7 +120,7 @@ class Solver:
             dependent.dependencies.pop(key)
         node.dependents.clear()
 
-        return self.resolver.split(node.obj)
+        return node.obj.split()
 
 
     def __iter__(self) -> Iterator[Base]:
