@@ -11,11 +11,10 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 from dataclasses import dataclass
 import logging
-from typing import (
-    Any, ClassVar, Dict, List, Literal, Optional, Sequence, TYPE_CHECKING,
-)
+from typing import Any, ClassVar, Dict, List, Literal, Optional, Sequence, TYPE_CHECKING
 
 from pydantic import Field, field_validator, model_validator
+
 from koji import ClientSession, MultiCallNotReady, MultiCallSession, VirtualCall
 
 from .base import BaseKey, BaseObject, SubModel
@@ -571,7 +570,7 @@ class TagChangeReport(ChangeReport):
                         yield TagPackageListBlock(self.obj.name, package.name)
                     else:
                         yield TagPackageListUnblock(self.obj.name, package.name)
-                if koji_pkg['owner_name'] != package.owner:
+                if koji_pkg['owner_name'] != package.owner and package.owner is not None:
                     yield TagPackageListSetOwner(self.obj.name, package.name, package.owner)
                 if not _compare_arches(koji_pkg['extra_arches'], package.extra_arches):
                     yield TagPackageListSetArches(self.obj.name, package.name, package.extra_arches)
