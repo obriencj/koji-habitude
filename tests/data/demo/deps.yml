@@ -40,7 +40,7 @@ url: "https://iad.mirror.rackspace.com/almalinux/9/BaseOS/x86_64/os/"
 type: tag
 name: almalinux-10-build-base
 external-repos:
-  - name: almalinux-9-baseos
+  - name: almalinux-10-baseos
     priority: 10
 
 ---
