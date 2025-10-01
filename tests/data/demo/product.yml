@@ -81,6 +81,45 @@ content: |
     name: {{ g.basetag }}
     locked: True
     permission: admin
+    packages:
+    {% if packages is defined and packages %}
+    {% for package in packages %}
+      {% if package is mapping %}
+      - name: {{ package.get('name') }}
+        {% if package.get('owner') is not none %}
+        owner: {{ package.get('owner') }}
+        {% endif %}
+        {% if package.get('blocked') is not none %}
+        blocked: {{ package.get('blocked') }}
+        {% endif %}
+        {% if package.get('extra-arches') is not none %}
+        extra-arches: {{ package.get('extra-arches') }}
+        {% endif %}
+      {% else %}
+      - {{ package }}
+      {% endif %}
+    {% endfor %}
+    {% endif %}
+    {% if packages_merge is defined and packages_merge %}
+    {% for package_list in packages_merge %}
+    {% for package in package_list %}
+      {% if package is mapping %}
+      - name: {{ package.get('name') }}
+        {% if package.get('owner') is not none %}
+        owner: {{ package.get('owner') }}
+        {% endif %}
+        {% if package.get('blocked') is not none %}
+        blocked: {{ package.get('blocked') }}
+        {% endif %}
+        {% if package.get('extra-arches') is not none %}
+        extra-arches: {{ package.get('extra-arches') }}
+        {% endif %}
+      {% else %}
+      - {{ package }}
+      {% endif %}
+    {% endfor %}
+    {% endfor %}
+    {% endif %}
 
     ---
     type: target

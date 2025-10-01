@@ -940,6 +940,17 @@ class Tag(BaseObject):
         return data
 
 
+    @field_validator('packages', mode='after')
+    @classmethod
+    def merge_packages(cls, data: Any) -> Any:
+        seen = {}
+        for package in data:
+            if package.name in seen:
+                logger.warning(f"Duplicate package {package.name}, overriding with new value")
+            seen[package.name] = package
+        return list(seen.values())
+
+
     def split(self) -> 'Tag':
         # normally a split only creates the object by name, and we worry about doing
         # full configuration in a separate step. For tag we'll do a full creation in
