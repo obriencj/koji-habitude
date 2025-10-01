@@ -11,10 +11,8 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 from dataclasses import dataclass
 import logging
-from pyexpat import features
 from typing import (
     Any, ClassVar, Dict, List, Literal, Optional, Sequence, TYPE_CHECKING,
-    Union,
 )
 
 from pydantic import Field, field_validator, model_validator
@@ -421,7 +419,8 @@ class TagPackageListAdd(Change):
             self.package.name,
             owner=self.package.owner,
             block=self.package.block,
-            extra_arches=arches)
+            extra_arches=arches,
+            force=True)
 
     def explain(self) -> str:
         return f"Add package '{self.package.name}' to tag '{self.name}'"
