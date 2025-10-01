@@ -76,10 +76,20 @@ def pretty_yaml(doc, out=sys.stdout, **opts):
 
 
 class NumberedSafeLoader(yaml.SafeLoader):
-    # Clever and simple trick borrowed from augurar
-    # https://stackoverflow.com/questions/13319067/parsing-yaml-return-with-line-number
 
-    # tweaked to only decorate the documents, not every mapping
+    # allowing our anchors to persist across documents
+    def compose_document(self):
+        self.get_event()
+        node = self.compose_node(None, None)
+        self.get_event()
+
+        # the default impl resets self.anchors here
+        # self.anchors = {}
+        return node
+
+    # Clever and simple trick borrowed from augurar, tweaked to only decorate
+    # the documents, not every dict
+    # * https://stackoverflow.com/questions/13319067/parsing-yaml-return-with-line-number
     def construct_document(self, node):
         mapping = super().construct_document(node)
         mapping['__line__'] = node.start_mark.line + 1

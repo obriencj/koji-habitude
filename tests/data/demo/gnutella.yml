@@ -3,11 +3,35 @@ type: product
 name: gnutella
 
 ---
+type: vars
+x-gnutella-1_0-pkglist: &gnutella-1_0-pkglist
+    - gnutella-cobol
+    - gnutella-core
+    - gnutella-plugins
+    - gnutella-gui
+    - gnutella-daemon
+    - gnutella-daemon-plugins
+    - gnutella-daemon-plugins-gui
+
+x-gnutella-2_0-pkglist: &gnutella-2_0-pkglist
+    - name: gnutella-cobol
+      blocked: true
+    - gnutella-ai
+    - gnutella-ai-plugins
+    - gnutella-ai-gui
+    - gnutella-ai-daemon
+    - gnutella-ai-daemon-plugins
+    - gnutella-ai-daemon-plugins-gui
+
+
+---
 type: gnutella-version
 version: "1.0"
 platforms:
   - fedora-40
   - almalinux-9
+packages: *gnutella-1_0-pkglist
+
 
 ---
 type: gnutella-version
@@ -15,6 +39,8 @@ version: "1.1"
 platforms:
   - fedora-40
   - almalinux-9
+packages: *gnutella-1_0-pkglist
+
 
 ---
 type: gnutella-version
@@ -25,5 +51,7 @@ arches:
 platforms:
   - fedora-42
   - almalinux-10
+packages_merge: [*gnutella-1_0-pkglist, *gnutella-2_0-pkglist]
+
 
 # The end.
