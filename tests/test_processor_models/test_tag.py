@@ -1447,7 +1447,8 @@ class TestProcessorTagPackages(MulticallMocking, TestCase):
             'my-package',
             owner='testuser',
             block=False,
-            extra_arches=None
+            extra_arches=None,
+            force=True
         )
 
     def test_add_package_with_extra_arches(self):
@@ -1507,7 +1508,8 @@ class TestProcessorTagPackages(MulticallMocking, TestCase):
             'my-package',
             owner='testuser',
             block=False,
-            extra_arches='i686 ppc64le'
+            extra_arches='i686 ppc64le',
+            force=True
         )
 
     def test_block_package(self):
@@ -1984,7 +1986,8 @@ class TestProcessorTagPackages(MulticallMocking, TestCase):
             'add-package',
             owner='testuser',
             block=False,
-            extra_arches=None
+            extra_arches=None,
+            force=True
         )
         block_package_mock.assert_called_once_with('existing-tag', 'block-package', force=True)
         set_owner_mock.assert_called_once_with('existing-tag', 'update-owner-package', 'newowner', force=True)
@@ -2060,14 +2063,16 @@ class TestProcessorTagPackages(MulticallMocking, TestCase):
             'package1',
             owner='testuser',
             block=False,
-            extra_arches=None
+            extra_arches=None,
+            force=True
         )
         add_package2_mock.assert_called_once_with(
             'new-tag',
             'package2',
             owner='testuser',
             block=True,
-            extra_arches=None
+            extra_arches=None,
+            force=True
         )
 
 
