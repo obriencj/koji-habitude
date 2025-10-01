@@ -14,7 +14,7 @@ import click
 from . import main
 from ..loader import load_yaml_files, pretty_yaml_all
 from ..namespace import ExpanderNamespace, Namespace, TemplateNamespace
-from .util import catchall
+from .util import catchall, resplit
 
 
 @main.command()
@@ -56,6 +56,7 @@ def expand(data, templates=None, validate=False, select=[]):
     namespace.feedall_raw(load_yaml_files(data))
     namespace.expand()
 
+    select = resplit(select)
     if select:
         results = (obj for obj in namespace.values() if obj.typename in select)
     else:

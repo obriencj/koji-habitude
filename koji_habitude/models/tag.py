@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from ..resolver import Resolver
 
 
-logger = logging.getLogger("koji_habitude.models.tag")
+logger = logging.getLogger(__name__)
 
 
 def _compare_arches(koji_arches: Optional[str], arches: Optional[List[str]]) -> bool:
