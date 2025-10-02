@@ -3,10 +3,11 @@ koji_habitude.resolver
 
 Resolver for units not defined in a Namespace.
 
-For example a namespace may define a tag which inherits some parent, but that
-parent is not defined in the namespace. In order for a Solver to be able to
-perform depsolving, it must have some way to identify that parent tag. Therefore
-an Resolver creates a simple MissingObject placeholder for that parent tag.
+For example a namespace may define a tag which inherits some parent,
+but that parent is not defined in the namespace. In order for a Solver
+to be able to perform depsolving, it must have some way to identify
+that parent tag. Therefore an Resolver creates a simple MissingObject
+placeholder for that parent tag.
 
 Author: Christopher O'Brien  <obriencj@gmail.com>
 License: GNU General Public License v3
@@ -37,7 +38,6 @@ from .models import Base, BaseKey, ChangeReport
 
 if TYPE_CHECKING:
     from .namespace import Namespace
-    from .resolver import Resolver
 
 
 __all__ = (
@@ -56,9 +56,9 @@ class MissingChangeReport(ChangeReport):
     A change report for a missing object.
     """
 
-    # we're hijacking the Processor's read and compare steps in order to perform
-    # the existence checks, and feed the boolean back onto the MissingObject
-    # itself.
+    # we're hijacking the Processor's read and compare steps in order
+    # to perform the existence checks, and feed the boolean back onto
+    # the MissingObject itself.
 
     def impl_read(self, session: MultiCallSession) -> None:
         if self.obj._exists is not None:
@@ -117,18 +117,20 @@ class MissingObject(Base):
 
     @classmethod
     def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
-        raise NotImplementedError("MissingObject.check_exists shouldn't be called, use query_exists instead")
+        msg = ("MissingObject.check_exists shouldn't be called,"
+               " use query_exists instead")
+        raise NotImplementedError(msg)
 
 
 @dataclass
 class Report:
     """
-    A snapshot of the missing and found objects in a Resolver, as returned by
-    `Resolver.report()`
+    A snapshot of the missing and found objects in a Resolver, as
+    returned by `Resolver.report()`
 
-    The `missing` dict represents MissingObjects that *have not* been found to
-    exist in a Koji instance. The `found` dict represents MissingObjects that
-    *have* been found to exist in a Koji instance.
+    The `missing` dict represents MissingObjects that *have not* been
+    found to exist in a Koji instance. The `found` dict represents
+    MissingObjects that *have* been found to exist in a Koji instance.
     """
 
     missing: Dict[BaseKey, Base]
@@ -137,8 +139,8 @@ class Report:
 
 class Resolver:
     """
-    A Resolver finds a dependency object from a Namespace, or provides a
-    placeholder for one if it does not exist in that Namespace.
+    A Resolver finds a dependency object from a Namespace, or provides
+    a placeholder for one if it does not exist in that Namespace.
     """
 
     def __init__(self, namespace: 'Namespace'):
@@ -157,28 +159,33 @@ class Resolver:
         return self.namespace.keys()
 
 
-    def missing_keys(self, exists: Optional[bool] = None) -> Iterator[BaseKey]:
+    def missing_keys(
+            self,
+            exists: Optional[bool] = None) -> Iterator[BaseKey]:
         """
-        Snapshot of the keys of objects not defined in the namespace, but which have
-        been requested via the `resolve` method.
+        Snapshot of the keys of objects not defined in the
+        namespace, but which have been requested via the `resolve`
+        method.
 
-        If `exists` is True, filter to only include objects which have been
-        found (so far) to exist in a Koji instance.
+        If `exists` is True, filter to only include objects which have
+        been found (so far) to exist in a Koji instance.
 
-        If `exists` is False, filter to only include objects which have not been
-        found to exist in the Koji instance.
+        If `exists` is False, filter to only include objects which
+        have not been found to exist in the Koji instance.
 
-        Missing objects typically determine whether they exist or not via the
-        invocation of their `check_exists` method, which is part of the Processor's
-        `read` and `compare` steps.
+        Missing objects typically determine whether they exist or not
+        via the invocation of their `check_exists` method, which is
+        part of the Processor's `read` and `compare` steps.
         """
 
         if exists is None:
             return iter(self._missing.keys())
         elif exists:
-            return iter([key for key, obj in self._missing.items() if obj.exists()])
+            return iter([key for key, obj in self._missing.items()
+                         if obj.exists()])
         else:
-            return iter([key for key, obj in self._missing.items() if not obj.exists()])
+            return iter([key for key, obj in self._missing.items()
+                         if not obj.exists()])
 
 
     def resolve(self, key: BaseKey) -> Base:
@@ -196,9 +203,9 @@ class Resolver:
 
     def chain_resolve(self, key, into=None) -> Dict[BaseKey, Base]:
         """
-        Resolve a key into either an object from the Namespace, or a
-        MissingObject placeholder. If that object has dependencies, resolve them
-        recursively as well.
+        Resolve a key into either an object from the Namespace, or
+        a MissingObject placeholder. If that object has dependencies,
+        resolve them recursively as well.
 
         Returns a dictionary of all resolved objects by their keys.
         """
@@ -217,9 +224,9 @@ class Resolver:
 
     def clear(self) -> None:
         """
-        Clear the internal cache of missing objects. Any attempt to resolve a
-        missing object will result in a new MissingObject placeholder being
-        created.
+        Clear the internal cache of missing objects. Any attempt to
+        resolve a missing object will result in a new MissingObject
+        placeholder being created.
         """
 
         self._missing.clear()
@@ -243,7 +250,8 @@ class Resolver:
 
     def report(self) -> Report:
         """
-        Return a Report containing a snapshot of the current missing objects.
+        Return a Report containing a snapshot of the current missing
+        objects.
         """
 
         missing = {}
