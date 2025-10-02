@@ -3,13 +3,14 @@ koji_habitude.workflow
 
 Workflow class for orchestrating the synchronization process.
 
-The steps and imports required for working with habitude are long and involved,
-so this class provides a simple interface for orchestrating the workflow,
-allowing for users to focus on the data and configuration, rather than the
-implementation details. The interface is designed to be extensible, allowing for
-users to override the default behavior for each step of the workflow. The
-workflow process is also designed to be pauseable, allowing for users to pause
-the workflow and resume it later.
+The steps and imports required for working with habitude are long and
+involved, so this class provides a simple interface for orchestrating
+the workflow, allowing for users to focus on the data and
+configuration, rather than the implementation details. The interface
+is designed to be extensible, allowing for users to override the
+default behavior for each step of the workflow. The workflow process
+is also designed to be pauseable, allowing for users to pause the
+workflow and resume it later.
 
 Author: Christopher O'Brien <obriencj@gmail.com>
 License: GNU General Public License v3
@@ -22,7 +23,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Type
+from typing import Any, Dict, Iterator, List, Type, Union
 
 from .koji import ClientSession, session
 from .loader import MultiLoader, YAMLLoader
@@ -37,12 +38,14 @@ class WorkflowState(Enum):
     """
     The states of the workflow.
 
-    See the `Workflow.run` and `Workflow.resume` methods for more information.
+    See the `Workflow.run` and `Workflow.resume` methods for more
+    information.
 
-    These values are passed to the callback `Workflow.workflow_state_change`
-    when the workflow transitions between states. The callback can return True
-    to pause the workflow, in which case `Workflow.resume` can be called to
-    resume the workflow from the current state.
+    These values are passed to the callback
+    `Workflow.workflow_state_change` when the workflow transitions
+    between states. The callback can return True to pause the
+    workflow, in which case `Workflow.resume` can be called to resume
+    the workflow from the current state.
     """
 
     READY = "ready"
@@ -117,7 +120,11 @@ class Workflow:
         return template_ns
 
 
-    def load_data(self, paths: List[str | Path], templates: TemplateNamespace = None) -> Namespace:
+    def load_data(
+            self,
+            paths: List[Union[str, Path]],
+            templates: TemplateNamespace = None) -> Namespace:
+
         data_ns = self.cls_namespace()
         if templates:
             data_ns.merge_templates(templates)
@@ -130,41 +137,58 @@ class Workflow:
         return session(profile, authenticate=True)
 
 
-    def state_change(self, from_state: WorkflowState, to_state: WorkflowState):
+    def state_change(
+            self,
+            from_state: WorkflowState,
+            to_state: WorkflowState):
+
         if self.state != from_state:
-            raise WorkflowStateError(f"Workflow state ({from_state}) not as expected: {self.state}")
+            msg = (f"Workflow state ({from_state})"
+                   f" not as expected: {self.state}")
+            raise WorkflowStateError(msg)
+
         self.state = to_state
         return self.workflow_state_change(from_state, to_state)
 
 
     def run_loading(self):
-        yield self.state_change(WorkflowState.STARTING, WorkflowState.LOADING)
+        yield self.state_change(WorkflowState.STARTING,
+                                WorkflowState.LOADING)
         if self.template_paths:
-            self.namespace = self.load_data(self.paths, templates=self.load_templates(self.template_paths))
+            self.namespace = self.load_data(
+                self.paths,
+                templates=self.load_templates(self.template_paths))
         else:
             self.namespace = self.load_data(self.paths)
-        yield self.state_change(WorkflowState.LOADING, WorkflowState.LOADED)
+        yield self.state_change(WorkflowState.LOADING,
+                                WorkflowState.LOADED)
 
 
     def run_solving(self):
-        yield self.state_change(WorkflowState.LOADED, WorkflowState.SOLVING)
+        yield self.state_change(WorkflowState.LOADED,
+                                WorkflowState.SOLVING)
         self.resolver = self.cls_resolver(self.namespace)
         self.solver = self.cls_solver(self.resolver)
         self.solver.prepare()
         self.dataseries = list(self.solver)
-        yield self.state_change(WorkflowState.SOLVING, WorkflowState.SOLVED)
+        yield self.state_change(WorkflowState.SOLVING,
+                                WorkflowState.SOLVED)
 
 
     def run_connecting(self):
-        yield self.state_change(WorkflowState.SOLVED, WorkflowState.CONNECTING)
+        yield self.state_change(WorkflowState.SOLVED,
+                                WorkflowState.CONNECTING)
         self.session = self.get_session(self.profile)
-        yield self.state_change(WorkflowState.CONNECTING, WorkflowState.CONNECTED)
+        yield self.state_change(WorkflowState.CONNECTING,
+                                WorkflowState.CONNECTED)
 
 
     def review_missing_report(self):
         """
-        Review the missing report and raise an exception if there are any missing objects.
+        Review the missing report and raise an exception if there
+        are any missing objects.
         """
+
         if len(self.missing_report.missing) > 0:
             self.state = WorkflowState.FAILED
             raise WorkflowMissingObjectsError(
@@ -173,7 +197,8 @@ class Workflow:
 
 
     def run_processing(self):
-        yield self.state_change(WorkflowState.CONNECTED, WorkflowState.PROCESSING)
+        yield self.state_change(WorkflowState.CONNECTED,
+                                WorkflowState.PROCESSING)
 
         missing_report = self.resolver.report()
         if missing_report.missing:
@@ -196,32 +221,40 @@ class Workflow:
             chunk_size=self.chunk_size
         )
         self.summary = self.processor.run(self.processor_step_callback)
-        yield self.state_change(WorkflowState.PROCESSING, WorkflowState.PROCESSED)
+        yield self.state_change(WorkflowState.PROCESSING,
+                                WorkflowState.PROCESSED)
 
 
     def iter_run(self):
-        yield self.state_change(WorkflowState.READY, WorkflowState.STARTING)
+        yield self.state_change(WorkflowState.READY,
+                                WorkflowState.STARTING)
         yield from self.run_loading()
         yield from self.run_solving()
         yield from self.run_connecting()
         yield from self.run_processing()
-        yield self.state_change(WorkflowState.PROCESSED, WorkflowState.COMPLETED)
+        yield self.state_change(WorkflowState.PROCESSED,
+                                WorkflowState.COMPLETED)
 
 
     def run(self):
         """
-        Run the workflow, starting from the READY state and iterating over the
-        phases. As the workflow progresses, state transitions are triggered, and
-        the overridable callback `workflow_state_change` is invoked. If the
-        callback returns True, the workflow is paused and this method returns
-        True. If the workflow completes successfully, this method returns False.
+        Run the workflow, starting from the READY state and
+        iterating over the phases. As the workflow progresses, state
+        transitions are triggered, and the overridable callback
+        `workflow_state_change` is invoked. If the callback returns
+        True, the workflow is paused and this method returns True. If
+        the workflow completes successfully, this method returns
+        False.
 
-        A paused workflow can be resumed by calling the `resume` method, which
-        will pick up where the workflow left off, and may be paused again.
+        A paused workflow can be resumed by calling the `resume`
+        method, which will pick up where the workflow left off, and
+        may be paused again.
         """
 
         if self.state != WorkflowState.READY:
-            raise WorkflowStateError(f"Workflow state ({self.state}) not as expected: {WorkflowState.READY}")
+            msg = (f"Workflow state ({self.state})"
+                   f" not as expected: {WorkflowState.READY}")
+            raise WorkflowStateError(msg)
 
         try:
             self._iter_workflow = self.iter_run()
@@ -230,7 +263,7 @@ class Workflow:
                     self.workflow_paused()
                     return True
 
-        except Exception as e:
+        except Exception:
             self._iter_workflow = None
             self.state = WorkflowState.FAILED
             raise
@@ -242,19 +275,24 @@ class Workflow:
 
     def resume(self):
         """
-        Resume a paused workflow, starting from the current state and iterating
-        over the phases. As the workflow progresses, state transitions are
-        triggered, and the overridable callback `workflow_state_change` is
-        invoked. If the callback returns True, the workflow is paused and this
-        method returns True. If the workflow completes successfully, this method
-        returns False.
+        Resume a paused workflow, starting from the current state
+        and iterating over the phases. As the workflow progresses,
+        state transitions are triggered, and the overridable callback
+        `workflow_state_change` is invoked. If the callback returns
+        True, the workflow is paused and this method returns True. If
+        the workflow completes successfully, this method returns
+        False.
         """
 
-        if self.state in (WorkflowState.READY, WorkflowState.COMPLETED, WorkflowState.FAILED):
-            raise WorkflowStateError(f"Cannot resume workflow from state: {self.state}")
+        if self.state in (WorkflowState.READY, WorkflowState.COMPLETED,
+                          WorkflowState.FAILED):
+            msg = f"Cannot resume workflow from state: {self.state}"
+            raise WorkflowStateError(msg)
 
         if self._iter_workflow is None:
-            raise WorkflowStateError(f"Workflow is missing its internal iterator, despite the state: {self.state}")
+            msg = (f"Workflow is missing its internal iterator,"
+                   f" despite the state: {self.state}")
+            raise WorkflowStateError(msg)
 
         try:
             for phase_result in self._iter_workflow:
@@ -262,7 +300,7 @@ class Workflow:
                     self.workflow_paused()
                     return True
 
-        except Exception as e:
+        except Exception:
             self._iter_workflow = None
             self.state = WorkflowState.FAILED
             raise
@@ -272,10 +310,15 @@ class Workflow:
             return False
 
 
-    def workflow_state_change(self, from_state: WorkflowState, to_state: WorkflowState) -> bool:
+    def workflow_state_change(
+            self,
+            from_state: WorkflowState,
+            to_state: WorkflowState) -> bool:
         """
-        Callback for the workflow, invoked during the phases of the `Workflow.run()` invocation.
+        Callback for the workflow, invoked during the phases of
+        the `Workflow.run()` invocation.
         """
+
         return False
 
 
@@ -283,23 +326,26 @@ class Workflow:
         """
         Callback for the workflow, invoked when the workflow is paused.
         """
+
         pass
 
 
     def processor_step_callback(self, step: int, handled: int):
         """
-        Callback for the processor, invoked after each `processor.step()` invocation.
+        Callback for the processor, invoked after each `processor.step()`
+        invocation.
         """
+
         pass
 
 
 class SyncWorkflow(Workflow):
     def __init__(
-        self,
-        paths: List[str | Path],
-        template_paths: List[str | Path] = None,
-        profile: str = 'koji',
-        chunk_size: int = 100):
+            self,
+            paths: List[str | Path],
+            template_paths: List[str | Path] = None,
+            profile: str = 'koji',
+            chunk_size: int = 100):
 
         super().__init__(paths, template_paths, profile, chunk_size)
 
@@ -307,11 +353,11 @@ class SyncWorkflow(Workflow):
 class DiffWorkflow(Workflow):
 
     def __init__(
-        self,
-        paths: List[str | Path],
-        template_paths: List[str | Path] = None,
-        profile: str = 'koji',
-        chunk_size: int = 100):
+            self,
+            paths: List[str | Path],
+            template_paths: List[str | Path] = None,
+            profile: str = 'koji',
+            chunk_size: int = 100):
 
         super().__init__(
             paths, template_paths, profile, chunk_size,
@@ -320,8 +366,10 @@ class DiffWorkflow(Workflow):
 
     def review_missing_report(self):
         """
-        Diff mode is allowed to have missing objects, so we don't need to do anything.
+        Diff mode is allowed to have missing objects, so we don't need
+        to do anything.
         """
+
         pass
 
 
@@ -329,6 +377,7 @@ class DiffWorkflow(Workflow):
         """
         Override the default session creation to not authenticate.
         """
+
         return session(profile, authenticate=False)
 
 

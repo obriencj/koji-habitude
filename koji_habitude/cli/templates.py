@@ -40,7 +40,8 @@ def print_template(tmpl: Template, full: bool = False):
         if tmpl.template_file:
             print(f"  content: <file: {tmpl.template_file}>")
         else:
-            print(f"  content: '''\n{tmpl.template_content}\n''' # end content for {tmpl.name}")
+            print(f"  content: '''\n{tmpl.template_content}\n'''"
+                  " # end content for {tmpl.name}")
     else:
         if tmpl.defaults:
             print("  defaults:")
@@ -68,16 +69,22 @@ def print_template(tmpl: Template, full: bool = False):
     '--select', "-S", 'select', metavar='NAME', multiple=True,
     help="Select templates by name")
 @catchall
-def list_templates(dirs=[], template_dirs=[], yaml=False, full=False, select=[]):
+def list_templates(
+        dirs=[],
+        template_dirs=[],
+        yaml=False,
+        full=False,
+        select=[]):
     """
     List available templates.
 
     Shows all templates found in the given locations with their
     configuration details.
 
-    Accepts --templates to load only templates from the given paths. Positional
-    path arguments are treated the same way, but we support both styles to mimic
-    the invocation pattern of other commands in this tool.
+    Accepts `--templates` to load only templates from the given
+    paths. Positional path arguments are treated the same way, but we
+    support both styles to mimic the invocation pattern of other
+    commands in this tool.
 
     PATH can be directories containing template files.
     """

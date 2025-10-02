@@ -38,10 +38,12 @@ class MagicGroup(click.Group):
 @click.group(cls=MagicGroup)
 def main():
     """
-    koji-habitude - Synchronize local koji data expectations with hub instance.
+    koji-habitude - Synchronize local koji data expectations with
+    hub instance.
 
-    This tool loads YAML templates and data files, resolves dependencies,
-    and applies changes to a koji hub in the correct order.
+    This tool loads YAML templates and data files, resolves
+    dependencies, and applies changes to a koji hub in the correct
+    order.
     """
 
     log_level = os.environ.get('LOGLEVEL', '').strip().upper()

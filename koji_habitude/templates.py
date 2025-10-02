@@ -15,9 +15,15 @@ import logging
 
 from pydantic import Field, PrivateAttr
 from pathlib import Path
-from typing import Any, ClassVar, Dict, Iterator, Optional, Set, Sequence, Tuple, List
+from typing import (
+    Any, ClassVar, Dict, Iterator, Optional, Set, Sequence,
+    Tuple, List,
+)
 
-from jinja2 import Environment, FileSystemLoader, StrictUndefined, Template as Jinja2Template
+from jinja2 import (
+    Environment, FileSystemLoader, StrictUndefined,
+    Template as Jinja2Template,
+)
 from jinja2.exceptions import UndefinedError, TemplateNotFound
 from jinja2.meta import find_undeclared_variables
 import yaml
@@ -92,7 +98,8 @@ class Template(BaseObject):
     defaults: Dict[str, Any] = Field(alias='defaults', default_factory=dict)
     template_file: Optional[str] = Field(alias='file', default=None)
     template_content: Optional[str] = Field(alias='content', default=None)
-    template_schema: Optional[Dict[str, Any]] = Field(alias='schema', default=None)
+    template_schema: Optional[Dict[str, Any]] = Field(alias='schema',
+                                                      default=None)
 
     _undeclared: Set[str]
     _jinja2_template: Jinja2Template
@@ -102,8 +109,10 @@ class Template(BaseObject):
     @property
     def base_path(self) -> Optional[Path]:
         """
-        The base path for the template file, used for resolving relative paths
+        The base path for the template file, used for resolving
+        relative paths
         """
+
         return self._base_path
 
 
@@ -112,6 +121,7 @@ class Template(BaseObject):
         """
         Access the Jinja2 template object
         """
+
         return self._jinja2_template
 
 
@@ -121,6 +131,7 @@ class Template(BaseObject):
         The list of variable names which are referenced in the Jinja2
         template, but which are not defined in the defaults
         """
+
         return self._undeclared
 
 
@@ -130,7 +141,8 @@ class Template(BaseObject):
         if self.template_content:
             if self.template_file:
                 raise TemplateException(
-                    "Template content is not allowed when template file is specified",
+                    ("Template content is not allowed when template"
+                     " file is specified"),
                     self.filename, self.lineno)
 
             jinja_env = Environment(
@@ -142,15 +154,20 @@ class Template(BaseObject):
         else:
             if not self.template_file:
                 raise TemplateException(
-                    "Template content is required when template file is not specified",
+                    ("Template content is required when template"
+                     " file is not specified"),
                     self.filename, self.lineno)
 
             elif Path(self.template_file).is_absolute():
                 raise TemplateException(
-                    "Absolute paths are not allowed with template file loading",
+                    ("Absolute paths are not allowed with template"
+                     " file loading"),
                     self.filename, self.lineno)
 
-            base_path = Path(self.filename).parent if self.filename else Path.cwd()
+            if self.filename:
+                base_path = Path(self.filename).parent
+            else:
+                base_path = Path.cwd()
             self._base_path = base_path
 
             loader = FileSystemLoader(base_path)
@@ -164,28 +181,6 @@ class Template(BaseObject):
 
         self._undeclared = find_undeclared_variables(ast)
         self._jinja2_template = jinja_env.from_string(ast)
-
-
-    # def to_dict(self):
-    #     data = {
-    #         'name': self.name,
-    #     }
-    #     if self.filename:
-    #         data['__file__'] = self.filename
-    #     if self.lineno:
-    #         data['__line__'] = self.lineno
-    #     if self.trace:
-    #         data['__trace__'] = self.trace
-    #     if self.defaults:
-    #         data['defaults'] = self.defaults
-    #     if self.template_file:
-    #         data['file'] = self.template_file
-    #     if self.template_content:
-    #         data['content'] = self.template_content
-    #     if self.template_schema:
-    #         data['schema'] = self.template_schema
-
-    #     return data
 
 
     def validate_call(self, data: Dict[str, Any]) -> bool:
@@ -219,9 +214,9 @@ class Template(BaseObject):
             msg = f"Data validation failed for template {self.name!r}"
             raise TemplateValueError(msg)
 
-
+        data = dict(self.defaults, **data)
         try:
-            return self._jinja2_template.render(**dict(self.defaults, **data))
+            return self._jinja2_template.render(**data)
         except UndefinedError as e:
             msg = f"Undefined variable in template {self.name!r}: {e}"
             raise TemplateValueError(msg)
@@ -295,6 +290,7 @@ class TemplateValueError(ValueError, TemplateException):
     """
     Exception raised for template validation errors.
     """
+
     pass
 
 

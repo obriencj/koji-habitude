@@ -25,7 +25,8 @@ class SyncWorkflow(_SyncWorkflow):
         if report.missing:
             for key in report.missing:
                 click.echo(f"Dependency missing: {key[0]} {key[1]}")
-            raise click.ClickException("Missing dependencies found in the system")
+            msg = "Missing dependencies found in the system"
+            raise click.ClickException(msg)
 
 
 @main.command()
@@ -44,10 +45,11 @@ def sync(data, templates=None, profile='koji', show_unchanged=False):
     """
     Synchronize local koji data expectations with hub instance.
 
-    Loads templates and data files, resolves dependencies, and applies changes
-    to the koji hub in the correct order.
+    Loads templates and data files, resolves dependencies, and applies
+    changes to the koji hub in the correct order.
 
-    DATA can be directories or files containing YAML object definitions.
+    DATA can be directories or files containing YAML object
+    definitions.
     """
 
     try:

@@ -33,10 +33,12 @@ def expand(data, templates=None, validate=False, select=[]):
     """
     Expand templates and data files into YAML output.
 
-    Loads templates from --templates locations, then processes DATA files
-    through template expansion and outputs the final YAML content.
+    Loads templates from --templates locations, then processes DATA
+    files through template expansion and outputs the final YAML
+    content.
 
-    DATA can be directories or files containing YAML object definitions.
+    DATA can be directories or files containing YAML object
+    definitions.
     """
 
     namespace = Namespace() if validate else ExpanderNamespace()
@@ -58,13 +60,15 @@ def expand(data, templates=None, validate=False, select=[]):
 
     select = resplit(select)
     if select:
-        results = (obj for obj in namespace.values() if obj.typename in select)
+        results = (obj for obj in namespace.values()
+                   if obj.typename in select)
     else:
         results = namespace.values()
 
     # Output all objects as YAML
     if validate:
-        # if we're validating, let pydantic provide the fully validated objects
+        # if we're validating, let pydantic provide the fully
+        # validated objects
         results = (obj.to_dict() for obj in results)
     else:
         # if we're not validating, use the raw data

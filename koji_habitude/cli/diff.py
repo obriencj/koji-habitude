@@ -32,10 +32,14 @@ def diff(data, templates=None, profile='koji', show_unchanged=False):
     """
     Show what changes would be made without applying them.
 
-    DATA can be directories or files containing YAML object definitions.
+    DATA can be directories or files containing YAML object
+    definitions.
     """
 
-    workflow = DiffWorkflow(paths=data, template_paths=templates, profile=profile)
+    workflow = DiffWorkflow(
+        paths=data,
+        template_paths=templates,
+        profile=profile)
     workflow.run()
 
     display_summary(workflow.summary, show_unchanged)
