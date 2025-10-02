@@ -20,15 +20,8 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 from dataclasses import dataclass
 import logging
 from typing import (
-    Any,
-    ClassVar,
-    Dict,
-    Iterator,
-    Optional,
-    Sequence,
-    TYPE_CHECKING,
-    Tuple,
-    Type,
+    TYPE_CHECKING, Any, ClassVar, Dict, Iterator, Optional, Sequence,
+    Tuple, Type,
 )
 
 from koji import ClientSession, MultiCallSession, VirtualCall
