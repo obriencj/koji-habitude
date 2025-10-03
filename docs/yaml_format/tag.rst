@@ -36,7 +36,9 @@ Basic Structure
    extras:
      description: "My tag description"
 
-   # Package groups and their package lists
+   # Package groups and their package lists. This is used to generate
+   # the yum groups if this tag or one of its children is used as a
+   # built tag in a target, and generates a repository.
    groups:
      my-group:
        - package1
@@ -51,6 +53,19 @@ Basic Structure
    external-repos:
      - name: my-repo
        priority: 100
+
+   # List of packages in this tag. This is the list of build name
+   # which are permitted to be tagged into this tag or its
+   # children.
+   packages:
+     - package1
+     - name: pacakge2
+       owner: dave-user-1
+
+   # if True, then any packages which are in the real Koji tag
+   # which are not defined in YAML will be removed from the real
+   # tag.
+   exact-packages: False
 
 
 YAML Fields
@@ -87,14 +102,23 @@ Optional Fields
 ``extras`` (dictionary of str to Any)
    Additional tag metadata as key-value pairs
 
-``groups`` (dictionary of str to List)
+``groups`` (dict of str to TagGroup)
    Package groups and their package lists
+
+``exact-groups`` (boolean) - Default: False
+   Whether to remove undeclared groups or group packages from this tag
 
 ``inheritance`` (list of InheritanceLink)
    List of parent tags with their priorities
 
 ``external-repos`` (list of InheritanceLink)
    List of external repositories attached to this tag
+
+``packages`` (list of PackageEntry)
+   List of package names and their owners and blocked state
+
+``exact-packages`` (boolean) - Default: False
+   Whether to remove undeclared packages from this tag
 
 
 Dependencies
