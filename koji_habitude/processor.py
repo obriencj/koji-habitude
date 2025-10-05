@@ -88,7 +88,8 @@ class Processor:
         koji_session: ClientSession,
         dataseries: Iterable[Base],
         resolver: Resolver,
-        chunk_size: int = 100):
+        chunk_size: int = 100,
+        skip_phantoms: bool = False):
         """
         Initialize the processor.
 
@@ -102,6 +103,7 @@ class Processor:
         self.dataseries: Iterator[Base] = iter(dataseries)
         self.resolver: Resolver = resolver
         self.chunk_size: int = chunk_size
+        self.skip_phantoms: bool = skip_phantoms
 
         self.current_chunk: List[Base] = []
         self.state: ProcessorState = ProcessorState.READY_CHUNK
@@ -264,7 +266,7 @@ class Processor:
         # may need to break out of the multicall and continue with that object
         # and the rest of the work in a new multicall. Why? Because tag
         # inheritance can ONLY be added by using the parent tag's ID, not by
-        # name. So if we're adding the parent tag, we don't know it's ID until
+        # name. So if we're adding the parent tag, we don't know its ID until
         # after that multicall has run. This one quirk of the koji API is the
         # cause of a LOT of pain and complexity.
 
@@ -289,7 +291,7 @@ class Processor:
                         break
                     else:
                         # apply the changes to the koji instance
-                        change_report.apply(m)
+                        change_report.apply(m, skip_phantoms=self.skip_phantoms)
                         work_check.append(obj)
 
             # check the results of all the changes. This will raise an exception
@@ -328,8 +330,7 @@ class Processor:
 
             change_reports=self.change_reports,
             read_calls=self.read_logs,
-            write_calls=self.write_logs,
-        )
+            write_calls=self.write_logs)
 
 
     def is_exhausted(self) -> bool:

@@ -8,6 +8,8 @@ License: GNU General Public License v3
 AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
+# Vibe-Coding State: AI Assisted, Mostly Human
+
 
 from dataclasses import dataclass
 from typing import ClassVar, List, Optional, Any, TYPE_CHECKING
@@ -65,6 +67,12 @@ class UserDisable(Change):
 class UserGrantPermission(Change):
     name: str
     permission: str
+
+    _skippable: ClassVar[bool] = True
+
+    def skip_check_impl(self, resolver: 'Resolver') -> bool:
+        perm = resolver.resolve(('permission', self.permission))
+        return perm.missing() and not perm.exists()
 
     def impl_apply(self, session: MultiCallSession):
         return session.grantPermission(self.name, self.permission, create=True)

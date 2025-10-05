@@ -169,7 +169,7 @@ class Namespace:
 
     def __init__(
             self,
-            coretypes: Dict[str, Type[Base]] | Sequence[Type[Base]] = CORE_MODELS,
+            coretypes: Union[Dict[str, Type[Base]], Sequence[Type[Base]]] = CORE_MODELS,
             enable_templates: bool = True,
             redefine: Redefine = Redefine.ERROR,
             logger: Optional[logging.Logger] = None):
@@ -184,7 +184,7 @@ class Namespace:
             coretypes = dict(coretypes)
         else:
             coretypes = {tp.typename: tp for tp in coretypes}
-        self.typemap: Dict[str | None, Type[Base]] = coretypes
+        self.typemap: Dict[Optional[str], Type[Base]] = coretypes
 
         if enable_templates:
             self.typemap["template"] = Template
@@ -230,7 +230,7 @@ class Namespace:
         return self._ns.values()
 
 
-    def get(self, key: BaseKey, default: Any = None) -> Base | None:
+    def get(self, key: BaseKey, default: Any = None) -> Optional[Base]:
         """
         Return the object in the namespace with the given key.
         """
@@ -259,15 +259,17 @@ class Namespace:
         merge_into(self._templates, other._templates, redefine, self.logger)
 
 
-    def get_type(self, typename: str, no_call: bool = False) -> Type[Base] | None:
+    def get_type(self, typename: str, or_call: bool = True) -> Optional[Type[Base]]:
         """
-        Return the type for the given typename. If no_call is True, will not
-        return a TemplateCall for missing type names.
+        Return the type for the given typename. If or_call is True (the
+        default), will return a TemplateCall for missing type names. If or_call
+        is False, or if the Namespace was not created with templates enabled,
+        then this will return None for missing type names.
         """
-        if no_call:
-            return self.typemap.get(typename)
-        else:
+        if or_call:
             return self.typemap.get(typename) or self.typemap.get(None)
+        else:
+            return self.typemap.get(typename)
 
 
     def to_object(self, objdict: Dict[str, Any]) -> Base:
@@ -487,7 +489,7 @@ class TemplateNamespace(Namespace):
 
     def __init__(
             self,
-            coretypes: Dict[str, Type[Base]] | Sequence[Type[Base]] = CORE_MODELS,
+            coretypes: Union[Dict[str, Type[Base]], Sequence[Type[Base]]] = CORE_MODELS,
             redefine: Redefine = Redefine.ERROR,
             logger: Optional[logging.Logger] = None):
 
@@ -512,7 +514,7 @@ class TemplateNamespace(Namespace):
         return filter(None, map(self.to_object, dataseq))
 
 
-    def to_object(self, data: Dict[str, Any]) -> Base | None:
+    def to_object(self, data: Dict[str, Any]) -> Optional[Base]:
         if data['type'] in self.ignored_types:
             return None
         return super().to_object(data)
@@ -535,7 +537,7 @@ class ExpanderNamespace(Namespace):
 
     def __init__(
         self,
-        coretypes: Dict[str, Type[Base]] | Sequence[Type[Base]] = CORE_MODELS,
+        coretypes: Union[Dict[str, Type[Base]], Sequence[Type[Base]]]= CORE_MODELS,
         redefine: Redefine = Redefine.ERROR,
         logger: Optional[logging.Logger] = None):
 
