@@ -16,10 +16,12 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # the AI never actually emitted code.
 
 
-from typing import Dict, Iterator, List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Dict, Iterator, List, Optional, Set, Tuple
 
 from .models import Base, BaseKey
-from .resolver import Report, Resolver
+
+if TYPE_CHECKING:
+    from .resolver import ResolverReport, Resolver
 
 
 class Node:
@@ -82,10 +84,10 @@ class Solver:
 
     def __init__(
             self,
-            resolver: Resolver,
+            resolver: 'Resolver',
             work: Optional[List[BaseKey]] = None):
 
-        self.resolver: Resolver = resolver
+        self.resolver: 'Resolver' = resolver
         self.work: Optional[List[BaseKey]] = work
         self.remaining: Optional[Dict[BaseKey, Node]] = None
 
@@ -117,7 +119,7 @@ class Solver:
                 node.add_dependency(depnode)
 
 
-    def report(self) -> Report:
+    def report(self) -> 'ResolverReport':
         if self.remaining is None:
             raise ValueError("Solver not prepared")
         return self.resolver.report()

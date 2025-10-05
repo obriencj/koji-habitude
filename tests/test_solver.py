@@ -245,7 +245,7 @@ class TestSolverBasic(unittest.TestCase):
 
         # Should return a report from the resolver
         self.assertIsNotNone(report)
-        self.assertIsInstance(report.missing, dict)
+        self.assertIsInstance(report.phantoms, dict)
 
     def test_solver_report_with_missing_dependencies(self):
         """Test solver report when there are missing dependencies."""
@@ -255,10 +255,10 @@ class TestSolverBasic(unittest.TestCase):
         report = solver.report()
 
         # Should report missing dependencies
-        self.assertGreater(len(report.missing), 0)
+        self.assertGreater(len(report.phantoms), 0)
 
         # Should contain expected missing dependencies
-        missing_keys = set(report.missing)
+        missing_keys = set(report.phantoms)
         expected_missing = {
             ('tag', 'missing-parent-tag'),
             ('tag', 'missing-build-tag'),
@@ -757,14 +757,14 @@ class TestSolverMissingDependencies(unittest.TestCase):
             ('external-repo', 'missing-external-repo')
         }
 
-        missing_set = set(report.missing)
+        missing_set = set(report.phantoms)
         self.assertEqual(missing_set, expected_missing)
 
         # After resolving, the report should still show the same missing dependencies
         resolved_objects = list(solver)
         report_after = solver.report()
 
-        self.assertEqual(set(report_after.missing), expected_missing)
+        self.assertEqual(set(report_after.phantoms), expected_missing)
 
     def test_missing_dependencies_no_failure(self):
         """Test that missing dependencies don't cause solver to fail."""
@@ -1089,12 +1089,12 @@ class TestSolverCircularDependencies(unittest.TestCase):
 
         # Should have no missing dependencies in this file
         report = solver.report()
-        self.assertEqual(len(report.missing), 0)
+        self.assertEqual(len(report.phantoms), 0)
 
         # After resolving, should still have no missing dependencies
         resolved_objects = list(solver)
         report_after = solver.report()
-        self.assertEqual(len(report_after.missing), 0)
+        self.assertEqual(len(report_after.phantoms), 0)
 
 
 class TestSolverTemplates(unittest.TestCase):
@@ -1261,12 +1261,12 @@ class TestSolverTemplates(unittest.TestCase):
 
         # Should only have the 2 implicit missing permissions
         report = solver.report()
-        self.assertEqual(len(report.missing), 2)
+        self.assertEqual(len(report.phantoms), 2)
 
         # After resolving, should still have the 2 implicit missing permissions
         resolved_objects = list(solver)
         report_after = solver.report()
-        self.assertEqual(len(report_after.missing), 2)
+        self.assertEqual(len(report_after.phantoms), 2)
 
     def test_template_based_dependencies_complex_workflow(self):
         """Test complex workflow with template-generated dependencies."""
@@ -1326,7 +1326,7 @@ class TestSolverIntegration(unittest.TestCase):
 
         # Should have no missing dependencies
         report = solver.report()
-        self.assertEqual(len(report.missing), 0)
+        self.assertEqual(len(report.phantoms), 0)
 
     def test_complete_workflow_mixed_dependencies(self):
         """Test complete workflow with mixed dependency types."""
@@ -1381,13 +1381,13 @@ class TestSolverIntegration(unittest.TestCase):
 
         # Should have missing dependencies before resolution
         report_before = solver.report()
-        self.assertEqual(len(report_before.missing), 6)
-        self.assertIn(('tag', 'missing-parent-tag'), report_before.missing)
-        self.assertIn(('tag', 'missing-build-tag'), report_before.missing)
-        self.assertIn(('tag', 'missing-dest-tag'), report_before.missing)
-        self.assertIn(('group', 'missing-group'), report_before.missing)
-        self.assertIn(('permission', 'missing-permission'), report_before.missing)
-        self.assertIn(('external-repo', 'missing-external-repo'), report_before.missing)
+        self.assertEqual(len(report_before.phantoms), 6)
+        self.assertIn(('tag', 'missing-parent-tag'), report_before.phantoms)
+        self.assertIn(('tag', 'missing-build-tag'), report_before.phantoms)
+        self.assertIn(('tag', 'missing-dest-tag'), report_before.phantoms)
+        self.assertIn(('group', 'missing-group'), report_before.phantoms)
+        self.assertIn(('permission', 'missing-permission'), report_before.phantoms)
+        self.assertIn(('external-repo', 'missing-external-repo'), report_before.phantoms)
 
         # Resolve all objects
         resolved_objects = list(solver)
@@ -1417,7 +1417,7 @@ class TestSolverIntegration(unittest.TestCase):
 
         # Should still have missing dependencies after resolution
         report_after = solver.report()
-        self.assertEqual(len(report_after.missing), 6)
+        self.assertEqual(len(report_after.phantoms), 6)
 
     def test_complete_workflow_circular_dependencies(self):
         """Test complete workflow with circular dependencies."""
@@ -1444,7 +1444,7 @@ class TestSolverIntegration(unittest.TestCase):
 
         # Should have no missing dependencies
         report = solver.report()
-        self.assertEqual(len(report.missing), 0)
+        self.assertEqual(len(report.phantoms), 0)
 
     def test_partial_workflow_complex_scenario(self):
         """Test partial workflow with specific work items from complex scenario."""
@@ -1496,7 +1496,7 @@ class TestSolverIntegration(unittest.TestCase):
 
         # Should have missing dependencies before resolution
         report_before = solver.report()
-        self.assertEqual(len(report_before.missing), 6)
+        self.assertEqual(len(report_before.phantoms), 6)
 
         # Resolve all objects
         resolved_objects = list(solver)
@@ -1534,7 +1534,7 @@ class TestSolverIntegration(unittest.TestCase):
 
         # Should still have missing dependencies after resolution
         report_after = solver.report()
-        self.assertEqual(len(report_after.missing), 6)
+        self.assertEqual(len(report_after.phantoms), 6)
 
     def test_workflow_error_handling(self):
         """Test workflow error handling and edge cases."""
@@ -1556,8 +1556,8 @@ class TestSolverIntegration(unittest.TestCase):
 
         # Should have missing dependency
         report = solver.report()
-        self.assertEqual(len(report.missing), 1)
-        self.assertIn(('tag', 'nonexistent'), report.missing)
+        self.assertEqual(len(report.phantoms), 1)
+        self.assertIn(('tag', 'nonexistent'), report.phantoms)
 
     def test_workflow_consistency_across_runs(self):
         """Test that workflow produces consistent results across multiple runs."""
@@ -1582,14 +1582,14 @@ class TestSolverIntegration(unittest.TestCase):
 
         # Get report before resolution
         report_before = solver.report()
-        missing_before = set(report_before.missing)
+        missing_before = set(report_before.phantoms)
 
         # Resolve objects
         resolved_objects = list(solver)
 
         # Get report after resolution
         report_after = solver.report()
-        missing_after = set(report_after.missing)
+        missing_after = set(report_after.phantoms)
 
         # Missing dependencies should be the same
         self.assertEqual(missing_before, missing_after,

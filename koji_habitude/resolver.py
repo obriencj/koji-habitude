@@ -147,7 +147,7 @@ class ResolverReport:
     """
 
     discovered: Dict[BaseKey, Base]
-    phantom: Dict[BaseKey, Base]
+    phantoms: Dict[BaseKey, Base]
 
 
 class Resolver:
@@ -303,13 +303,13 @@ class Resolver:
         """
 
         discovered = {}
-        phantom = {}
+        phantoms = {}
         for key, obj in self._references.items():
             if obj.exists():
                 discovered[key] = obj
             else:
-                phantom[key] = obj
-        return ResolverReport(discovered=discovered, phantom=phantom)
+                phantoms[key] = obj
+        return ResolverReport(discovered=discovered, phantoms=phantoms)
 
 
 # The end.

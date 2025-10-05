@@ -124,20 +124,21 @@ def display_summary(summary, show_unchanged):
     click.echo()
 
 
-def display_missing(report):
+def display_resolver_report(report):
     if report:
-        total_dependencies = len(report.found) + len(report.missing)
-        click.echo(f"Resolver identified {total_dependencies} dependencies not defined in the data set")
-        click.echo(f"({len(report.found)} were found in the system, {len(report.missing)} remain missing)")
+        total_dependencies = len(report.discovered) + len(report.phantoms)
+        click.echo(f"Resolver identified {total_dependencies} dependency references not defined in the data set")
+        click.echo(f"({len(report.discovered)} were discovered in the system,"
+                   f" {len(report.phantoms)} phantoms remain)")
 
-    if report.found:
-        click.echo("Found objects:")
-        for key in report.found:
+    if report.discovered:
+        click.echo("Discovered references:")
+        for key in report.discovered:
             click.echo(f"  {key[0]} {key[1]}")
 
-    if report.missing:
-        click.echo("Missing objects:")
-        for key in report.missing:
+    if report.phantoms:
+        click.echo("Phantom references:")
+        for key in report.phantoms:
             click.echo(f"  {key[0]} {key[1]}")
 
     click.echo()

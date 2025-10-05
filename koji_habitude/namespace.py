@@ -26,6 +26,7 @@ from typing import (
     Set,
     Tuple,
     Type,
+    Union,
 )
 
 from .models import Base, BaseKey, BaseObject, CORE_MODELS

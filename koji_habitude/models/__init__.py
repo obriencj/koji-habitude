@@ -15,7 +15,7 @@ from typing import Tuple, Type
 from types import MappingProxyType
 
 
-from .base import Base, BaseObject, BaseKey
+from .base import Base, BaseObject, BaseKey, BaseStatus
 from .change import ChangeReport, Change
 from .channel import Channel
 from .external_repo import ExternalRepo
@@ -34,8 +34,10 @@ __all__ = (
     'Base',
     'BaseObject',
     'BaseKey',
-    'ChangeReport',
+    'BaseStatus',
+
     'Change',
+    'ChangeReport',
 
     'Channel',
     'ExternalRepo',
