@@ -202,6 +202,11 @@ class Template(BaseObject):
 
 
     def get_missing(self):
+        """
+        Return the set of variable names which are referenced in the Jinja2
+        template, but which are not defined in the defaults
+        """
+
         return self._undeclared.difference(self.defaults)
 
 

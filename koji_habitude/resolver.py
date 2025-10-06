@@ -280,21 +280,18 @@ class Resolver:
         return self.resolve(key).query_exists(session)
 
 
-    def query_exists_references(self, session: ClientSession) -> int:
+    def query_exists_references(self, session: ClientSession) -> None:
         """
         creates a multicall for session, and queries for the existence of all
-        current reference objects. Returns a count of reference objects which were
-        not found to exist on the Koji instance (ie. the count of phantoms)
+        current reference objects.
         """
 
         if not self._references:
-            return 0
+            return
 
         with multicall(session) as mc:
             for key in self._references.keys():
                 self.query_exists_key(mc, key)
-
-        return len(self.phantom_keys())
 
 
     def report(self) -> ResolverReport:
