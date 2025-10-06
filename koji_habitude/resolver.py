@@ -31,7 +31,7 @@ from typing import (
     Type,
 )
 
-from koji import ClientSession, MultiCallSession, VirtualCall
+from koji import ClientSession, MultiCallSession, VirtualCall, MultiCallNotReady
 
 from .koji import multicall
 from .models import Base, BaseKey, BaseStatus, ChangeReport
@@ -90,8 +90,14 @@ class Reference(Base):
     def status(self) -> BaseStatus:
         return BaseStatus.DISCOVERED if self.exists() else BaseStatus.PHANTOM
 
+    def is_phantom(self) -> bool:
+        return self.exists() is None
+
     def exists(self) -> Any:
-        return self._exists.result if self._exists is not None else None
+        try:
+            return self._exists.result if self._exists is not None else None
+        except MultiCallNotReady:
+            return None
 
     def key(self) -> BaseKey:
         return self._key

@@ -17,7 +17,7 @@ from pydantic import Field, field_validator, model_validator
 
 from koji import ClientSession, MultiCallNotReady, MultiCallSession, VirtualCall
 
-from .base import BaseKey, BaseObject, SubModel, BaseStatus
+from .base import BaseKey, BaseObject, SubModel
 from .change import Change, ChangeReport
 
 if TYPE_CHECKING:
@@ -101,7 +101,7 @@ class TagSetPermission(Change):
 
     def skip_check_impl(self, resolver: 'Resolver') -> bool:
         permission = resolver.resolve(('permission', self.permission))
-        return permission.status == BaseStatus.PHANTOM
+        return permission.is_phantom()
 
     def impl_apply(self, session: MultiCallSession):
         return session.editTag2(self.name, perm=self.permission)
@@ -265,7 +265,7 @@ class TagAddInheritance(Change):
 
     def skip_check_impl(self, resolver: 'Resolver') -> bool:
         parent = resolver.resolve(self.parent.key())
-        return parent.status == BaseStatus.PHANTOM
+        return parent.is_phantom()
 
     def impl_apply(self, session: MultiCallSession):
         data = [{
@@ -372,7 +372,7 @@ class TagAddExternalRepo(Change):
 
     def skip_check_impl(self, resolver: 'Resolver') -> bool:
         repo = resolver.resolve(('external-repo', self.repo.name))
-        return repo.status == BaseStatus.PHANTOM
+        return repo.is_phantom()
 
     def impl_apply(self, session: MultiCallSession):
         arches = ' '.join(self.repo.arches) if self.repo.arches else None

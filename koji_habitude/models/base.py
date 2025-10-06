@@ -19,7 +19,7 @@ from typing import (
 )
 
 from pydantic import BaseModel, Field, ConfigDict
-from koji import ClientSession, VirtualCall
+from koji import ClientSession, VirtualCall, MultiCallNotReady
 
 if TYPE_CHECKING:
     from .change import ChangeReport
@@ -189,10 +189,17 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
         return BaseStatus.PRESENT if self.exists() is not None else BaseStatus.PENDING
 
 
+    def is_phantom(self) -> bool:
+        return False
+
+
     def exists(self) -> Any:
         # Check the value of the VirtualCall returned by the last `query_exists`
         # call.
-        return self._exists.result if self._exists is not None else None
+        try:
+            return self._exists.result if self._exists is not None else None
+        except MultiCallNotReady:
+            return None
 
 
     def query_exists(self, session: ClientSession) -> VirtualCall:

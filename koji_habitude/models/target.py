@@ -14,7 +14,7 @@ from typing import Any, ClassVar, Optional, Sequence, TYPE_CHECKING
 from koji import ClientSession, MultiCallSession, VirtualCall
 from pydantic import Field
 
-from .base import BaseKey, BaseObject, BaseStatus
+from .base import BaseKey, BaseObject
 from .change import Change, ChangeReport
 
 if TYPE_CHECKING:
@@ -31,12 +31,12 @@ class TargetCreate(Change):
 
     def skip_check_impl(self, resolver: 'Resolver') -> bool:
         build_tag = resolver.resolve(('tag', self.build_tag))
-        if build_tag.status == BaseStatus.PHANTOM:
+        if build_tag.is_phantom():
             return True
 
         dest_tag = self.dest_tag or self.name
         dest_tag = resolver.resolve(('tag', dest_tag))
-        if dest_tag.status == BaseStatus.PHANTOM:
+        if dest_tag.is_phantom():
             return True
 
         return False
@@ -59,12 +59,12 @@ class TargetEdit(Change):
 
     def skip_check_impl(self, resolver: 'Resolver') -> bool:
         build_tag = resolver.resolve(('tag', self.build_tag))
-        if build_tag.status == BaseStatus.PHANTOM:
+        if build_tag.is_phantom():
             return True
 
         dest_tag = self.dest_tag or self.name
         dest_tag = resolver.resolve(('tag', dest_tag))
-        if dest_tag.status == BaseStatus.PHANTOM:
+        if dest_tag.is_phantom():
             return True
 
         return False

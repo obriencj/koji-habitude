@@ -17,7 +17,7 @@ from typing import ClassVar, List, Optional, Any, TYPE_CHECKING
 from koji import MultiCallSession, VirtualCall, ClientSession
 from pydantic import Field
 
-from .base import BaseKey, BaseObject, BaseStatus
+from .base import BaseKey, BaseObject
 from .change import Change, ChangeReport
 
 if TYPE_CHECKING:
@@ -72,7 +72,7 @@ class UserGrantPermission(Change):
 
     def skip_check_impl(self, resolver: 'Resolver') -> bool:
         perm = resolver.resolve(('permission', self.permission))
-        return perm.status == BaseStatus.PHANTOM
+        return perm.is_phantom()
 
     def impl_apply(self, session: MultiCallSession):
         return session.grantPermission(self.name, self.permission, create=True)
@@ -102,7 +102,7 @@ class UserAddToGroup(Change):
 
     def skip_check_impl(self, resolver: 'Resolver') -> bool:
         group = resolver.resolve(('group', self.group))
-        return group.status == BaseStatus.PHANTOM
+        return group.is_phantom()
 
     def impl_apply(self, session: MultiCallSession):
         return session.addGroupMember(self.group, self.name, strict=False)
