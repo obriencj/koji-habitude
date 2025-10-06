@@ -13,7 +13,7 @@ import click
 
 from . import main
 from ..workflow import DiffWorkflow
-from .util import catchall, display_missing, display_summary
+from .util import catchall, display_resolver_report, display_summary
 
 
 @main.command()
@@ -43,9 +43,9 @@ def diff(data, templates=None, profile='koji', show_unchanged=False):
     workflow.run()
 
     display_summary(workflow.summary, show_unchanged)
-    display_missing(workflow.missing_report)
+    display_resolver_report(workflow.resolver_report)
 
-    return 1 if workflow.missing_report.missing else 0
+    return 1 if workflow.resolver_report.phantoms else 0
 
 
 # The end.
