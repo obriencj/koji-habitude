@@ -44,7 +44,6 @@ class TagCreate(Change):
         res = session.createTag(
             self.obj.name,
             locked=self.obj.locked,
-            perm=self.obj.permission,
             arches=' '.join(self.obj.arches),
             maven_support=self.obj.maven_support,
             maven_include_all=self.obj.maven_include_all)
@@ -55,7 +54,6 @@ class TagCreate(Change):
         # parent tag's ID (not by name)
 
         if not self.obj._is_split:
-            logger.debug(f"Queueing getTag call for tag '{self.obj.name}'")
             self.obj.query_exists(session)
 
         return res
@@ -542,6 +540,8 @@ class TagChangeReport(ChangeReport):
                 # we didn't need to split, so just do a normal create.
                 yield TagCreate(self.obj)
 
+            if self.obj.permission:
+                yield TagSetPermission(self.obj.name, self.obj.permission)
             yield TagSetExtras(self.obj.name, self.obj.extras)
             for group_name, group in self.obj.groups.items():
                 yield TagAddGroup(self.obj.name, group)
@@ -557,15 +557,14 @@ class TagChangeReport(ChangeReport):
 
         if info['locked'] != self.obj.locked:
             yield TagSetLocked(self.obj.name, self.obj.locked)
-        if info['perm'] != self.obj.permission:
-            yield TagSetPermission(self.obj.name, self.obj.permission)
-
         if not _compare_arches(info['arches'], self.obj.arches):
             yield TagSetArches(self.obj.name, self.obj.arches)
-
         if info['maven_support'] != self.obj.maven_support or \
            info['maven_include_all'] != self.obj.maven_include_all:
             yield TagSetMaven(self.obj.name, self.obj.maven_support, self.obj.maven_include_all)
+
+        if info['perm'] != self.obj.permission:
+            yield TagSetPermission(self.obj.name, self.obj.permission)
         if info['extra'] != self.obj.extras:
             yield TagSetExtras(self.obj.name, self.obj.extras)
 
