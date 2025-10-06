@@ -204,7 +204,7 @@ class Workflow:
         are any phantoms.
         """
 
-        phantoms = self.resolver_report.phantoms_keys()
+        phantoms = self.resolver_report.phantoms()
         if len(phantoms) > 0 and not self.skip_phantoms:
             self.state = WorkflowState.FAILED
             raise WorkflowPhantomsError(
