@@ -17,7 +17,7 @@ from typing import ClassVar, List, Optional, Any, TYPE_CHECKING
 from koji import ClientSession, MultiCallSession, VirtualCall
 from pydantic import Field
 
-from .base import BaseObject, BaseKey
+from .base import BaseObject, BaseKey, BaseStatus
 from .change import ChangeReport, Change
 
 if TYPE_CHECKING:
@@ -56,6 +56,12 @@ class ChannelSetDescription(Change):
 class ChannelAddHost(Change):
     name: str
     host: str
+
+    _skippable: ClassVar[bool] = True
+
+    def skip_check_impl(self, resolver: 'Resolver') -> bool:
+        host = resolver.resolve(('host', self.host))
+        return host.status == BaseStatus.PHANTOM
 
     def impl_apply(self, session: MultiCallSession):
         return session.addHostToChannel(self.host, self.name)
