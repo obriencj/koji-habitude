@@ -308,6 +308,7 @@ class TagAddInheritance(Change):
 
         tinfo = tag.exists()
         if tinfo is None:
+            assert not tag.is_phantom()
             logger.debug(f"MultiCallNotReady, breaking out of multicall")
             return True
 
