@@ -9,11 +9,19 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
 
-import click
+from click import echo
 from typing import List
 from functools import wraps
 from pydantic import ValidationError
 from koji import GSSAPIAuthError, GenericError
+
+
+__all__ = (
+    'catchall',
+    'display_summary',
+    'display_resolver_report',
+    'resplit',
+)
 
 
 def resplit(strs: List[str], sep=',') -> List[str]:
@@ -38,23 +46,23 @@ def catchall(func):
             return func(*args, **kwargs)
 
         except ValidationError as e:
-            click.echo(f"[ValidationError] {e}", err=True)
+            echo(f"[ValidationError] {e}", err=True)
             return 1
 
         except GSSAPIAuthError as e:
-            click.echo(f"[GSSAPIAuthError] {e}", err=True)
+            echo(f"[GSSAPIAuthError] {e}", err=True)
             return 1
 
         except GenericError as e:
-            click.echo(f"[GenericError] {e}", err=True)
+            echo(f"[GenericError] {e}", err=True)
             return 1
 
         except KeyboardInterrupt:
-            click.echo("[Keyboard interrupt]", err=True)
+            echo("[Keyboard interrupt]", err=True)
             return 130
 
         except Exception as e:
-            click.echo(f"[Error] {e}", err=True)
+            echo(f"[Error] {e}", err=True)
             raise
 
     return wrapper
@@ -80,21 +88,21 @@ def display_summary(summary, show_unchanged):
 
     # Display objects with changes
     if by_type:
-        click.echo("Objects with changes:")
-        click.echo()
+        echo("Objects with changes:")
+        echo()
 
         for typename in sorted(by_type.keys()):
-            click.echo(f"{typename}:")
+            echo(f"{typename}:")
             for name, change_report in sorted(by_type[typename]):
-                click.echo(f"  {name}:")
+                echo(f"  {name}:")
                 for change in change_report.changes:
-                    click.echo(f"    {change.explain()}")
-            click.echo()
+                    echo(f"    {change.explain()}")
+            echo()
 
     # Display unchanged objects if requested
     if show_unchanged and unchanged_objects:
-        click.echo("Objects with no changes needed:")
-        click.echo()
+        echo("Objects with no changes needed:")
+        echo()
 
         by_type_unchanged = {}
         for typename, name in unchanged_objects:
@@ -103,10 +111,10 @@ def display_summary(summary, show_unchanged):
             by_type_unchanged[typename].append(name)
 
         for typename in sorted(by_type_unchanged.keys()):
-            click.echo(f"{typename}:")
+            echo(f"{typename}:")
             for name in sorted(by_type_unchanged[typename]):
-                click.echo(f"  {name}")
-            click.echo()
+                echo(f"  {name}")
+            echo()
 
     # Summary
     total_changes = summary.total_changes
@@ -114,33 +122,34 @@ def display_summary(summary, show_unchanged):
     unchanged_count = len(unchanged_objects)
 
     if total_changes > 0:
-        click.echo(f"Summary: {total_changes} changes across {total_objects - unchanged_count} objects")
+        echo(f"Summary: {total_changes} changes across {total_objects - unchanged_count} objects")
     else:
-        click.echo("Summary: No changes needed")
+        echo("Summary: No changes needed")
 
     if show_unchanged and unchanged_count > 0:
-        click.echo(f"({unchanged_count} objects unchanged)")
+        echo(f"({unchanged_count} objects unchanged)")
 
-    click.echo()
+    echo()
 
 
-def display_missing(report):
+def display_resolver_report(report):
     if report:
-        total_dependencies = len(report.found) + len(report.missing)
-        click.echo(f"Resolver identified {total_dependencies} dependencies not defined in the data set")
-        click.echo(f"({len(report.found)} were found in the system, {len(report.missing)} remain missing)")
+        total_dependencies = len(report.discovered) + len(report.phantoms)
+        echo(f"Resolver identified {total_dependencies} dependency references not defined in the data set")
+        echo(f"({len(report.discovered)} were discovered in the system,"
+                   f" {len(report.phantoms)} phantoms remain)")
 
-    if report.found:
-        click.echo("Found objects:")
-        for key in report.found:
-            click.echo(f"  {key[0]} {key[1]}")
+    if report.discovered:
+        echo("Discovered references:")
+        for key in report.discovered:
+            echo(f"  {key[0]} {key[1]}")
 
-    if report.missing:
-        click.echo("Missing objects:")
-        for key in report.missing:
-            click.echo(f"  {key[0]} {key[1]}")
+    if report.phantoms:
+        echo("Phantom references:")
+        for key in report.phantoms:
+            echo(f"  {key[0]} {key[1]}")
 
-    click.echo()
+    echo()
 
 
 # The end.

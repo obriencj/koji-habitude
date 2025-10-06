@@ -8,6 +8,8 @@ License: GNU General Public License v3
 AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
+# Vibe-Coding State: AI Assisted, Mostly Human
+
 
 from dataclasses import dataclass
 from typing import ClassVar, List, Optional, Any, TYPE_CHECKING
@@ -66,6 +68,12 @@ class UserGrantPermission(Change):
     name: str
     permission: str
 
+    _skippable: ClassVar[bool] = True
+
+    def skip_check_impl(self, resolver: 'Resolver') -> bool:
+        perm = resolver.resolve(('permission', self.permission))
+        return perm.is_phantom()
+
     def impl_apply(self, session: MultiCallSession):
         return session.grantPermission(self.name, self.permission, create=True)
 
@@ -89,6 +97,12 @@ class UserRevokePermission(Change):
 class UserAddToGroup(Change):
     name: str
     group: str
+
+    _skippable: ClassVar[bool] = True
+
+    def skip_check_impl(self, resolver: 'Resolver') -> bool:
+        group = resolver.resolve(('group', self.group))
+        return group.is_phantom()
 
     def impl_apply(self, session: MultiCallSession):
         return session.addGroupMember(self.group, self.name, strict=False)

@@ -17,7 +17,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 from dataclasses import dataclass, field
 from enum import Enum
 from logging import getLogger
-from typing import Any, Callable, Iterable, List, Optional, TYPE_CHECKING
+from typing import Any, Callable, ClassVar,Iterable, List, Optional, TYPE_CHECKING
 
 from koji import MultiCallSession, VirtualCall
 
@@ -38,21 +38,32 @@ class ChangeReportError(Exception):
     pass
 
 
+class ChangeState(Enum):
+    """
+    States of a Change's lifecycle
+    """
+
+    PENDING = 'Pending'
+    APPLIED = 'Applied'
+    SKIPPED = 'Skipped'
+    FAILED = 'Failed'
+
+
 class ChangeReportState(Enum):
     """
     States of a ChangeReport's lifecycle
     """
 
-    PENDING = 'pending'
-    LOADING = 'loading'
-    LOADED = 'loaded'
-    COMPARING = 'comparing'
-    COMPARED = 'compared'
-    APPLYING = 'applying'
-    APPLIED = 'applied'
-    CHECKING = 'checking'
-    CHECKED = 'checked'
-    ERROR = 'error'
+    PENDING = 'Pending'
+    LOADING = 'Loading'
+    LOADED = 'Loaded'
+    COMPARING = 'Comparing'
+    COMPARED = 'Compared'
+    APPLYING = 'Applying'
+    APPLIED = 'Applied'
+    CHECKING = 'Checking'
+    CHECKED = 'Checked'
+    ERROR = 'Error'
 
 
 @dataclass
@@ -61,7 +72,15 @@ class Change:
     Represents an atomic change in Koji, applicable to a single Base object.
     """
 
+    _skippable: ClassVar[bool] = False
+
     _result: Optional[VirtualCall] = field(default=None, init=False)
+    _state: ChangeState = field(default=ChangeState.PENDING, init=False)
+
+
+    @property
+    def state(self) -> ChangeState:
+        return self._state
 
 
     def apply(self, session: MultiCallSession) -> None:
@@ -76,10 +95,14 @@ class Change:
         Raises a ChangeError if the change has already been applied.
         """
 
-        if self._result is not None:
+        if self._state == ChangeState.SKIPPED:
+            logger.debug(f"Skipping apply of change: {self!r}")
+            return
+        if self._state != ChangeState.PENDING:
             raise ChangeError(f"Attempted to re-apply change: {self!r}")
         logger.debug(f"Applying change: {self!r}")
         self._result = self.impl_apply(session)
+        self._state = ChangeState.APPLIED
 
 
     def impl_apply(self, session: MultiCallSession) -> VirtualCall:
@@ -97,17 +120,66 @@ class Change:
         raise NotImplementedError("Subclasses of Change must implement impl_apply")
 
 
+    def skip_check(self, resolver: 'Resolver') -> bool:
+        """
+        Returns True if the change is skippable, and needs skipping, False
+        otherwise. This is used in situations where the change depends on a
+        phantom object (ie. is a Reference, and does not exist on the Koji instance)
+        """
+
+        if self._skippable:
+            return self.skip_check_impl(resolver)
+        return False
+
+
+    def skip_check_impl(self, resolver: 'Resolver') -> bool:
+        """
+        This method is called by the `skip_check` method to perform the skip determination,
+        and should not be called directly.
+        """
+        raise NotImplementedError("Skippable Subclasses of Change must implement skip_impl")
+
+
     def result(self) -> Any:
         """
         The result of the change call, as returned by the Koji session. If the
         change has not been applied, this will raise a ChangeError. If the call
         failed, this will raise the underlying exception returned by the Koji
         instance.
+
+        Note that this method is what allows a Change to determine whether it
+        has failed or not. It's possible that going into this, the state will be
+        APPLIED, but if the call fails, the state will be FAILED.
         """
 
-        if self._result is None:
+        if self._state == ChangeState.SKIPPED:
+            return None
+        if self._state == ChangeState.PENDING:
             raise ChangeError(f"Change not applied: {self!r}")
-        return self._result.result
+
+        try:
+            return self._result.result
+        except Exception:
+            self._state = ChangeState.FAILED
+            raise
+
+
+    def skip(self) -> None:
+        """
+        Mark the change as skipped. This will prevent the apply method from being
+        called, and will cause the result method to return None.
+        """
+
+        # note, we don't call the skip_check or skip_check_impl again. If
+        # someone says we should skip it, well then we should skip it. Ideally
+        # they will only do so after they've checked first, but maybe there will
+        # be other reasons, too.
+
+        if self._state != ChangeState.PENDING:
+            raise ChangeError(f"Attempted to skip change: {self!r}")
+
+        logger.debug(f"Skipping change: {self!r}")
+        self._state = ChangeState.SKIPPED
 
 
     def explain(self) -> str:
@@ -117,7 +189,7 @@ class Change:
         Subclasses should override this method to provide specific explanations.
         """
 
-        return f"Apply {self.__class__.__name__}"
+        return f"Apply [{self._state.value}] {self.__class__.__name__}"
 
 
     def break_multicall(self, resolver: 'Resolver') -> bool:
@@ -136,6 +208,14 @@ class Change:
         """
 
         return False
+
+
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}(state={self.state})>"
+
+
+    def __str__(self) -> str:
+        return self.explain()
 
 
 class ChangeReport:
@@ -207,7 +287,7 @@ class ChangeReport:
     * state is CHECKING
 
     * the report's `check_results` method in turn invokes the `check_results`
-      method of the changes in the report. This gives a chance for any
+      methods of the changes in the report. This gives a chance for any
       exceptions to be raised if the change calls failed.
 
     * state is CHECKED
@@ -229,7 +309,7 @@ class ChangeReport:
         return iter(self.changes)
 
 
-    def read(self, session: MultiCallSession) -> Callable[[MultiCallSession], None] | None:
+    def read(self, session: MultiCallSession) -> Optional[Callable[[MultiCallSession], None]]:
         """
         Reads the Koji state and compares it with the expected state of the Base
         object by calling the `impl_read` method.
@@ -257,7 +337,7 @@ class ChangeReport:
             return None
 
 
-    def impl_read(self, session: MultiCallSession) -> Callable[[MultiCallSession], None] | None:
+    def impl_read(self, session: MultiCallSession) -> Optional[Callable[[MultiCallSession], None]]:
         """
         Must be implemented by subclasses to perform the actual work of reading
         the Koji state. This method may return None to indicate that is has
@@ -295,8 +375,7 @@ class ChangeReport:
         raise NotImplementedError("Subclasses of ChangeReport must implement impl_compare")
 
 
-
-    def apply(self, session: MultiCallSession) -> None:
+    def apply(self, session: MultiCallSession, skip_phantoms: bool = False) -> None:
         """
         Applies the changes in the report to the Koji instance by calling the
         `apply` method on each change.
@@ -311,7 +390,10 @@ class ChangeReport:
         self.state = ChangeReportState.APPLYING
         logger.debug(f"Applying {len(self.changes)} changes to {self.obj.key()}")
         for change in self.changes:
-            change.apply(session)
+            if skip_phantoms and change.skip_check(self.resolver):
+                change.skip()
+            else:
+                change.apply(session)
         self.state = ChangeReportState.APPLIED
 
 

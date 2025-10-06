@@ -207,12 +207,16 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         add_external_repo_mock = Mock()
         add_external_repo_mock.return_value = None
 
+        set_permission_mock = Mock()
+        set_permission_mock.return_value = None
+
         self.queue_client_response('getTag', get_tag_mock)
         self.queue_client_response('listPackages', list_packages_mock)
         self.queue_client_response('getTagGroups', get_groups_mock)
         self.queue_client_response('getInheritanceData', get_inheritance_mock)
         self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
         self.queue_client_response('createTag', create_mock)
+        self.queue_client_response('editTag2', set_permission_mock)
         self.queue_client_response('editTag2', set_extras_mock)
         self.queue_client_response('groupListAdd', add_group_mock)
         self.queue_client_response('groupPackageListAdd', add_group_pkg1_mock)
@@ -243,6 +247,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         get_inheritance_mock.assert_not_called()
         get_external_repos_mock.assert_not_called()
         create_mock.assert_called_once()
+        set_permission_mock.assert_called_once_with('complex-tag', perm='admin')
         set_extras_mock.assert_called_once_with('complex-tag', extra={'key': 'value'})
         add_group_mock.assert_called_once_with('complex-tag', 'build', description=None, block=False, force=True)
         add_group_pkg1_mock.assert_called_once_with('complex-tag', 'build', 'package1', block=False, force=True)
@@ -589,6 +594,9 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         set_extras2_mock = Mock()
         set_extras2_mock.return_value = None
 
+        set_permission2_mock = Mock()
+        set_permission2_mock.return_value = None
+
         # Queue responses for both tags
         self.queue_client_response('getTag', get_tag1_mock)
         self.queue_client_response('getTagGroups', get_groups1_mock)
@@ -602,6 +610,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         self.queue_client_response('getInheritanceData', get_inheritance2_mock)
         self.queue_client_response('getTagExternalRepos', get_external_repos2_mock)
         self.queue_client_response('createTag', create2_mock)
+        self.queue_client_response('editTag2', set_permission2_mock)
         self.queue_client_response('editTag2', set_extras2_mock)
 
         self.queue_client_response('getTag', get_tag_post1_mock)
@@ -629,6 +638,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         set_extras2_mock.assert_called_once_with('tag2', extra={})
         get_tag_post1_mock.assert_called_once_with('tag1', strict=False)
         get_tag_post2_mock.assert_called_once_with('tag2', strict=False)
+        set_permission2_mock.assert_called_once_with('tag2', perm='admin')
 
 
 class TestProcessorTagGroups(MulticallMocking, TestCase):
@@ -1352,7 +1362,6 @@ class TestProcessorTagDependencies(MulticallMocking, TestCase):
         create_parent_mock.assert_called_once_with(
             'parent-tag',
             locked=False,
-            perm=None,
             arches='x86_64',
             maven_support=False,
             maven_include_all=False
@@ -1362,7 +1371,6 @@ class TestProcessorTagDependencies(MulticallMocking, TestCase):
         create_child_mock.assert_called_once_with(
             'child-tag',
             locked=False,
-            perm=None,
             arches='x86_64',
             maven_support=False,
             maven_include_all=False

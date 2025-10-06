@@ -10,56 +10,56 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 # Vibe-Coding State: AI Generated
 
-import unittest
+from unittest import TestCase
 from pathlib import Path
 from unittest.mock import Mock
 
-from koji_habitude.resolver import Resolver, MissingObject, Report
+from koji_habitude.resolver import Resolver, Reference, ResolverReport
 from koji_habitude.namespace import Namespace
 from koji_habitude.models import Tag, User, ExternalRepo, Target
 
 
-class TestMissingObject(unittest.TestCase):
-    """Test the MissingObject placeholder class."""
+class TestReference(TestCase):
+    """Test the Reference placeholder class."""
 
     def test_missing_object_creation(self):
-        """Test creating a MissingObject with a key."""
+        """Test creating a Reference with a key."""
         key = ('tag', 'missing-tag')
-        missing = MissingObject(Tag, key)
+        missing = Reference(Tag, key)
 
-        self.assertEqual(missing.typename, 'missing')
+        self.assertEqual(missing.typename, 'reference')
         self.assertEqual(missing.name, 'missing-tag')
         self.assertEqual(missing.yaml_type, 'tag')
         self.assertEqual(missing.key(), key)
 
     def test_missing_object_filepos(self):
-        """Test that MissingObject returns None for file position."""
+        """Test that Reference returns None for file position."""
         key = ('user', 'missing-user')
-        missing = MissingObject(User, key)
+        missing = Reference(User, key)
 
         filename, lineno = missing.filepos()
         self.assertIsNone(filename)
         self.assertIsNone(lineno)
 
     def test_missing_object_cannot_split(self):
-        """Test that MissingObject cannot be split."""
+        """Test that Reference cannot be split."""
         key = ('external-repo', 'missing-repo')
-        missing = MissingObject(ExternalRepo, key)
+        missing = Reference(ExternalRepo, key)
 
         self.assertFalse(missing.can_split())
         with self.assertRaises(TypeError):
             missing.split()
 
     def test_missing_object_no_dependencies(self):
-        """Test that MissingObject has no dependencies."""
+        """Test that Reference has no dependencies."""
         key = ('target', 'missing-target')
-        missing = MissingObject(Target, key)
+        missing = Reference(Target, key)
 
         deps = missing.dependency_keys()
         self.assertEqual(deps, ())
 
 
-class TestResolver(unittest.TestCase):
+class TestResolver(TestCase):
     """Test the Resolver class."""
 
     def setUp(self):
@@ -79,7 +79,7 @@ class TestResolver(unittest.TestCase):
     def test_resolver_initialization(self):
         """Test resolver initialization."""
         self.assertEqual(self.resolver.namespace, self.namespace)
-        self.assertEqual(self.resolver._missing, {})
+        self.assertEqual(self.resolver._references, {})
 
     def test_resolve_existing_object(self):
         """Test resolving an object that exists in the namespace."""
@@ -95,7 +95,7 @@ class TestResolver(unittest.TestCase):
         key = ('tag', 'missing-tag')
         obj = self.resolver.resolve(key)
 
-        self.assertIsInstance(obj, MissingObject)
+        self.assertIsInstance(obj, Reference)
         self.assertEqual(obj.key(), key)
         self.assertEqual(obj.name, 'missing-tag')
 
@@ -105,15 +105,15 @@ class TestResolver(unittest.TestCase):
 
         # First resolution
         obj1 = self.resolver.resolve(key)
-        self.assertIsInstance(obj1, MissingObject)
+        self.assertIsInstance(obj1, Reference)
 
         # Second resolution should return same object
         obj2 = self.resolver.resolve(key)
         self.assertIs(obj1, obj2)
 
         # Should be in created dict
-        self.assertIn(key, self.resolver._missing)
-        self.assertIs(self.resolver._missing[key], obj1)
+        self.assertIn(key, self.resolver._references)
+        self.assertIs(self.resolver._references[key], obj1)
 
     def test_clear_removes_created_objects(self):
         """Test that clear() removes all created objects."""
@@ -124,11 +124,11 @@ class TestResolver(unittest.TestCase):
         self.resolver.resolve(key1)
         self.resolver.resolve(key2)
 
-        self.assertEqual(len(self.resolver._missing), 2)
+        self.assertEqual(len(self.resolver._references), 2)
 
         # Clear should remove them
         self.resolver.clear()
-        self.assertEqual(len(self.resolver._missing), 0)
+        self.assertEqual(len(self.resolver._references), 0)
 
     def test_can_split_key_existing_object(self):
         """Test can_split_key with an existing object."""
@@ -139,7 +139,7 @@ class TestResolver(unittest.TestCase):
 
     def test_can_split_key_missing_object(self):
         """Test can_split_key with a missing object."""
-        # MissingObject cannot be split
+        # Reference cannot be split
         key = ('tag', 'missing-tag')
         can_split = self.resolver.can_split_key(key)
         self.assertFalse(can_split)
@@ -171,17 +171,17 @@ class TestResolver(unittest.TestCase):
 
         report = self.resolver.report()
 
-        self.assertIsInstance(report, Report)
-        self.assertEqual(len(report.missing), 2)
-        self.assertIn(key1, report.missing)
-        self.assertIn(key2, report.missing)
+        self.assertIsInstance(report, ResolverReport)
+        self.assertEqual(len(report.phantoms), 2)
+        self.assertIn(key1, report.phantoms)
+        self.assertIn(key2, report.phantoms)
 
     def test_report_empty_when_no_missing_objects(self):
         """Test that report() returns empty list when no missing objects created."""
         report = self.resolver.report()
 
-        self.assertIsInstance(report, Report)
-        self.assertEqual(report.missing, {})
+        self.assertIsInstance(report, ResolverReport)
+        self.assertEqual(report.phantoms, {})
 
     def test_resolve_with_none_namespace(self):
         """Test resolver behavior with None namespace."""
@@ -190,7 +190,7 @@ class TestResolver(unittest.TestCase):
             Resolver(None)
 
 
-class TestResolverIntegration(unittest.TestCase):
+class TestResolverIntegration(TestCase):
     """Test resolver integration with real namespace and models."""
 
     def setUp(self):
@@ -224,7 +224,7 @@ class TestResolverIntegration(unittest.TestCase):
         key = ('tag', 'missing-tag')
         obj = self.resolver.resolve(key)
 
-        self.assertIsInstance(obj, MissingObject)
+        self.assertIsInstance(obj, Reference)
         self.assertEqual(obj.key(), key)
 
     def test_dependency_resolution_workflow(self):
@@ -246,12 +246,12 @@ class TestResolverIntegration(unittest.TestCase):
         # Resolve the missing parent
         parent_key = ('tag', 'parent-tag')
         resolved_parent = self.resolver.resolve(parent_key)
-        self.assertIsInstance(resolved_parent, MissingObject)
+        self.assertIsInstance(resolved_parent, Reference)
 
         # Check the report
         report = self.resolver.report()
-        self.assertEqual(len(report.missing), 1)
-        self.assertIn(parent_key, report.missing)
+        self.assertEqual(len(report.phantoms), 1)
+        self.assertIn(parent_key, report.phantoms)
 
 
 # The end.

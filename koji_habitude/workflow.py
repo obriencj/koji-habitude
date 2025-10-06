@@ -30,7 +30,7 @@ from .loader import MultiLoader, YAMLLoader
 from .models import Base
 from .namespace import Namespace, TemplateNamespace
 from .processor import DiffOnlyProcessor, Processor, ProcessorSummary
-from .resolver import Resolver, Report
+from .resolver import Resolver, ResolverReport
 from .solver import Solver
 
 
@@ -56,6 +56,8 @@ class WorkflowState(Enum):
     SOLVED = "solved"
     CONNECTING = "connecting"
     CONNECTED = "connected"
+    RESOLVING = "resolving"
+    RESOLVED = "resolved"
     PROCESSING = "processing"
     PROCESSED = "processed"
     COMPLETED = "completed"
@@ -69,11 +71,11 @@ class WorkflowStateError(Exception):
     pass
 
 
-class WorkflowMissingObjectsError(Exception):
+class WorkflowPhantomsError(Exception):
     """
-    Exception raised when the workflow has missing objects.
+    Exception raised when the workflow has phantoms.
     """
-    def __init__(self, message: str, report: Report):
+    def __init__(self, message: str, report: ResolverReport):
         super().__init__(message)
         self.report = report
 
@@ -85,6 +87,7 @@ class Workflow:
     template_paths: List[str | Path] = None
     profile: str = 'koji'
     chunk_size: int = 100
+    skip_phantoms: bool = False
 
     cls_multiloader: Type[MultiLoader] = MultiLoader
     cls_yamlloader: Type[YAMLLoader] = YAMLLoader
@@ -102,7 +105,7 @@ class Workflow:
 
     dataseries: List[Base] = field(init=False, default=None)
     summary: ProcessorSummary = field(init=False, default=None)
-    missing_report: Report = field(init=False, default=None)
+    resolver_report: ResolverReport = field(init=False, default=None)
 
     state: WorkflowState = field(init=False, default=WorkflowState.READY)
     _iter_workflow: Iterator[bool] = field(init=False, default=None)
@@ -183,42 +186,42 @@ class Workflow:
                                 WorkflowState.CONNECTED)
 
 
-    def review_missing_report(self):
+    def run_resolving(self):
+        yield self.state_change(WorkflowState.CONNECTED,
+                                WorkflowState.RESOLVING)
+
+        self.resolver.query_exists_references(self.session)
+        self.resolver_report = self.resolver.report()
+        self.review_resolver_report()
+
+        yield self.state_change(WorkflowState.RESOLVING,
+                                WorkflowState.RESOLVED)
+
+
+    def review_resolver_report(self):
         """
-        Review the missing report and raise an exception if there
-        are any missing objects.
+        Review the resolver report and raise an exception if there
+        are any phantoms.
         """
 
-        if len(self.missing_report.missing) > 0:
+        phantoms = self.resolver_report.phantoms
+        if len(phantoms) > 0 and not self.skip_phantoms:
             self.state = WorkflowState.FAILED
-            raise WorkflowMissingObjectsError(
-                f"Missing {len(self.missing_report.missing)} objects",
-                self.missing_report)
+            raise WorkflowPhantomsError(
+                f"Phantoms objects: {len(phantoms)}",
+                self.resolver_report)
 
 
     def run_processing(self):
-        yield self.state_change(WorkflowState.CONNECTED,
+        yield self.state_change(WorkflowState.RESOLVED,
                                 WorkflowState.PROCESSING)
-
-        missing_report = self.resolver.report()
-        if missing_report.missing:
-            missing_processor = DiffOnlyProcessor(
-                koji_session=self.session,
-                dataseries=missing_report.missing.values(),  # type: ignore
-                resolver=self.resolver,
-                chunk_size=self.chunk_size
-            )
-            missing_processor.run()
-            missing_report = self.resolver.report()
-
-        self.missing_report = missing_report
-        self.review_missing_report()
 
         self.processor = self.cls_processor(
             koji_session=self.session,
             dataseries=self.dataseries,
             resolver=self.resolver,
-            chunk_size=self.chunk_size
+            chunk_size=self.chunk_size,
+            skip_phantoms=self.skip_phantoms
         )
         self.summary = self.processor.run(self.processor_step_callback)
         yield self.state_change(WorkflowState.PROCESSING,
@@ -231,6 +234,7 @@ class Workflow:
         yield from self.run_loading()
         yield from self.run_solving()
         yield from self.run_connecting()
+        yield from self.run_resolving()
         yield from self.run_processing()
         yield self.state_change(WorkflowState.PROCESSED,
                                 WorkflowState.COMPLETED)
@@ -345,9 +349,10 @@ class SyncWorkflow(Workflow):
             paths: List[str | Path],
             template_paths: List[str | Path] = None,
             profile: str = 'koji',
-            chunk_size: int = 100):
+            chunk_size: int = 100,
+            skip_phantoms: bool = False):
 
-        super().__init__(paths, template_paths, profile, chunk_size)
+        super().__init__(paths, template_paths, profile, chunk_size, skip_phantoms)
 
 
 class DiffWorkflow(Workflow):
@@ -357,17 +362,17 @@ class DiffWorkflow(Workflow):
             paths: List[str | Path],
             template_paths: List[str | Path] = None,
             profile: str = 'koji',
-            chunk_size: int = 100):
+            chunk_size: int = 100,
+            skip_phantoms: bool = False):
 
         super().__init__(
-            paths, template_paths, profile, chunk_size,
+            paths, template_paths, profile, chunk_size, skip_phantoms,
             cls_processor=DiffOnlyProcessor)
 
 
-    def review_missing_report(self):
+    def review_resolver_report(self):
         """
-        Diff mode is allowed to have missing objects, so we don't need
-        to do anything.
+        Diff mode is allowed to have phantoms, so we don't need to do anything.
         """
 
         pass

@@ -11,14 +11,15 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: AI Generated with Human Rework
 
 
-from pydantic import BaseModel, Field, ConfigDict
-from koji import ClientSession, VirtualCall
+from enum import StrEnum
 from typing import (
     TYPE_CHECKING,
     Any, ClassVar, Dict, List, Optional, Protocol,
     Sequence, Tuple, Type, TypeAlias,
 )
 
+from pydantic import BaseModel, Field, ConfigDict
+from koji import ClientSession, VirtualCall, MultiCallNotReady
 
 if TYPE_CHECKING:
     from .change import ChangeReport
@@ -28,6 +29,7 @@ if TYPE_CHECKING:
 __all__ = (
     'Base',
     'BaseKey',
+    'BaseStatus',
     'BaseObject',
     'SubModel',
 )
@@ -37,6 +39,32 @@ BaseKey: TypeAlias = Tuple[str, str]
 """
 A tuple of (typename, name), used as the key for objects across this package
 """
+
+
+class BaseStatus(StrEnum):
+    """
+    Indicates the status of an object
+    """
+
+    PRESENT = "present"
+    """
+    Defined in a Namespace, and known to exist on the Koji instance
+    """
+
+    PENDING = "pending"
+    """
+    Defined in a Namespace, but not known to exist on the Koji instance
+    """
+
+    DISCOVERED = "discovered"
+    """
+    Dependency which is not defined in a Namespace, but is known to exist on the Koji instance
+    """
+
+    PHANTOM = "phantom"
+    """
+    Dependency which is not defined in a Namespace, and not known to exist on the Koji instance
+    """
 
 
 class Base(Protocol):
@@ -71,14 +99,30 @@ class Base(Protocol):
     def dependency_keys(self) -> Sequence[BaseKey]:
         ...
 
+    @property
+    def status(self) -> BaseStatus:
+        """
+        Indicates the status of this object
+        """
+        ...
+
     def exists(self) -> Any:
+        """
+        Indicates whether this object is known to exist on the Koji instance
+        """
         ...
 
     def query_exists(self, session: ClientSession) -> VirtualCall:
+        """
+        Resolve the existence of this object on the Koji instance
+        """
         ...
 
     @classmethod
     def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
+        """
+        Check the existence of a key of the given type and name on the Koji instance
+        """
         ...
 
     @classmethod
@@ -137,11 +181,31 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
         self._exists = None
 
 
+    @property
+    def status(self) -> BaseStatus:
+        # Reference objects will override this to return DISCOVERED or PHANTOM. But since
+        # objects of our types will always exist due to being defied in the Namespace,
+        # we don't worry about the Reference cases here.
+        return BaseStatus.PRESENT if self.exists() is not None else BaseStatus.PENDING
+
+
+    def is_phantom(self) -> bool:
+        return False
+
+
     def exists(self) -> Any:
-        return self._exists.result if self._exists is not None else None
+        # Check the value of the VirtualCall returned by the last `query_exists`
+        # call.
+        try:
+            return self._exists.result if self._exists is not None else None
+        except MultiCallNotReady:
+            return None
 
 
     def query_exists(self, session: ClientSession) -> VirtualCall:
+        # the default implementation defers to `check_exists` so that subclasses
+        # only need to implement that classmethod to provide the existence
+        # check.
         res = self.check_exists(session, self.key())
         if isinstance(res, VirtualCall):
             self._exists = res
@@ -169,7 +233,9 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
 
     def to_dict(self) -> Dict[str, Any]:
         """
-        Return a dictionary representation of this object.
+        Return a dictionary representation of this object. This is distinct from
+        the original data that was used to create the object, and may include
+        fields with default values and validated forms.
         """
         return self.model_dump(by_alias=True)
 
@@ -236,7 +302,8 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
 
     def dependency_keys(self) -> Sequence[BaseKey]:
         """
-        Return the keys of the dependencies of this object as a sequence of (typename, name) tuples
+        Return the keys of the dependencies of this object as a sequence of
+        (typename, name) tuples
         """
         return ()
 

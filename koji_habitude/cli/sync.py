@@ -13,20 +13,17 @@ import click
 
 from . import main
 from ..workflow import SyncWorkflow as _SyncWorkflow
-from ..workflow import WorkflowMissingObjectsError
-from .diff import catchall, display_missing, display_summary
+from ..workflow import WorkflowPhantomsError
+from .util import catchall, display_resolver_report, display_summary
 
 
 class SyncWorkflow(_SyncWorkflow):
 
-    def processor_step_callback(self, step, handled):
-        click.echo(f"Step #{step} processed chunk of {handled} objects")
-        report = self.resolver.report()
-        if report.missing:
-            for key in report.missing:
-                click.echo(f"Dependency missing: {key[0]} {key[1]}")
-            msg = "Missing dependencies found in the system"
-            raise click.ClickException(msg)
+    def workflow_state_change(self, from_state, to_state) -> bool:
+        return False
+
+    def processor_step_callback(self, step, handled) -> None:
+        pass
 
 
 @main.command()
@@ -40,8 +37,11 @@ class SyncWorkflow(_SyncWorkflow):
 @click.option(
     '--show-unchanged', 'show_unchanged', is_flag=True, default=False,
     help="Show objects that don't need any changes")
+@click.option(
+    '--skip-phantoms', 'skip_phantoms', is_flag=True, default=False,
+    help="Skip objects that are phantoms")
 @catchall
-def sync(data, templates=None, profile='koji', show_unchanged=False):
+def sync(data, templates=None, profile='koji', show_unchanged=False, skip_phantoms=False):
     """
     Synchronize local koji data expectations with hub instance.
 
@@ -52,17 +52,20 @@ def sync(data, templates=None, profile='koji', show_unchanged=False):
     definitions.
     """
 
+    workflow = SyncWorkflow(
+        data, templates,
+        profile=profile,
+        skip_phantoms=skip_phantoms)
+
     try:
-        workflow = SyncWorkflow(data, templates, profile)
         workflow.run()
-    except WorkflowMissingObjectsError as e:
-        display_missing(e.report)
+    except WorkflowPhantomsError as e:
+        display_resolver_report(e.report)
         return 1
-
-    display_summary(workflow.summary, show_unchanged)
-    display_missing(workflow.missing_report)
-
-    return 0
+    else:
+        display_summary(workflow.summary, show_unchanged)
+        display_resolver_report(workflow.resolver_report)
+        return 0
 
 
 # The end.

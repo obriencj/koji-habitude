@@ -44,7 +44,6 @@ class TagCreate(Change):
         res = session.createTag(
             self.obj.name,
             locked=self.obj.locked,
-            perm=self.obj.permission,
             arches=' '.join(self.obj.arches),
             maven_support=self.obj.maven_support,
             maven_include_all=self.obj.maven_include_all)
@@ -55,7 +54,6 @@ class TagCreate(Change):
         # parent tag's ID (not by name)
 
         if not self.obj._is_split:
-            logger.debug(f"Queueing getTag call for tag '{self.obj.name}'")
             self.obj.query_exists(session)
 
         return res
@@ -98,6 +96,12 @@ class TagSetLocked(Change):
 class TagSetPermission(Change):
     name: str
     permission: Optional[str]
+
+    _skippable: ClassVar[bool] = True
+
+    def skip_check_impl(self, resolver: 'Resolver') -> bool:
+        permission = resolver.resolve(('permission', self.permission))
+        return permission.is_phantom()
 
     def impl_apply(self, session: MultiCallSession):
         return session.editTag2(self.name, perm=self.permission)
@@ -257,6 +261,12 @@ class TagAddInheritance(Change):
     name: str
     parent: 'InheritanceLink'
 
+    _skippable: ClassVar[bool] = True
+
+    def skip_check_impl(self, resolver: 'Resolver') -> bool:
+        parent = resolver.resolve(self.parent.key())
+        return parent.is_phantom()
+
     def impl_apply(self, session: MultiCallSession):
         data = [{
             'parent_id': self.parent._parent_tag_id,
@@ -296,20 +306,15 @@ class TagAddInheritance(Change):
         tag = resolver.resolve(self.parent.key())
         logger.debug(f"Resolved parent tag '{self.parent.name}' to {tag}")
 
-        try:
-            tinfo = tag.exists()
-        except MultiCallNotReady:
+        tinfo = tag.exists()
+        if tinfo is None:
+            assert not tag.is_phantom()
             logger.debug(f"MultiCallNotReady, breaking out of multicall")
             return True
 
-        logger.debug(f"  exists: {tinfo}")
-
-        if tinfo:
-            logger.debug(f"Parent tag '{self.parent.name}' exists, ID: {tinfo['id']}")
-            self.parent._parent_tag_id = tinfo['id']
-            return False
-        else:
-            raise ValueError(f"Parent tag '{self.parent.name}' does not exist")
+        logger.debug(f"Parent tag '{self.parent.name}' exists, ID: {tinfo['id']}")
+        self.parent._parent_tag_id = tinfo['id']
+        return False
 
 
 @dataclass
@@ -357,6 +362,12 @@ class TagRemoveInheritance(Change):
 class TagAddExternalRepo(Change):
     name: str
     repo: 'ExternalRepoLink'
+
+    _skippable: ClassVar[bool] = True
+
+    def skip_check_impl(self, resolver: 'Resolver') -> bool:
+        repo = resolver.resolve(('external-repo', self.repo.name))
+        return repo.is_phantom()
 
     def impl_apply(self, session: MultiCallSession):
         arches = ' '.join(self.repo.arches) if self.repo.arches else None
@@ -524,6 +535,8 @@ class TagChangeReport(ChangeReport):
                 # we didn't need to split, so just do a normal create.
                 yield TagCreate(self.obj)
 
+            if self.obj.permission:
+                yield TagSetPermission(self.obj.name, self.obj.permission)
             yield TagSetExtras(self.obj.name, self.obj.extras)
             for group_name, group in self.obj.groups.items():
                 yield TagAddGroup(self.obj.name, group)
@@ -539,15 +552,14 @@ class TagChangeReport(ChangeReport):
 
         if info['locked'] != self.obj.locked:
             yield TagSetLocked(self.obj.name, self.obj.locked)
-        if info['perm'] != self.obj.permission:
-            yield TagSetPermission(self.obj.name, self.obj.permission)
-
         if not _compare_arches(info['arches'], self.obj.arches):
             yield TagSetArches(self.obj.name, self.obj.arches)
-
         if info['maven_support'] != self.obj.maven_support or \
            info['maven_include_all'] != self.obj.maven_include_all:
             yield TagSetMaven(self.obj.name, self.obj.maven_support, self.obj.maven_include_all)
+
+        if info['perm'] != self.obj.permission:
+            yield TagSetPermission(self.obj.name, self.obj.permission)
         if info['extra'] != self.obj.extras:
             yield TagSetExtras(self.obj.name, self.obj.extras)
 

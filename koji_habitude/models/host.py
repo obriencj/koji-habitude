@@ -94,6 +94,12 @@ class HostAddChannel(Change):
     name: str
     channel: str
 
+    _skippable: ClassVar[bool] = True
+
+    def skip_check_impl(self, resolver: 'Resolver') -> bool:
+        channel = resolver.resolve(('channel', self.channel))
+        return channel.is_phantom()
+
     def impl_apply(self, session: MultiCallSession):
         return session.addHostToChannel(self.name, self.channel)
 

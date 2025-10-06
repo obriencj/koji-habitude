@@ -27,6 +27,20 @@ class TargetCreate(Change):
     build_tag: str
     dest_tag: Optional[str] = None
 
+    _skippable: ClassVar[bool] = True
+
+    def skip_check_impl(self, resolver: 'Resolver') -> bool:
+        build_tag = resolver.resolve(('tag', self.build_tag))
+        if build_tag.is_phantom():
+            return True
+
+        dest_tag = self.dest_tag or self.name
+        dest_tag = resolver.resolve(('tag', dest_tag))
+        if dest_tag.is_phantom():
+            return True
+
+        return False
+
     def impl_apply(self, session: MultiCallSession) -> VirtualCall:
         return session.createBuildTarget(self.name, self.build_tag, self.dest_tag or self.name)
 
@@ -40,6 +54,20 @@ class TargetEdit(Change):
     name: str
     build_tag: str
     dest_tag: Optional[str] = None
+
+    _skippable: ClassVar[bool] = True
+
+    def skip_check_impl(self, resolver: 'Resolver') -> bool:
+        build_tag = resolver.resolve(('tag', self.build_tag))
+        if build_tag.is_phantom():
+            return True
+
+        dest_tag = self.dest_tag or self.name
+        dest_tag = resolver.resolve(('tag', dest_tag))
+        if dest_tag.is_phantom():
+            return True
+
+        return False
 
     def impl_apply(self, session: MultiCallSession) -> VirtualCall:
         # thank you, koji-typing
