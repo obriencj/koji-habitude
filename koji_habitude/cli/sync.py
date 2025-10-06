@@ -37,8 +37,11 @@ class SyncWorkflow(_SyncWorkflow):
 @click.option(
     '--show-unchanged', 'show_unchanged', is_flag=True, default=False,
     help="Show objects that don't need any changes")
+@click.option(
+    '--skip-phantoms', 'skip_phantoms', is_flag=True, default=False,
+    help="Skip objects that are phantoms")
 @catchall
-def sync(data, templates=None, profile='koji', show_unchanged=False):
+def sync(data, templates=None, profile='koji', show_unchanged=False, skip_phantoms=False):
     """
     Synchronize local koji data expectations with hub instance.
 
@@ -49,7 +52,11 @@ def sync(data, templates=None, profile='koji', show_unchanged=False):
     definitions.
     """
 
-    workflow = SyncWorkflow(data, templates, profile)
+    workflow = SyncWorkflow(
+        data, templates,
+        profile=profile,
+        skip_phantoms=skip_phantoms)
+
     try:
         workflow.run()
     except WorkflowPhantomsError as e:
