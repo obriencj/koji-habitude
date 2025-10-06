@@ -306,20 +306,14 @@ class TagAddInheritance(Change):
         tag = resolver.resolve(self.parent.key())
         logger.debug(f"Resolved parent tag '{self.parent.name}' to {tag}")
 
-        try:
-            tinfo = tag.exists()
-        except MultiCallNotReady:
+        tinfo = tag.exists()
+        if tinfo is None:
             logger.debug(f"MultiCallNotReady, breaking out of multicall")
             return True
 
-        logger.debug(f"  exists: {tinfo}")
-
-        if tinfo:
-            logger.debug(f"Parent tag '{self.parent.name}' exists, ID: {tinfo['id']}")
-            self.parent._parent_tag_id = tinfo['id']
-            return False
-        else:
-            raise ValueError(f"Parent tag '{self.parent.name}' does not exist")
+        logger.debug(f"Parent tag '{self.parent.name}' exists, ID: {tinfo['id']}")
+        self.parent._parent_tag_id = tinfo['id']
+        return False
 
 
 @dataclass
