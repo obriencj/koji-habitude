@@ -24,11 +24,22 @@ from jinja2 import (
     Environment, FileSystemLoader, StrictUndefined,
     Template as Jinja2Template,
 )
-from jinja2.exceptions import UndefinedError, TemplateNotFound
+from jinja2.exceptions import (
+    UndefinedError,
+    TemplateNotFound,
+    TemplateSyntaxError as Jinja2TemplateSyntaxError,
+    TemplateError as Jinja2TemplateError,
+)
 from jinja2.meta import find_undeclared_variables
 import yaml
 
 from .models import Base, BaseObject, BaseKey
+from .exceptions import (
+    TemplateSyntaxError,
+    TemplateRenderError,
+    TemplateOutputError,
+    TemplateError,
+)
 
 
 logger = logging.getLogger("koji_habitude.templates")
@@ -48,9 +59,10 @@ class TemplateCall(Base):
     def __init__(self, data: Dict[str, Any]):
         self.typename: str = data['type']  # type: ignore
         if self.typename is None:
-            raise TemplateException(
-                "template call must have a type",
-                data.get('__file__'), data.get('__line__'))
+            raise TemplateError(
+                original_error=ValueError("template call must have a type"),
+                data=data,
+            )
 
         self.name: str = data.get('name', self.typename)
         self.data: Dict[str, Any] = data
@@ -140,29 +152,47 @@ class Template(BaseObject):
 
         if self.template_content:
             if self.template_file:
-                raise TemplateException(
-                    ("Template content is not allowed when template"
-                     " file is specified"),
-                    self.filename, self.lineno)
+                raise TemplateError(
+                    original_error=ValueError(
+                        "Template content is not allowed when template file is specified"
+                    ),
+                    template=self,
+                )
 
             jinja_env = Environment(
                 trim_blocks=True,
                 lstrip_blocks=True,
                 undefined=StrictUndefined)
-            ast = jinja_env.parse(self.template_content)
+
+            try:
+                ast = jinja_env.parse(self.template_content)
+            except Jinja2TemplateSyntaxError as e:
+                raise TemplateSyntaxError(
+                    original_error=e,
+                    template=self,
+                ) from e
+            except Jinja2TemplateError as e:
+                raise TemplateError(
+                    original_error=e,
+                    template=self,
+                ) from e
 
         else:
             if not self.template_file:
-                raise TemplateException(
-                    ("Template content is required when template"
-                     " file is not specified"),
-                    self.filename, self.lineno)
+                raise TemplateError(
+                    original_error=ValueError(
+                        "Template content is required when template file is not specified"
+                    ),
+                    template=self,
+                )
 
             elif Path(self.template_file).is_absolute():
-                raise TemplateException(
-                    ("Absolute paths are not allowed with template"
-                     " file loading"),
-                    self.filename, self.lineno)
+                raise TemplateError(
+                    original_error=ValueError(
+                        "Absolute paths are not allowed with template file loading"
+                    ),
+                    template=self,
+                )
 
             if self.filename:
                 base_path = Path(self.filename).parent
@@ -176,8 +206,22 @@ class Template(BaseObject):
                 trim_blocks=True,
                 lstrip_blocks=True,
                 undefined=StrictUndefined)
-            src = loader.get_source(jinja_env, self.template_file)[0]
-            ast = jinja_env.parse(src)
+
+            try:
+                src = loader.get_source(jinja_env, self.template_file)[0]
+                ast = jinja_env.parse(src)
+            except Jinja2TemplateSyntaxError as e:
+                raise TemplateSyntaxError(
+                    original_error=e,
+                    template=self,
+                    template_file=self.template_file,
+                ) from e
+            except Jinja2TemplateError as e:
+                raise TemplateError(
+                    original_error=e,
+                    template=self,
+                    template_file=self.template_file,
+                ) from e
 
         self._undeclared = find_undeclared_variables(ast)
         self._jinja2_template = jinja_env.from_string(ast)
@@ -216,15 +260,21 @@ class Template(BaseObject):
         """
 
         if not self.validate_call(data):
-            msg = f"Data validation failed for template {self.name!r}"
-            raise TemplateValueError(msg)
+            raise TemplateRenderError(
+                original_error=ValueError(f"Data validation failed for template {self.name!r}"),
+                template=self,
+                data=data,
+            )
 
-        data = dict(self.defaults, **data)
+        merged_data = dict(self.defaults, **data)
         try:
-            return self._jinja2_template.render(**data)
+            return self._jinja2_template.render(**merged_data)
         except UndefinedError as e:
-            msg = f"Undefined variable in template {self.name!r}: {e}"
-            raise TemplateValueError(msg)
+            raise TemplateRenderError(
+                original_error=e,
+                template=self,
+                data=data,
+            ) from e
 
 
     def render_and_load(
@@ -262,41 +312,31 @@ class Template(BaseObject):
         if lineno:
             merge["__line__"] = lineno
 
-        for obj in yaml.safe_load_all(self.render(data)):
-            if not isinstance(obj, dict):
-                raise TemplateValueError(
-                    f"Template {self.name!r} returned non-dict object",
-                    self.filename, self.lineno)
-            obj.update(merge)
-            yield obj
+        rendered = self.render(data)
+
+        try:
+            for obj in yaml.safe_load_all(rendered):
+                if not isinstance(obj, dict):
+                    raise TemplateOutputError(
+                        message="Template returned non-dict object",
+                        template=self,
+                        data=data,
+                        rendered_content=rendered,
+                    )
+                obj.update(merge)
+                yield obj
+        except yaml.YAMLError as e:
+            raise TemplateOutputError(
+                message=f"Template rendered invalid YAML: {e}",
+                template=self,
+                data=data,
+                rendered_content=rendered,
+                original_exception=e,
+            ) from e
 
 
     def render_call(self, call: TemplateCall):
         return self.render_and_load(call.data)
-
-
-class TemplateException(Exception):
-    """
-    Exception raised for template errors.
-    """
-
-    def __init__(self, message, filename=None, lineno=None):
-        if filename:
-            if lineno:
-                message = f"{message} at {filename}:{lineno}"
-            else:
-                message = f"{message} at {filename}"
-        super().__init__(message)
-        self.filename = filename
-        self.lineno = lineno
-
-
-class TemplateValueError(ValueError, TemplateException):
-    """
-    Exception raised for template validation errors.
-    """
-
-    pass
 
 
 # The end.

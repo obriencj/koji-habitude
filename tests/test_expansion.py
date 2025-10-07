@@ -294,6 +294,7 @@ class TestExpansionErrorHandling(TestCase):
         documents = load_yaml_file(self.test_data_dir / 'test_invalid_jinja2_syntax.yaml')
 
         # Should raise TemplateSyntaxError during template creation
+        from koji_habitude.exceptions import TemplateSyntaxError
         with self.assertRaises(TemplateSyntaxError):
             self.ns.feedall_raw(documents)
 
@@ -305,6 +306,7 @@ class TestExpansionErrorHandling(TestCase):
         self.ns.feedall_raw(documents)
 
         # Should fail during expansion when trying to use generated template
+        from koji_habitude.exceptions import ValidationError
         with self.assertRaises(ValidationError):
             self.ns.expand()
 
