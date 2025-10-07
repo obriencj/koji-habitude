@@ -537,7 +537,8 @@ class TagChangeReport(ChangeReport):
 
             if self.obj.permission:
                 yield TagSetPermission(self.obj.name, self.obj.permission)
-            yield TagSetExtras(self.obj.name, self.obj.extras)
+            if self.obj.extras:
+                yield TagSetExtras(self.obj.name, self.obj.extras)
             for group_name, group in self.obj.groups.items():
                 yield TagAddGroup(self.obj.name, group)
                 for package in group.packages:
