@@ -18,6 +18,8 @@ from itertools import chain
 from pathlib import Path
 from typing import Any, Dict, Iterable, Iterator, List, Protocol, Sequence, Type
 
+from .exceptions import YAMLError
+
 
 __all__ = (
     'MultiLoader',
@@ -150,8 +152,10 @@ class MagicSafeLoader(yaml.SafeLoader):
 
 class LoaderProtocol(Protocol):
     extensions: Sequence[str]
+
     def __init__(self, filename: str | Path):
         ...
+
     def load(self) -> Iterator[Dict[str, Any]]:
         ...
 
@@ -182,9 +186,12 @@ class YAMLLoader(LoaderProtocol):
 
     def load(self):
         with open(self.filename, 'r') as fd:
-            for doc in yaml.load_all(fd, Loader=MagicSafeLoader):
-                doc['__file__'] = self.filename
-                yield doc
+            try:
+                for doc in yaml.load_all(fd, Loader=MagicSafeLoader):
+                    doc['__file__'] = self.filename
+                    yield doc
+            except yaml.YAMLError as e:
+                raise YAMLError(e, filename=self.filename) from e
 
 
 class MultiLoader:

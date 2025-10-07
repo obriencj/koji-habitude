@@ -90,7 +90,7 @@ class TestAddInto(unittest.TestCase):
         with self.assertRaises(RedefineError) as context:
             add_into(self.test_dict, "key1", self.mock_obj1_duplicate)
 
-        self.assertIn("Redefinition of key1", str(context.exception))
+        self.assertIn("Redefinition of 'key1'", str(context.exception))
         self.assertIn("file1.yaml:10", str(context.exception))
         self.assertIn("file3.yaml:30", str(context.exception))
 

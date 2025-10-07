@@ -19,9 +19,10 @@ from enum import Enum
 from logging import getLogger
 from typing import Any, Callable, ClassVar,Iterable, List, Optional, TYPE_CHECKING
 
-from koji import MultiCallSession, VirtualCall
+from koji import GenericError, MultiCallSession, VirtualCall
 
 from .base import Base, BaseKey
+from ..exceptions import ChangeApplyError, ChangeReadError
 
 if TYPE_CHECKING:
     from ..resolver import Resolver
@@ -360,8 +361,18 @@ class ChangeReport:
 
         if self.state != ChangeReportState.LOADED:
             raise ChangeReportError(f"Change report is not loaded: {self.state}")
+
         self.state = ChangeReportState.COMPARING
-        self.changes.extend(self.impl_compare())
+
+        try:
+            self.changes.extend(self.impl_compare())
+        except GenericError as e:
+            # Wrap koji errors that occur when accessing VirtualCall results
+            raise ChangeReadError(
+                original_error=e,
+                obj=self.obj,
+            ) from e
+
         self.state = ChangeReportState.COMPARED
 
 
@@ -410,9 +421,31 @@ class ChangeReport:
             raise ChangeReportError(f"Change report is not applied: {self.state}")
 
         self.state = ChangeReportState.CHECKING
+
         for change in self.changes:
-            # this will raise an exception if the change failed
-            change.result()
+            try:
+                # this will raise an exception if the change failed
+                change.result()
+            except GenericError as e:
+                # Wrap koji errors that occur when applying changes
+                # Extract method info from the VirtualCall if available
+                method_name = None
+                parameters = None
+                if change._result:
+                    method_name = getattr(change._result, '_method', None)
+                    args = getattr(change._result, '_args', None)
+                    kwargs = getattr(change._result, '_kwargs', None)
+                    if args or kwargs:
+                        parameters = {'args': args, 'kwargs': kwargs}
+
+                raise ChangeApplyError(
+                    original_error=e,
+                    obj=self.obj,
+                    change_description=change.explain(),
+                    method_name=method_name,
+                    parameters=parameters,
+                ) from e
+
         self.state = ChangeReportState.CHECKED
 
 

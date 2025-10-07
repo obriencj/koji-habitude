@@ -194,8 +194,10 @@ class User(BaseObject):
 
 
     def split(self) -> 'User':
+        child = User(name=self.name, enabled=self.enabled)
+        child._is_split = True
         self._was_split = True
-        return User(name=self.name, enabled=self.enabled)
+        return child
 
 
     def dependency_keys(self) -> List[BaseKey]:

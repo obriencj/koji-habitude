@@ -12,8 +12,19 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 from click import echo
 from typing import List
 from functools import wraps
-from pydantic import ValidationError
 from koji import GSSAPIAuthError, GenericError
+
+from ..exceptions import (
+    HabitudeError,
+    YAMLError,
+    ValidationError,
+    TemplateError,
+    ExpansionError,
+    RedefineError,
+    KojiError,
+    ChangeReadError,
+    ChangeApplyError,
+)
 
 
 __all__ = (
@@ -40,29 +51,65 @@ def resplit(strs: List[str], sep=',') -> List[str]:
 
 
 def catchall(func):
+    """
+    Decorator that catches and formats exceptions for CLI display.
+
+    HabitudeError exceptions are displayed with their rich context (file location,
+    template trace, etc.). Other exceptions are displayed with basic formatting.
+    """
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
 
+        except YAMLError as e:
+            # YAML parsing errors - show formatted error with file context
+            echo(f"YAML Error:\n{e}", err=True)
+            return 1
+
         except ValidationError as e:
-            echo(f"[ValidationError] {e}", err=True)
+            # Validation errors - show formatted error with object and file context
+            echo(f"Validation Error:\n{e}", err=True)
+            return 1
+
+        except (TemplateError, ExpansionError) as e:
+            # Template errors - show formatted error with template context
+            echo(f"Template Error:\n{e}", err=True)
+            return 1
+
+        except RedefineError as e:
+            # Redefinition errors - show formatted error with object locations
+            echo(f"Redefinition Error:\n{e}", err=True)
+            return 1
+
+        except KojiError as e:
+            # Koji API errors - show formatted error with operation context
+            echo(f"Koji Error:\n{e}", err=True)
             return 1
 
         except GSSAPIAuthError as e:
-            echo(f"[GSSAPIAuthError] {e}", err=True)
+            # Koji authentication errors (not wrapped by us)
+            echo(f"Authentication Error: {e}", err=True)
             return 1
 
         except GenericError as e:
-            echo(f"[GenericError] {e}", err=True)
+            # Generic koji errors (not wrapped by us)
+            echo(f"Koji Error: {e}", err=True)
+            return 1
+
+        except HabitudeError as e:
+            # Catch-all for any other HabitudeError subclasses
+            echo(f"Error:\n{e}", err=True)
             return 1
 
         except KeyboardInterrupt:
-            echo("[Keyboard interrupt]", err=True)
+            echo("\n[Interrupted]", err=True)
             return 130
 
         except Exception as e:
-            echo(f"[Error] {e}", err=True)
+            # Unexpected errors - display and re-raise for debugging
+            echo(f"Unexpected Error: {e}", err=True)
             raise
 
     return wrapper

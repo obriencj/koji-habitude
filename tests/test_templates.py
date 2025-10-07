@@ -21,9 +21,6 @@ from koji_habitude.loader import MultiLoader, YAMLLoader
 from koji_habitude.templates import (
     Template,
     TemplateCall,
-    TemplateException,
-    TemplateNotFound,
-    TemplateValueError,
 )
 
 
@@ -153,14 +150,16 @@ class TestTemplate(unittest.TestCase):
         """
 
         # Test missing both content and file
-        with self.assertRaises(TemplateException) as context:
+        from koji_habitude.exceptions import TemplateError
+        with self.assertRaises(TemplateError) as context:
             Template(type='template', name='test-template')
         self.assertIn("Template content is required", str(context.exception))
 
         # Test both content and file specified
+        from koji_habitude.exceptions import TemplateError
         with patch('pathlib.Path.exists', return_value=True), \
              patch('pathlib.Path.is_dir', return_value=True):
-            with self.assertRaises(TemplateException) as context:
+            with self.assertRaises(TemplateError) as context:
                 Template(
                     type='template',
                     name='test-template',
@@ -176,7 +175,8 @@ class TestTemplate(unittest.TestCase):
         """
 
         # Test missing base path when file is specified
-        with self.assertRaises(TemplateNotFound) as context:
+        from koji_habitude.exceptions import TemplateError
+        with self.assertRaises(TemplateError) as context:
             Template(
                 type='template',
                 name='test-template',
@@ -185,8 +185,9 @@ class TestTemplate(unittest.TestCase):
         self.assertIn("'template.j2' not found in search path:", str(context.exception))
 
         # Test non-existent base path
+        from koji_habitude.exceptions import TemplateError
         with patch('pathlib.Path.exists', return_value=False):
-            with self.assertRaises(TemplateNotFound) as context:
+            with self.assertRaises(TemplateError) as context:
                 Template(
                     type='template',
                     name='test-template',
@@ -196,9 +197,10 @@ class TestTemplate(unittest.TestCase):
             self.assertIn("'template.j2' not found in search path:", str(context.exception))
 
         # Test base path is not a directory
+        from koji_habitude.exceptions import TemplateError
         with patch('pathlib.Path.exists', return_value=True), \
              patch('pathlib.Path.is_dir', return_value=False):
-            with self.assertRaises(TemplateNotFound) as context:
+            with self.assertRaises(TemplateError) as context:
                 Template(
                     type='template',
                     name='test-template',
@@ -333,8 +335,9 @@ arches:
         template = Template.from_dict(template_data)
 
         # Mock validate to return False
+        from koji_habitude.exceptions import TemplateRenderError
         with patch.object(Template, 'validate_call', return_value=False):
-            with self.assertRaises(TemplateValueError) as context:
+            with self.assertRaises(TemplateRenderError) as context:
                 template.render({'test': 'data'})
             self.assertIn("Data validation failed", str(context.exception))
             self.assertIn("test-template", str(context.exception))
@@ -521,7 +524,7 @@ name: {{ name }}'''
 
         # Template with malformed Jinja2 syntax
         # Template creation should fail with malformed Jinja2 syntax
-        from jinja2.exceptions import TemplateSyntaxError
+        from koji_habitude.exceptions import TemplateSyntaxError
         with self.assertRaises(TemplateSyntaxError):
             Template(
                 type='template',
@@ -878,35 +881,6 @@ class TestTemplatesWithRealFiles(unittest.TestCase):
         self.assertEqual(trace[1]['name'], 'inline-tag-template')
         self.assertEqual(trace[1]['file'], str(template_file))
         self.assertEqual(trace[1]['line'], 3)
-
-
-class TestTemplateValueError(unittest.TestCase):
-    """
-    Test cases for TemplateValueError exception.
-    """
-
-    def test_template_value_error_inheritance(self):
-        """
-        Test TemplateValueError inherits from ValueError.
-        """
-
-        error = TemplateValueError("Test error")
-        self.assertIsInstance(error, ValueError)
-        self.assertEqual(str(error), "Test error")
-
-    def test_template_value_error_usage(self):
-        """
-        Test TemplateValueError can be raised and caught.
-        """
-
-        with self.assertRaises(TemplateValueError) as context:
-            raise TemplateValueError("Custom template error")
-
-        self.assertEqual(str(context.exception), "Custom template error")
-
-
-if __name__ == '__main__':
-    unittest.main()
 
 
 # The end.

@@ -537,7 +537,8 @@ class TagChangeReport(ChangeReport):
 
             if self.obj.permission:
                 yield TagSetPermission(self.obj.name, self.obj.permission)
-            yield TagSetExtras(self.obj.name, self.obj.extras)
+            if self.obj.extras:
+                yield TagSetExtras(self.obj.name, self.obj.extras)
             for group_name, group in self.obj.groups.items():
                 yield TagAddGroup(self.obj.name, group)
                 for package in group.packages:
@@ -852,7 +853,6 @@ class Tag(BaseObject):
     exact_packages: bool = Field(alias='exact-packages', default=False)
 
     _auto_split: ClassVar[bool] = True
-    _is_split: bool = False
 
 
     def model_post_init(self, __context: Any) -> None:
@@ -968,7 +968,6 @@ class Tag(BaseObject):
         child = Tag(
             name=self.name,
             arches=self.arches,
-            permission=self.permission,
             locked=self.locked,
             maven_support=self.maven_support,
             maven_include_all=self.maven_include_all,

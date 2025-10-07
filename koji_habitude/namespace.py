@@ -29,8 +29,15 @@ from typing import (
     Union,
 )
 
+from pydantic import ValidationError as PydanticValidationError
+
 from .models import Base, BaseKey, BaseObject, CORE_MODELS
 from .templates import Template, TemplateCall
+from .exceptions import (
+    ValidationError,
+    ExpansionError,
+    RedefineError,
+)
 
 
 __all__ = (
@@ -38,8 +45,6 @@ __all__ = (
     'TemplateNamespace',
     'ExpanderNamespace',
     'Redefine',
-    'RedefineError',
-    'ExpansionError',
 )
 
 
@@ -126,7 +131,7 @@ def add_into(
     logger = logger or default_logger
 
     if redefine == Redefine.ERROR:
-        raise RedefineError(f"Redefinition of {stmt}")
+        raise RedefineError(key, orig, obj)
 
     elif redefine == Redefine.IGNORE_WARN:
         logger.warning(f"Ignored redefinition of {stmt}")
@@ -150,20 +155,6 @@ def merge_into(
     """
     for key, obj in other.items():
         add_into(into, key, obj, redefine, logger)
-
-
-class RedefineError(Exception):
-    """
-    Indicates a redefinition of an object in the namespace
-    """
-    pass
-
-
-class ExpansionError(Exception):
-    """
-    Indicates an error during the template expansion process
-    """
-    pass
 
 
 class Namespace:
@@ -287,6 +278,7 @@ class Namespace:
         Raises:
             ValueError: If no type key is present, or if no type handler is
             found for the type
+            ValidationError: If pydantic validation fails for the object
         """
 
         objtype = objdict.get('type')
@@ -297,7 +289,13 @@ class Namespace:
         if cls is None:
             raise ValueError(f"No type handler for {objtype}")
 
-        return cls.from_dict(objdict)
+        try:
+            return cls.from_dict(objdict)
+        except PydanticValidationError as e:
+            raise ValidationError(
+                original_error=e,
+                objdict=objdict,
+            ) from e
 
 
     def to_objects(self, objseq: Sequence[Dict[str, Any]]) -> Iterator[Base]:
@@ -410,8 +408,10 @@ class Namespace:
                 # the first deferal, which would have to be a TemplateCall
                 call = deferals[0]
                 assert isinstance(call, TemplateCall)
-                msg = f"Could not resolve template: {call.typename}"
-                raise ExpansionError(msg)
+                raise ExpansionError(
+                    call=call,
+                    available_templates=list(self._templates.keys()),
+                )
 
 
     def _expand(self, sequence, deferals, depth=0):
