@@ -182,12 +182,15 @@ class Host(BaseObject):
 
 
     def split(self) -> 'Host':
-        return Host(
+        child = Host(
             name=self.name,
             arches=self.arches,
             capacity=self.capacity,
             enabled=self.enabled,
             description=self.description)
+        child._is_split = True
+        self._was_split = True
+        return child
 
 
     def dependency_keys(self) -> Sequence[BaseKey]:

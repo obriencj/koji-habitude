@@ -167,7 +167,8 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
     _exists: Optional[VirtualCall] = None
 
     _auto_split: ClassVar[bool] = False
-    _was_split: bool = False
+    _is_split: bool = False    # True if this is the minimal copy of a split
+    _was_split: bool = False   # True if this object has been split
 
     model_config = ConfigDict(validate_by_alias=True, validate_by_name=True)
 
@@ -252,7 +253,11 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
         """
         Return the key of this object as a tuple of (typename, name)
         """
-        return (self.yaml_type or self.typename, self.name)
+
+        typekey = self.yaml_type or self.typename
+        if self._is_split:
+            typekey = f"{typekey}.split"
+        return (typekey, self.name)
 
 
     def filepos(self) -> Tuple[Optional[str], Optional[int]]:
@@ -294,8 +299,10 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
         original object. Otherwise raise a TypeError.
         """
         if self._auto_split:
+            child = type(self)(name=self.name)
+            child._is_split = True
             self._was_split = True
-            return type(self)(name=self.name)
+            return child
         else:
             raise TypeError(f"Cannot split {self.typename}")
 

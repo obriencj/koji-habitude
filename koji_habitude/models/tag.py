@@ -852,7 +852,6 @@ class Tag(BaseObject):
     exact_packages: bool = Field(alias='exact-packages', default=False)
 
     _auto_split: ClassVar[bool] = True
-    _is_split: bool = False
 
 
     def model_post_init(self, __context: Any) -> None:
@@ -968,7 +967,6 @@ class Tag(BaseObject):
         child = Tag(
             name=self.name,
             arches=self.arches,
-            permission=self.permission,
             locked=self.locked,
             maven_support=self.maven_support,
             maven_include_all=self.maven_include_all,
