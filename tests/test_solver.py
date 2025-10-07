@@ -878,6 +878,7 @@ class TestSolverCircularDependencies(unittest.TestCase):
 
         # Should contain all objects from the file
         expected_keys = [
+            ('tag-split', 'tag-a'),
             ('tag', 'tag-a'),
             ('tag', 'tag-b'),
             ('tag', 'tag-c')
@@ -906,6 +907,7 @@ class TestSolverCircularDependencies(unittest.TestCase):
 
         # Should resolve all tags in the circular dependency
         expected_keys = [
+            ('tag-split', 'tag-a'),
             ('tag', 'tag-a'),
             ('tag', 'tag-b'),
             ('tag', 'tag-c')
@@ -925,6 +927,8 @@ class TestSolverCircularDependencies(unittest.TestCase):
 
         # Should contain all objects from the file
         expected_keys = [
+            ('tag-split', 'tag-1'),
+            ('tag-split', 'tag-4'),
             ('tag', 'base-tag'),
             ('tag', 'tag-1'),
             ('tag', 'tag-2'),
@@ -962,6 +966,8 @@ class TestSolverCircularDependencies(unittest.TestCase):
 
         # Should resolve all tags in the circular dependencies
         expected_keys = [
+            ('tag-split', 'tag-1'),
+            ('tag-split', 'tag-4'),
             ('tag', 'base-tag'),
             ('tag', 'tag-1'),
             ('tag', 'tag-2'),
@@ -1034,6 +1040,7 @@ class TestSolverCircularDependencies(unittest.TestCase):
         # Should contain objects from both files
         expected_keys = [
             # From circular_dependencies.yaml
+            ('tag-split', 'tag-a'),
             ('tag', 'tag-a'),
             ('tag', 'tag-b'),
             ('tag', 'tag-c'),
@@ -1431,6 +1438,7 @@ class TestSolverIntegration(unittest.TestCase):
 
         # Should contain all objects from the circular dependency
         expected_keys = [
+            ('tag-split', 'tag-a'),
             ('tag', 'tag-a'),
             ('tag', 'tag-b'),
             ('tag', 'tag-c')
@@ -1510,6 +1518,7 @@ class TestSolverIntegration(unittest.TestCase):
             ('user', 'user-with-missing-group'),
             ('tag', 'tag-with-missing-repo'),
             # From circular_dependencies.yaml
+            ('tag-split', 'tag-a'),
             ('tag', 'tag-a'),
             ('tag', 'tag-b'),
             ('tag', 'tag-c'),

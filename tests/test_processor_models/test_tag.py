@@ -114,8 +114,6 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         create_mock = Mock()
         create_mock.return_value = None
 
-        set_extras_mock = Mock()
-        set_extras_mock.return_value = None
 
         self.queue_client_response('getTag', get_tag_mock)
         self.queue_client_response('listPackages', list_packages_mock)
@@ -123,7 +121,6 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         self.queue_client_response('getInheritanceData', get_inheritance_mock)
         self.queue_client_response('getTagExternalRepos', get_external_repos_mock)
         self.queue_client_response('createTag', create_mock)
-        self.queue_client_response('editTag2', set_extras_mock)
         self.queue_client_response('getTag', get_tag_post_mock)
 
         processor = Processor(
@@ -145,7 +142,6 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         get_inheritance_mock.assert_not_called()
         get_external_repos_mock.assert_not_called()
         create_mock.assert_called_once()
-        set_extras_mock.assert_called_once_with('new-tag', extra={})
 
     def test_creation_with_complex_settings(self):
         """Test creating a tag with all settings."""
@@ -587,13 +583,6 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         create2_mock = Mock()
         create2_mock.return_value = None
 
-        # Mock setExtras calls
-        set_extras1_mock = Mock()
-        set_extras1_mock.return_value = None
-
-        set_extras2_mock = Mock()
-        set_extras2_mock.return_value = None
-
         set_permission2_mock = Mock()
         set_permission2_mock.return_value = None
 
@@ -603,7 +592,6 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         self.queue_client_response('getInheritanceData', get_inheritance1_mock)
         self.queue_client_response('getTagExternalRepos', get_external_repos1_mock)
         self.queue_client_response('createTag', create1_mock)
-        self.queue_client_response('editTag2', set_extras1_mock)
 
         self.queue_client_response('getTag', get_tag2_mock)
         self.queue_client_response('getTagGroups', get_groups2_mock)
@@ -611,7 +599,6 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         self.queue_client_response('getTagExternalRepos', get_external_repos2_mock)
         self.queue_client_response('createTag', create2_mock)
         self.queue_client_response('editTag2', set_permission2_mock)
-        self.queue_client_response('editTag2', set_extras2_mock)
 
         self.queue_client_response('getTag', get_tag_post1_mock)
         self.queue_client_response('getTag', get_tag_post2_mock)
@@ -634,8 +621,6 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         get_tag2_mock.assert_called_once_with('tag2', strict=False)
         create1_mock.assert_called_once()
         create2_mock.assert_called_once()
-        set_extras1_mock.assert_called_once_with('tag1', extra={})
-        set_extras2_mock.assert_called_once_with('tag2', extra={})
         get_tag_post1_mock.assert_called_once_with('tag1', strict=False)
         get_tag_post2_mock.assert_called_once_with('tag2', strict=False)
         set_permission2_mock.assert_called_once_with('tag2', perm='admin')
