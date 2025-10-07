@@ -15,7 +15,7 @@ This document tracks planned features and improvements for koji-habitude.
 ## 🚀 Immediate Next Steps
 
 **CLI Enhancements**:
-- [ ] Add comprehensive error handling and user feedback
+- [x] Add comprehensive error handling and user feedback
 - [ ] Implement progress bars and better status reporting
 - [ ] Enhance help text and documentation
 
@@ -50,7 +50,6 @@ This document tracks planned features and improvements for koji-habitude.
 - [ ] Add `--type` CLI option accepting comma-separated list
 - [ ] Implement type filtering in object loading and dependency resolution
 - [ ] Handle cross-type dependencies gracefully
-- [ ] Add validation for unknown type names
 
 **Supported Types**: `external-repo`, `user`, `tag`, `target`, `host`, `group`, `permission`
 

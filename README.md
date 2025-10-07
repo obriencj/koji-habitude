@@ -199,7 +199,11 @@ processing
 
 **Requirements:**
 - Python 3.8+
-- Koji client libraries, Click, PyYAML, Jinja2, Pydantic
+- [Koji](https://pagure.io/koji)
+- [Click](https://palletsprojects.com/p/click/)
+- [PyYAML](https://pyyaml.org/)
+- [Jinja2](https://palletsprojects.com/p/jinja/)
+- [Pydantic](https://docs.pydantic.dev/)
 
 **Installation:**
 ```bash

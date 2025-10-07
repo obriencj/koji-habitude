@@ -435,6 +435,11 @@ class Namespace:
         if depth > self.max_depth:
             raise ExpansionError(f"Maximum depth of {self.max_depth} reached")
 
+        # acted is a deadlock check. We need to have done at least one of the
+        # following actions to not be in a deadlock:
+        # 1. Added a template
+        # 2. Expanded a template call
+        # 3. Added an object
         acted = False
 
         for obj in sequence:
@@ -446,7 +451,7 @@ class Namespace:
 
                 templ = self._templates.get(obj.typename)
                 if not templ:
-                    # defer for another pass
+                    # template not defined (yet?) defer for another pass
                     deferals.append(obj)
 
                 else:
@@ -463,7 +468,7 @@ class Namespace:
                         # we re-expanding any nested calls. We want to
                         # give any earlier deferred calls a change to
                         # expand and potentially add their templates
-                        # first. This ensures a more consistend
+                        # first. This ensures a more consistent
                         # ordering, where we prefer to add templates
                         # from earlier on, even when they are expanded
                         # from other templates.
@@ -474,6 +479,9 @@ class Namespace:
 
             else:
                 if deferals:
+                    # we want to enforce some ordering, so if we are already
+                    # deferring, we need to give earlier calls a chance to
+                    # expand and add first.
                     deferals.append(obj)
                 else:
                     self.add(obj)

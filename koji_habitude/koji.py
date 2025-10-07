@@ -57,28 +57,27 @@ def session(profile: str = 'koji', authenticate: bool = False) -> ClientSession:
 
 class VirtualCallProcessor(VirtualCall):
     """
-    A VirtualCall that reports the results of the calls.
+    A VirtualCall that transforms the results of the call
     """
     def __init__(self, post_process, vcall: VirtualCall):
         self._vcall = vcall
         self._post_process = post_process
-        self._result = []
+        self._result = None
+        self._processed = False
 
     @property
     def result(self):
         logger.debug(f"VirtualCallProcessor.result: {self._result}")
-        if self._result:
-            return self._result[0]
 
-        res = self._vcall.result
-        res = self._post_process(res)
-        self._result.append(res)
-        return res
+        if not self._processed:
+            self._result = self._post_process(self._vcall.result)
+            self._processed = True
+        return self._result
 
 
 def call_processor(post_process, sessionmethod, *args, **kwargs):
     """
-    A multicall that reports the results of the calls.
+    A call that transforms the results
     """
     if not isinstance(sessionmethod, VirtualMethod):
         raise TypeError(f"sessionmethod must be a VirtualMethod, got {type(sessionmethod)}")
