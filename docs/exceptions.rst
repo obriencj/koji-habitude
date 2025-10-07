@@ -21,11 +21,11 @@ YAML Parsing Errors
 
 ``YAMLError``
     Wraps ``yaml.YAMLError`` when YAML files cannot be parsed.
-    
+
     **Example:**
-    
+
     .. code-block:: text
-    
+
         YAML Error:
         YAML parsing error: while parsing a block mapping
           Location: /data/tags/broken.yaml:4
@@ -35,13 +35,13 @@ Validation Errors
 
 ``ValidationError``
     Wraps pydantic validation errors when object data fails schema validation.
-    
+
     Shows which fields failed validation and why.
-    
+
     **Example:**
-    
+
     .. code-block:: text
-    
+
         Validation Error:
         Validation error for tag 'fedora-42-build' (2 validation errors):
           - arches: field required
@@ -58,11 +58,11 @@ Template Errors
 
 ``TemplateSyntaxError``
     Wraps Jinja2 syntax errors when template content has invalid syntax.
-    
+
     **Example:**
-    
+
     .. code-block:: text
-    
+
         Template Error:
         Error in template 'build-tag-template': unexpected '}'
           Location: /templates/common.yaml:15
@@ -71,11 +71,11 @@ Template Errors
 
 ``TemplateRenderError``
     Wraps Jinja2 rendering errors such as undefined variables.
-    
+
     **Example:**
-    
+
     .. code-block:: text
-    
+
         Template Error:
         Error in template 'build-tag-template': 'arch' is undefined
           Location: /templates/common.yaml:15
@@ -84,11 +84,11 @@ Template Errors
 
 ``TemplateOutputError``
     Raised when a template renders successfully but produces invalid output (invalid YAML or objects that fail validation).
-    
+
     **Example:**
-    
+
     .. code-block:: text
-    
+
         Template Error:
         Invalid output from template 'build-tag-template': Template rendered invalid YAML
           Location: /templates/common.yaml:15
@@ -98,13 +98,13 @@ Namespace Errors
 
 ``ExpansionError``
     Raised when template expansion fails, such as when a referenced template cannot be found.
-    
+
     Shows which templates are available to help identify typos.
-    
+
     **Example:**
-    
+
     .. code-block:: text
-    
+
         Template Error:
         Could not resolve template: missing-template
           Available templates: build-tag, release-tag, test-template
@@ -112,13 +112,13 @@ Namespace Errors
 
 ``RedefineError``
     Raised when attempting to redefine an object in the namespace (when ``redefine=Redefine.ERROR``).
-    
+
     Shows both the original and new object locations.
-    
+
     **Example:**
-    
+
     .. code-block:: text
-    
+
         Redefinition Error:
         Redefinition of tag 'fedora-42-build'
           Original: /data/tags.yaml:42
@@ -133,11 +133,11 @@ Koji API Errors
 
 ``ChangeReadError``
     Wraps ``koji.GenericError`` exceptions during the query/read phase when fetching current koji state.
-    
+
     **Example:**
-    
+
     .. code-block:: text
-    
+
         Koji Error:
         Koji error during query for tag 'fedora-42-build'
           Error: ServerOffline: database outage in progress
@@ -145,13 +145,13 @@ Koji API Errors
 
 ``ChangeApplyError``
     Wraps ``koji.GenericError`` exceptions during the apply phase when writing changes to koji.
-    
+
     Includes the specific change that failed and the koji method that was called.
-    
+
     **Example:**
-    
+
     .. code-block:: text
-    
+
         Koji Error:
         Koji error during apply changes for tag 'fedora-42-build'
           Koji method: createTag
@@ -177,7 +177,7 @@ When errors occur in objects created from templates, the **template trace** show
 This shows that:
 
 1. ``platform-release`` template (line 10 of platforms.yaml) was called
-2. Which expanded to ``release-tags`` template (line 42 of release.yaml)  
+2. Which expanded to ``release-tags`` template (line 42 of release.yaml)
 3. Which expanded to ``build-tag-template`` (line 15 of common.yaml)
 4. Which finally produced the object that caused the error
 
@@ -198,7 +198,7 @@ Example:
 
     from koji_habitude.exceptions import TemplateSyntaxError
     from jinja2.exceptions import TemplateSyntaxError as Jinja2Error
-    
+
     try:
         # ... code that might fail ...
     except TemplateSyntaxError as e:
@@ -225,7 +225,7 @@ State Machine Errors
 The following exceptions are **not** part of the ``HabitudeError`` hierarchy, as they represent programming errors rather than user data errors:
 
 - ``ProcessorStateError`` - Invalid processor state transitions
-- ``ChangeError`` - Invalid change state transitions  
+- ``ChangeError`` - Invalid change state transitions
 - ``ChangeReportError`` - Invalid change report state transitions
 - ``WorkflowStateError`` - Invalid workflow state transitions
 
@@ -239,7 +239,7 @@ When catching exceptions:
 1. **Catch specific types** when you know what to expect:
 
    .. code-block:: python
-   
+
        try:
            namespace.expand()
        except ExpansionError as e:
@@ -248,7 +248,7 @@ When catching exceptions:
 2. **Catch HabitudeError** to handle all user data errors:
 
    .. code-block:: python
-   
+
        try:
            workflow.run()
        except HabitudeError as e:
@@ -259,7 +259,7 @@ When catching exceptions:
 3. **Access original exceptions** for detailed debugging:
 
    .. code-block:: python
-   
+
        try:
            namespace.to_object(data)
        except ValidationError as e:
@@ -274,7 +274,7 @@ When catching exceptions:
 4. **Use exception attributes** to programmatically handle errors:
 
    .. code-block:: python
-   
+
        try:
            processor.run()
        except ChangeApplyError as e:
@@ -290,4 +290,3 @@ API Reference
     :members:
     :undoc-members:
     :show-inheritance:
-
