@@ -141,10 +141,16 @@ class GroupChangeReport(ChangeReport):
                 # call, so create now.
                 yield GroupCreate(self.obj.name)
 
+            if self.obj.is_split():
+                return
+
             for member in self.obj.members:
                 yield GroupAddMember(self.obj.name, member)
             for permission in self.obj.permissions:
                 yield GroupAddPermission(self.obj.name, permission)
+            return
+
+        if self.obj.is_split():
             return
 
         if info['status'] != (0 if self.obj.enabled else 1):

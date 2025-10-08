@@ -141,10 +141,16 @@ class UserChangeReport(ChangeReport):
                 # call, so create now.
                 yield UserCreate(self.obj.name, self.obj.enabled)
 
+            if self.obj.is_split():
+                return
+
             for permission in self.obj.permissions:
                 yield UserGrantPermission(self.obj.name, permission)
             for group in self.obj.groups:
                 yield UserAddToGroup(self.obj.name, group)
+            return
+
+        if self.obj.is_split():
             return
 
         if self.obj.enabled is not None:

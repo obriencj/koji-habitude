@@ -533,9 +533,13 @@ class TagChangeReport(ChangeReport):
                 # whose only job is to queue up a getTag call for ourself, so we can
                 # answer for our existence later and give dependents our ID.
                 yield SplitTagCheckup(self.obj)
+
             else:
                 # we didn't need to split, so just do a normal create.
                 yield TagCreate(self.obj)
+
+            if self.obj.is_split():
+                return
 
             if self.obj.permission:
                 yield TagSetPermission(self.obj.name, self.obj.permission)
@@ -551,6 +555,9 @@ class TagChangeReport(ChangeReport):
                 yield TagAddExternalRepo(self.obj.name, repo)
             for package in self.obj.packages:
                 yield TagPackageListAdd(self.obj.name, package)
+            return
+
+        if self.obj.is_split():
             return
 
         if info['locked'] != self.obj.locked:

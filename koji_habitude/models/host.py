@@ -133,6 +133,9 @@ class HostChangeReport(ChangeReport):
                 # call, so create now.
                 yield HostCreate(self.obj.name, self.obj.arches)
 
+            if self.obj.is_split():
+                return
+
             if self.obj.capacity is not None:
                 yield HostSetCapacity(self.obj.name, self.obj.capacity)
             if self.obj.enabled is not None and not self.obj.enabled:
@@ -141,6 +144,9 @@ class HostChangeReport(ChangeReport):
                 yield HostSetDescription(self.obj.name, self.obj.description)
             for channel in self.obj.channels:
                 yield HostAddChannel(self.obj.name, channel)
+            return
+
+        if self.obj.is_split():
             return
 
         arches = set(info['arches'].split())

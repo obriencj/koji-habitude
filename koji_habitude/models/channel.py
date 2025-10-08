@@ -100,8 +100,14 @@ class ChannelChangeReport(ChangeReport):
                 # call, so create now.
                 yield ChannelCreate(self.obj.name, self.obj.description)
 
+            if self.obj.is_split():
+                return
+
             for host in self.obj.hosts:
                 yield ChannelAddHost(self.obj.name, host)
+            return
+
+        if self.obj.is_split():
             return
 
         if self.obj.description is not None and info['description'] != self.obj.description:

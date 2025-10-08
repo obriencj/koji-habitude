@@ -93,6 +93,9 @@ class Base(Protocol):
     def was_split(self) -> bool:
         ...
 
+    def is_split(self) -> bool:
+        ...
+
     def split(self) -> Optional['Base']:
         ...
 
@@ -290,6 +293,13 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
         True if this object was split by a change report
         """
         return self._was_split
+
+
+    def is_split(self) -> bool:
+        """
+        True if this object is a split of another object
+        """
+        return self._is_split
 
 
     def split(self) -> 'BaseObject':
