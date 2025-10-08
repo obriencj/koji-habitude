@@ -1,7 +1,7 @@
 """
-koji_habitude.cli.sync
+koji_habitude.cli.apply
 
-Synchronize with Koji hub.
+Apply data onto a Koji hub instance.
 
 Author: Christopher O'Brien <obriencj@gmail.com>
 License: GNU General Public License v3
@@ -12,12 +12,12 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 import click
 
 from . import main
-from ..workflow import SyncWorkflow as _SyncWorkflow
+from ..workflow import ApplyWorkflow as _ApplyWorkflow
 from ..workflow import WorkflowPhantomsError
 from .util import catchall, display_resolver_report, display_summary
 
 
-class SyncWorkflow(_SyncWorkflow):
+class ApplyWorkflow(_ApplyWorkflow):
 
     def workflow_state_change(self, from_state, to_state) -> bool:
         return False
@@ -39,11 +39,11 @@ class SyncWorkflow(_SyncWorkflow):
     help="Show objects that don't need any changes")
 @click.option(
     '--skip-phantoms', 'skip_phantoms', is_flag=True, default=False,
-    help="Skip objects that are phantoms")
+    help="Skip objects that have phantom dependencies")
 @catchall
-def sync(data, templates=None, profile='koji', show_unchanged=False, skip_phantoms=False):
+def apply(data, templates=None, profile='koji', show_unchanged=False, skip_phantoms=False):
     """
-    Synchronize local koji data expectations with hub instance.
+    Apply local koji data expectations onto the hub instance.
 
     Loads templates and data files, resolves dependencies, and applies
     changes to the koji hub in the correct order.
@@ -52,7 +52,7 @@ def sync(data, templates=None, profile='koji', show_unchanged=False, skip_phanto
     definitions.
     """
 
-    workflow = SyncWorkflow(
+    workflow = ApplyWorkflow(
         data, templates,
         profile=profile,
         skip_phantoms=skip_phantoms)

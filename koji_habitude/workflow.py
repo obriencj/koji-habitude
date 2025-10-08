@@ -343,7 +343,7 @@ class Workflow:
         pass
 
 
-class SyncWorkflow(Workflow):
+class ApplyWorkflow(Workflow):
     def __init__(
             self,
             paths: List[str | Path],
