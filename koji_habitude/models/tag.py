@@ -349,13 +349,14 @@ class TagUpdateInheritance(Change):
 class TagRemoveInheritance(Change):
     name: str
     parent_id: str
+    parent_name: str
 
     def impl_apply(self, session: MultiCallSession):
         data = [{'parent_id': self.parent_id, 'delete link': True}]
         return session.setInheritanceData(self.name, data)
 
     def explain(self) -> str:
-        return f"Remove inheritance from '{self.parent}' in tag '{self.name}'"
+        return f"Remove inheritance from '{self.parent_name}' in tag '{self.name}'"
 
 
 @dataclass
@@ -613,7 +614,7 @@ class TagChangeReport(ChangeReport):
 
         for name, parent in koji_inher.items():
             if name not in inher:
-                yield TagRemoveInheritance(self.obj.name, parent['parent_id'])
+                yield TagRemoveInheritance(self.obj.name, parent['parent_id'], parent['name'])
 
         for name, parent in inher.items():
             if name not in koji_inher:
