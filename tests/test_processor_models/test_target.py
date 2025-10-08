@@ -13,7 +13,7 @@ from unittest.mock import Mock
 
 from koji_habitude.models import Target
 from koji_habitude.processor import (
-    DiffOnlyProcessor,
+    CompareOnlyProcessor,
     Processor,
     ProcessorState,
     ProcessorSummary,

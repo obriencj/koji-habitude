@@ -14,7 +14,7 @@ from unittest.mock import Mock
 from koji_habitude.models import Tag
 from koji_habitude.models.tag import ExternalRepoLink, InheritanceLink
 from koji_habitude.processor import (
-    DiffOnlyProcessor,
+    CompareOnlyProcessor,
     Processor,
     ProcessorState,
     ProcessorSummary,

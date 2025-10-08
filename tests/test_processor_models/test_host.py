@@ -13,7 +13,7 @@ from unittest.mock import Mock, call
 
 from koji_habitude.models import Host
 from koji_habitude.processor import (
-    DiffOnlyProcessor,
+    CompareOnlyProcessor,
     Processor,
     ProcessorState,
     ProcessorSummary,
@@ -469,5 +469,6 @@ class TestProcessorHostBehavior(MulticallMocking, TestCase):
             call('host2', enabled=False)
         ]
         edit2_mock.assert_has_calls(expected2_calls)
+
 
 # The end.

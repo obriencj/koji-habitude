@@ -14,7 +14,7 @@ from unittest import TestCase
 from pathlib import Path
 from typing import List, Any, Dict
 
-from koji_habitude.workflow import SyncWorkflow, WorkflowState
+from koji_habitude.workflow import ApplyWorkflow, WorkflowState
 from tests.test_processor_models import MulticallMocking, create_resolver_with_objects
 
 
