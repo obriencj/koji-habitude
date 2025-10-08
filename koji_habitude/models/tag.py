@@ -52,8 +52,9 @@ class TagCreate(Change):
         # considered as existing, and so we can fetch its ID later. Tag
         # Inheritance is the only place that cannot operate except by using the
         # parent tag's ID (not by name)
-
-        if not self.obj._is_split:
+        if self.obj._is_split:
+            self.obj._original.query_exists(session)
+        else:
             self.obj.query_exists(session)
 
         return res
@@ -855,6 +856,8 @@ class Tag(BaseObject):
 
     _auto_split: ClassVar[bool] = True
 
+    _original: Optional['Tag'] = None
+
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
@@ -974,6 +977,7 @@ class Tag(BaseObject):
             maven_include_all=self.maven_include_all,
         )
         child._is_split = True
+        child._original = self
         self._was_split = True
         return child
 

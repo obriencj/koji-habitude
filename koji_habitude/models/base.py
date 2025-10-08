@@ -255,8 +255,8 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
         """
 
         typekey = self.yaml_type or self.typename
-        if self._was_split:
-            typekey = f"{typekey}-configure"
+        if self._is_split:
+            typekey = f"{typekey}-split"
         return (typekey, self.name)
 
 
