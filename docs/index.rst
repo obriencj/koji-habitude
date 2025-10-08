@@ -3,7 +3,6 @@
 
    overview
    yaml_format
-   exceptions
    koji_habitude
    koji_habitude/loader
    koji_habitude/models
@@ -13,3 +12,4 @@
    koji_habitude/solver
    koji_habitude/processor
    koji_habitude/workflow
+   koji_habitude/exceptions
