@@ -29,7 +29,7 @@ from .koji import ClientSession, session
 from .loader import MultiLoader, YAMLLoader
 from .models import Base
 from .namespace import Namespace, TemplateNamespace
-from .processor import DiffOnlyProcessor, Processor, ProcessorSummary
+from .processor import CompareOnlyProcessor, Processor, ProcessorSummary
 from .resolver import Resolver, ResolverReport
 from .solver import Solver
 
@@ -343,7 +343,7 @@ class Workflow:
         pass
 
 
-class SyncWorkflow(Workflow):
+class ApplyWorkflow(Workflow):
     def __init__(
             self,
             paths: List[str | Path],
@@ -355,7 +355,7 @@ class SyncWorkflow(Workflow):
         super().__init__(paths, template_paths, profile, chunk_size, skip_phantoms)
 
 
-class DiffWorkflow(Workflow):
+class CompareWorkflow(Workflow):
 
     def __init__(
             self,
@@ -367,7 +367,7 @@ class DiffWorkflow(Workflow):
 
         super().__init__(
             paths, template_paths, profile, chunk_size, skip_phantoms,
-            cls_processor=DiffOnlyProcessor)
+            cls_processor=CompareOnlyProcessor)
 
 
     def review_resolver_report(self):

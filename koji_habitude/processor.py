@@ -343,7 +343,7 @@ class Processor:
         return self.state == ProcessorState.BROKEN
 
 
-class DiffOnlyProcessor(Processor):
+class CompareOnlyProcessor(Processor):
     """
     Processor variant that only performs read and compare operations.
 

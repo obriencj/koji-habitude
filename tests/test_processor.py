@@ -14,7 +14,7 @@ from unittest import TestCase
 from unittest.mock import Mock, MagicMock, patch
 from typing import List, Any, Dict
 
-from koji_habitude.processor import Processor, DiffOnlyProcessor, ProcessorState, ProcessorSummary
+from koji_habitude.processor import Processor, CompareOnlyProcessor, ProcessorState, ProcessorSummary
 from koji_habitude.solver import Solver
 from koji_habitude.models import Base, BaseKey
 from koji_habitude.koji import session
@@ -252,31 +252,31 @@ class TestProcessorBasic(ProcessorTestBase):
         self.assertEqual(processor.state, ProcessorState.EXHAUSTED)
 
     def test_diff_only_processor_creation(self):
-        """Test that DiffOnlyProcessor can be created."""
+        """Test that CompareOnlyProcessor can be created."""
         # Configure the read_config mock to return a proper config
 
         mock_session = create_test_koji_session()
         empty_solver = create_empty_solver()
 
-        processor = DiffOnlyProcessor(
+        processor = CompareOnlyProcessor(
             koji_session=mock_session,
             dataseries=empty_solver,
             resolver=None,
             chunk_size=10
         )
 
-        self.assertIsInstance(processor, DiffOnlyProcessor)
+        self.assertIsInstance(processor, CompareOnlyProcessor)
         self.assertEqual(processor.chunk_size, 10)
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
     def test_diff_only_processor_with_empty_solver(self):
-        """Test DiffOnlyProcessor with empty solver."""
+        """Test CompareOnlyProcessor with empty solver."""
         # Configure the read_config mock to return a proper config
 
         mock_session = create_test_koji_session()
         empty_solver = create_empty_solver()
 
-        processor = DiffOnlyProcessor(
+        processor = CompareOnlyProcessor(
             koji_session=mock_session,
             dataseries=empty_solver,
             resolver=None,

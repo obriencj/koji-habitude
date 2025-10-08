@@ -36,7 +36,7 @@ keep projects packagers happy.
 ## Current Status
 
 **Implemented:**
-- Complete CLI framework with all core commands (`sync`, `diff`, `expand`,
+- Complete CLI framework with all core commands (`apply`, `compare`, `expand`,
   `list-templates`)
 - All Koji object types (8 CORE_MODELS) with Pydantic validation
 - Dependency resolution architecture (Resolver and Solver modules)
@@ -58,18 +58,18 @@ provides four main commands:
 
 ### Core Commands
 
-**`sync`** - Synchronize with Koji hub
+**`apply`** - Synchronize with Koji hub
 ```bash
-koji-habitude sync [OPTIONS] DATA [DATA...]
+koji-habitude apply [OPTIONS] DATA [DATA...]
 ```
 - Loads templates and data files with dependency resolution
 - Processes objects in dependency-resolved order using Solver
 - Fetches current state from koji using multicall optimization
 - Applies changes in correct order with error handling
 
-**`diff`** - Show differences (dry-run)
+**`compare`** - Show differences (dry-run)
 ```bash
-koji-habitude diff [OPTIONS] DATA [DATA...]
+koji-habitude compare [OPTIONS] DATA [DATA...]
 ```
 - Same processing as sync command but skips write operations
 - Uses DiffOnlyProcessor to prevent actual changes
@@ -188,7 +188,7 @@ intelligent resolution:
   multicall integration
 - **Change Tracking**: `ChangeReport` system tracks all modifications with
   detailed explanations
-- **Dry-Run Support**: `DiffOnlyProcessor` for previewing changes without
+- **Dry-Run Support**: `CompareOnlyProcessor` for previewing changes without
   applying them
 
 **Data Flow**: YAML files → Template expansion → Dependency resolution → Tiered

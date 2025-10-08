@@ -1,7 +1,7 @@
 """
-koji_habitude.cli.diff
+koji_habitude.cli.compare
 
-Diff two sets of data.
+Compare local data against a Koji instance
 
 Author: Christopher O'Brien <obriencj@gmail.com>
 License: GNU General Public License v3
@@ -12,7 +12,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 import click
 
 from . import main
-from ..workflow import DiffWorkflow
+from ..workflow import CompareWorkflow
 from .util import catchall, display_resolver_report, display_summary
 
 
@@ -28,7 +28,7 @@ from .util import catchall, display_resolver_report, display_summary
     '--show-unchanged', 'show_unchanged', is_flag=True, default=False,
     help="Show objects that don't need any changes")
 @catchall
-def diff(data, templates=None, profile='koji', show_unchanged=False):
+def compare(data, templates=None, profile='koji', show_unchanged=False):
     """
     Show what changes would be made without applying them.
 
@@ -36,7 +36,7 @@ def diff(data, templates=None, profile='koji', show_unchanged=False):
     definitions.
     """
 
-    workflow = DiffWorkflow(
+    workflow = CompareWorkflow(
         paths=data,
         template_paths=templates,
         profile=profile)
