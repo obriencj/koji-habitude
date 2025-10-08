@@ -21,8 +21,8 @@ import click
 class MagicGroup(click.Group):
     def _load_commands(self):
         # delaying to avoid circular imports
-        from .sync import sync
-        from .diff import diff
+        from .apply import apply
+        from .compare import compare
         from .templates import list_templates
         from .expand import expand
 
