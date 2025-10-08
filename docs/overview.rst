@@ -37,11 +37,12 @@ Current Status
 --------------
 
 **Implemented:** - Complete CLI framework with all core commands
-(``sync``, ``diff``, ``expand``, ``list-templates``) - All Koji object
-types (8 CORE_MODELS) with Pydantic validation - Dependency resolution
-architecture (Resolver and Solver modules) - Processor module with state
-machine and multicall integration - Comprehensive unit testing (360
-tests, 74% coverage) - Template expansion and change tracking system
+(``apply``, ``compare``, ``expand``, ``list-templates``) - All Koji
+object types (8 CORE_MODELS) with Pydantic validation - Dependency
+resolution architecture (Resolver and Solver modules) - Processor module
+with state machine and multicall integration - Comprehensive unit
+testing (360 tests, 74% coverage) - Template expansion and change
+tracking system
 
 **Next Steps:** - CLI testing coverage improvements - Integration
 testing on a real koji instance - Performance optimization and error
@@ -57,22 +58,22 @@ commands:
 Core Commands
 ~~~~~~~~~~~~~
 
-**``sync``** - Synchronize with Koji hub
+**``apply``** - Synchronize with Koji hub
 
 .. code:: bash
 
-   koji-habitude sync [OPTIONS] DATA [DATA...]
+   koji-habitude apply [OPTIONS] DATA [DATA...]
 
 - Loads templates and data files with dependency resolution
 - Processes objects in dependency-resolved order using Solver
 - Fetches current state from koji using multicall optimization
 - Applies changes in correct order with error handling
 
-**``diff``** - Show differences (dry-run)
+**``compare``** - Show differences (dry-run)
 
 .. code:: bash
 
-   koji-habitude diff [OPTIONS] DATA [DATA...]
+   koji-habitude compare [OPTIONS] DATA [DATA...]
 
 - Same processing as sync command but skips write operations
 - Uses DiffOnlyProcessor to prevent actual changes
@@ -206,7 +207,7 @@ Architecture Components
   multicall integration
 - **Change Tracking**: ``ChangeReport`` system tracks all modifications
   with detailed explanations
-- **Dry-Run Support**: ``DiffOnlyProcessor`` for previewing changes
+- **Dry-Run Support**: ``CompareOnlyProcessor`` for previewing changes
   without applying them
 
 **Data Flow**: YAML files → Template expansion → Dependency resolution →
@@ -215,8 +216,11 @@ Tiered processing
 Requirements & Installation
 ---------------------------
 
-**Requirements:** - Python 3.8+ - Koji client libraries, Click, PyYAML,
-Jinja2, Pydantic
+**Requirements:** - Python 3.8+ - `Koji <https://pagure.io/koji>`__ -
+`Click <https://palletsprojects.com/p/click/>`__ -
+`PyYAML <https://pyyaml.org/>`__ -
+`Jinja2 <https://palletsprojects.com/p/jinja/>`__ -
+`Pydantic <https://docs.pydantic.dev/>`__
 
 **Installation:**
 
