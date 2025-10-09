@@ -21,10 +21,10 @@ import click
 class MagicGroup(click.Group):
     def _load_commands(self):
         # delaying to avoid circular imports
-        from .apply import apply
-        from .compare import compare
-        from .templates import list_templates
-        from .expand import expand
+        from . import apply
+        from . import compare
+        from . import templates
+        from . import expand
 
     def get_command(self, ctx, cmd_name):
         self._load_commands()

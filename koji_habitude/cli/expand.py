@@ -52,7 +52,7 @@ def expand(data, templates=None, validate=False, select=[]):
         template_ns.feedall_raw(load_yaml_files(templates))
         template_ns.expand()
 
-    namespace._templates.update(template_ns._templates)
+    namespace.merge_templates(template_ns)
 
     # Load and process data files
     namespace.feedall_raw(load_yaml_files(data))

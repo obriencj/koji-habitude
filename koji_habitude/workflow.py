@@ -352,7 +352,12 @@ class ApplyWorkflow(Workflow):
             chunk_size: int = 100,
             skip_phantoms: bool = False):
 
-        super().__init__(paths, template_paths, profile, chunk_size, skip_phantoms)
+        super().__init__(
+            paths=paths,
+            template_paths=template_paths,
+            profile=profile,
+            chunk_size=chunk_size,
+            skip_phantoms=skip_phantoms)
 
 
 class CompareWorkflow(Workflow):
@@ -366,7 +371,77 @@ class CompareWorkflow(Workflow):
             skip_phantoms: bool = False):
 
         super().__init__(
-            paths, template_paths, profile, chunk_size, skip_phantoms,
+            paths=paths,
+            template_paths=template_paths,
+            profile=profile,
+            chunk_size=chunk_size,
+            skip_phantoms=skip_phantoms,
+            cls_processor=CompareOnlyProcessor)
+
+
+    def review_resolver_report(self):
+        """
+        Diff mode is allowed to have phantoms, so we don't need to do anything.
+        """
+
+        pass
+
+
+    def get_session(self, profile: str = 'koji') -> ClientSession:
+        """
+        Override the default session creation to not authenticate.
+        """
+
+        return session(profile, authenticate=False)
+
+
+@dataclass
+class DictWorkflow(Workflow):
+    objects: List[Dict[str, Any]] = field(default_factory=list)
+
+    def load_data(
+            self,
+            paths: List[Union[str, Path]],
+            templates: TemplateNamespace = None) -> Namespace:
+
+        data_ns = self.cls_namespace()
+        if templates:
+            data_ns.merge_templates(templates)
+        data_ns.feedall_raw(self.objects)
+        data_ns.expand()
+        return data_ns
+
+
+class ApplyDictWorkflow(DictWorkflow):
+    def __init__(
+            self,
+            objects: List[Dict[str, Any]],
+            template_paths: List[str | Path] = None,
+            profile: str = 'koji',
+            chunk_size: int = 100,
+            skip_phantoms: bool = False):
+        super().__init__(
+            objects=objects,
+            template_paths=template_paths,
+            profile=profile,
+            chunk_size=chunk_size,
+            skip_phantoms=skip_phantoms)
+
+
+class CompareDictWorkflow(DictWorkflow):
+    def __init__(
+            self,
+            objects: List[Dict[str, Any]],
+            template_paths: List[str | Path] = None,
+            profile: str = 'koji',
+            chunk_size: int = 100,
+            skip_phantoms: bool = False):
+        super().__init__(
+            objects=objects,
+            template_paths=template_paths,
+            profile=profile,
+            chunk_size=chunk_size,
+            skip_phantoms=skip_phantoms,
             cls_processor=CompareOnlyProcessor)
 
 

@@ -53,49 +53,81 @@ keep projects packagers happy.
 ## CLI Commands
 
 koji-habitude is built using [Click](https://click.palletsprojects.com/) and
-provides four main commands:
+provides four main commands plus a template subcommand group for working with
+individual templates.
 
 
-### Core Commands
+### Main Commands
 
-**`apply`** - Synchronize with Koji hub
+**`apply`** - Apply changes to Koji hub
 ```bash
 koji-habitude apply [OPTIONS] DATA [DATA...]
 ```
 - Loads templates and data files with dependency resolution
-- Processes objects in dependency-resolved order using Solver
-- Fetches current state from koji using multicall optimization
-- Applies changes in correct order with error handling
+- Applies changes to koji hub in the correct order
+- Options: `--templates PATH`, `--profile PROFILE`, `--show-unchanged`, `--skip-phantoms`
 
 **`compare`** - Show differences (dry-run)
 ```bash
 koji-habitude compare [OPTIONS] DATA [DATA...]
 ```
-- Same processing as sync command but skips write operations
-- Uses DiffOnlyProcessor to prevent actual changes
+- Same processing as apply but without making changes
 - Provides detailed change analysis and dependency reporting
+- Options: `--templates PATH`, `--profile PROFILE`, `--show-unchanged`
 
-**`expand`** - Expand templates and output final YAML
+**`expand`** - Expand templates to YAML
 ```bash
 koji-habitude expand [OPTIONS] DATA [DATA...]
 ```
-- Loads templates and processes data files through template expansion
-- Outputs final YAML content to stdout
-- Use `--validate` flag for offline validation
+- Expands templates and outputs final YAML to stdout
+- Options: `--templates PATH`, `--validate`, `--select TYPE`
 
-**`list-templates`** - List and inspect available templates
+**`list-templates`** - List available templates
 ```bash
-koji-habitude list-templates [OPTIONS] PATH [PATH...]
+koji-habitude list-templates [OPTIONS] [PATH...]
 ```
-- Lists available templates with options for YAML output and full details
-- Use `--select NAME` to filter specific templates
+- Lists templates with their configuration details
+- Options: `--templates PATH`, `--yaml`, `--full`, `--select NAME`
 
 
-### Common Options
-- `DATA`: directories or files to work with
-- `--templates PATH`: location to find templates not in `DATA`
+### Template Subcommands
+
+Work with individual templates by name:
+
+**`template show`** - Show template definition
+```bash
+koji-habitude template show [OPTIONS] NAME
+```
+- Displays the definition of a single template
+- Options: `--templates PATH`, `--yaml`
+
+**`template expand`** - Expand single template
+```bash
+koji-habitude template expand [OPTIONS] NAME [KEY=VALUE...]
+```
+- Expands a template with given variables and outputs YAML
+- Options: `--templates PATH`, `--validate`
+
+**`template compare`** - Compare single template
+```bash
+koji-habitude template compare [OPTIONS] NAME [KEY=VALUE...]
+```
+- Expands and compares a template against koji (dry-run)
+- Options: `--templates PATH`, `--profile PROFILE`, `--show-unchanged`
+
+**`template apply`** - Apply single template
+```bash
+koji-habitude template apply [OPTIONS] NAME [KEY=VALUE...]
+```
+- Expands and applies a template to koji
+- Options: `--templates PATH`, `--profile PROFILE`, `--show-unchanged`
+
+
+### Common Patterns
+- `DATA`: Directories or files containing YAML definitions
+- `--templates PATH`: Additional template locations (can be repeated)
 - `--profile PROFILE`: Koji profile to use (default: 'koji')
-- `--show-unchanged`: Show objects that don't need changes
+- `--show-unchanged`: Include objects that don't need changes
 
 
 ## YAML Format & Templates
