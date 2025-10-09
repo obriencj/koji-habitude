@@ -40,8 +40,8 @@ def print_template(tmpl: Template, full: bool = False):
         if tmpl.template_file:
             print(f"  content: <file: {tmpl.template_file}>")
         else:
-            print(f"  content: '''\n{tmpl.template_content}\n'''"
-                  " # end content for {tmpl.name}")
+            print(f"  content: '''\n{tmpl.template_content}\n"
+                  f"''' # end content for {tmpl.name}")
     else:
         if tmpl.defaults:
             print("  defaults:")
