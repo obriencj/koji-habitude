@@ -238,6 +238,13 @@ class Namespace:
         return self._templates.values()
 
 
+    def get_template(self, name: str) -> Optional[Template]:
+        """
+        Return the template in the namespace with the given name.
+        """
+        return self._templates.get(name)
+
+
     def merge_templates(
         self,
         other: 'Namespace',

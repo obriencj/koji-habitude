@@ -181,7 +181,7 @@ def template_show(
         pretty_yaml(tmpl.to_dict())
         return
 
-    print_template(tmpl, full)
+    print_template(tmpl, True)
     click.echo()
 
 
