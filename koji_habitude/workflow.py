@@ -386,4 +386,35 @@ class CompareWorkflow(Workflow):
         return session(profile, authenticate=False)
 
 
+class DictWorkflow(Workflow):
+    def __init__(
+            self,
+            objects: List[Dict[str, Any]],
+            template_paths: List[str | Path] = None,
+            profile: str = 'koji',
+            chunk_size: int = 100,
+            skip_phantoms: bool = False):
+
+        super().__init__(
+            [], template_paths, profile, chunk_size, skip_phantoms)
+
+        self.objects = objects
+
+    def load_data(
+            self,
+            paths: List[Union[str, Path]],
+            templates: TemplateNamespace = None) -> Namespace:
+
+        data_ns = self.cls_namespace()
+        if templates:
+            data_ns.merge_templates(templates)
+        data_ns.feedall_raw(self.objects)
+        data_ns.expand()
+        return data_ns
+
+
+class CompareDictWorkflow(DictWorkflow, CompareWorkflow):
+    pass
+
+
 # The end.

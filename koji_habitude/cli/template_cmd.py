@@ -16,7 +16,8 @@ from . import main
 from ..loader import load_yaml_files, pretty_yaml_all
 from ..namespace import TemplateNamespace, ExpanderNamespace, Namespace
 from ..templates import Template
-from .util import catchall, resplit
+from .util import catchall, resplit, display_summary, display_resolver_report
+from ..workflow import CompareDictWorkflow
 
 
 def print_template(tmpl: Template, full: bool = False):
@@ -191,7 +192,6 @@ def template_expand(
 @catchall
 def template_compare(
         template_name,
-        dirs=[],
         template_dirs=[],
         variables=[],
         profile='koji',
@@ -206,8 +206,29 @@ def template_compare(
     Use --var to provide template variables.
     """
 
-    # TODO: Implementation - expand template and compare with koji
-    print(f"template compare {template_name} - not yet implemented")
+    data = {
+        '__file__': "<user-input>",
+        'type': template_name,
+    }
+    for var in variables:
+        if '=' not in var:
+            key, value = var, ''
+        else:
+            key, value = var.split('=', 1)
+        data[key] = value
+
+
+    workflow = CompareDictWorkflow(
+        objects=[data],
+        template_paths=template_dirs,
+        profile=profile,
+    )
+    workflow.run()
+
+    display_summary(workflow.summary, show_unchanged)
+    display_resolver_report(workflow.resolver_report)
+
+    return 1 if workflow.resolver_report.phantoms else 0
 
 
 @template.command('apply')
