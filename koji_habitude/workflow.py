@@ -428,7 +428,7 @@ class ApplyDictWorkflow(DictWorkflow):
             skip_phantoms=skip_phantoms)
 
 
-class CompareDictWorkflow(DictWorkflow, CompareWorkflow):
+class CompareDictWorkflow(DictWorkflow):
     def __init__(
             self,
             objects: List[Dict[str, Any]],
@@ -441,7 +441,24 @@ class CompareDictWorkflow(DictWorkflow, CompareWorkflow):
             template_paths=template_paths,
             profile=profile,
             chunk_size=chunk_size,
-            skip_phantoms=skip_phantoms)
+            skip_phantoms=skip_phantoms,
+            cls_processor=CompareOnlyProcessor)
+
+
+    def review_resolver_report(self):
+        """
+        Diff mode is allowed to have phantoms, so we don't need to do anything.
+        """
+
+        pass
+
+
+    def get_session(self, profile: str = 'koji') -> ClientSession:
+        """
+        Override the default session creation to not authenticate.
+        """
+
+        return session(profile, authenticate=False)
 
 
 # The end.
