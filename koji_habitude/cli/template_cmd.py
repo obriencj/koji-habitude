@@ -113,18 +113,19 @@ def template_list(
     used.
     """
 
-    ns = TemplateNamespace()
-    if template_dirs:
-        ns.feedall_raw(load_yaml_files(template_dirs))
-    else:
-        ns.feedall_raw(load_yaml_files([Path.cwd()]))
-    ns.expand()
+    tns = TemplateNamespace()
+    if not template_dirs:
+        template_dirs = list(Path.cwd().glob('*.yml'))
+        template_dirs.extend(Path.cwd().glob('*.yaml'))
+
+    tns.feedall_raw(load_yaml_files(template_dirs))
+    tns.expand()
 
     if select:
         select = resplit(select)
-        expanded = (tmpl for tmpl in ns.templates() if tmpl.name in select)
+        expanded = (tmpl for tmpl in tns.templates() if tmpl.name in select)
     else:
-        expanded = ns.templates()
+        expanded = tns.templates()
 
     if yaml:
         pretty_yaml_all((obj.to_dict() for obj in expanded))
@@ -157,10 +158,11 @@ def template_expand(
     """
 
     tns = TemplateNamespace()
-    if template_dirs:
-        tns.feedall_raw(load_yaml_files(template_dirs))
-    else:
-        tns.feedall_raw(load_yaml_files([Path.cwd()]))
+    if not template_dirs:
+        template_dirs = list(Path.cwd().glob('*.yml'))
+        template_dirs.extend(Path.cwd().glob('*.yaml'))
+
+    tns.feedall_raw(load_yaml_files(template_dirs))
     tns.expand()
 
     ns = Namespace() if validate else ExpanderNamespace()
@@ -206,6 +208,10 @@ def template_compare(
 
     data = call_from_args(template_name, variables)
 
+    if not template_dirs:
+        template_dirs = list(Path.cwd().glob('*.yml'))
+        template_dirs.extend(Path.cwd().glob('*.yaml'))
+
     workflow = CompareDictWorkflow(
         objects=[data],
         template_paths=template_dirs,
@@ -247,6 +253,10 @@ def template_apply(
     """
 
     data = call_from_args(template_name, variables)
+
+    if not template_dirs:
+        template_dirs = list(Path.cwd().glob('*.yml'))
+        template_dirs.extend(Path.cwd().glob('*.yaml'))
 
     workflow = ApplyDictWorkflow(
         objects=[data],
