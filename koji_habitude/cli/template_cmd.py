@@ -11,13 +11,33 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 import click
 from pathlib import Path
+from typing import List, Dict, Any
 
 from . import main
 from ..loader import load_yaml_files, pretty_yaml_all
 from ..namespace import TemplateNamespace, ExpanderNamespace, Namespace
 from ..templates import Template
 from .util import catchall, resplit, display_summary, display_resolver_report
-from ..workflow import CompareDictWorkflow
+from ..workflow import ApplyDictWorkflow, CompareDictWorkflow
+
+
+def call_from_args(
+    template_name: str,
+    variables: List[str]) -> Dict[str, Any]:
+
+    data = {
+        '__file__': "<user-input>",
+        'type': template_name,
+    }
+
+    for var in variables:
+        if '=' not in var:
+            key, value = var, ''
+        else:
+            key, value = var.split('=', 1)
+        data[key] = value
+
+    return data
 
 
 def print_template(tmpl: Template, full: bool = False):
@@ -83,7 +103,6 @@ def template():
     help="Select templates by name")
 @catchall
 def template_list(
-        dirs=[],
         template_dirs=[],
         yaml=False,
         full=False,
@@ -118,30 +137,23 @@ def template_list(
 
 @template.command('expand')
 @click.argument('template_name', metavar='NAME')
+@click.argument('variables', metavar='KEY=VALUE', nargs=-1)
 @click.option(
     '--templates', '-T', 'template_dirs', metavar='PATH', multiple=True,
     help="Load templates from the given paths")
-@click.option(
-    '--var', '-V', 'variables', metavar='KEY=VALUE', multiple=True,
-    help="Set template variable (can be specified multiple times)")
 @click.option(
     '--validate', 'validate', is_flag=True, default=False,
     help="Validate the expanded template")
 @catchall
 def template_expand(
         template_name,
-        template_dirs=[],
         variables=[],
+        template_dirs=[],
         validate=False):
     """
     Expand a single template and show the result.
 
-    NAME is the name of the template to expand.
-
-    PATH can be directories containing template files.
-
-    Use --var to provide template variables, e.g.:
-      --var name=mytag --var arches=x86_64
+    NAME is the name of the template to expand with the given KEY=VALUE variables
     """
 
     tns = TemplateNamespace()
@@ -154,17 +166,7 @@ def template_expand(
     ns = Namespace() if validate else ExpanderNamespace()
     ns.merge_templates(tns)
 
-    tc = {
-        '__file__': "<user-input>",
-        'type': template_name,
-    }
-    for var in variables:
-        if '=' not in var:
-            key, value = var, ''
-        else:
-            key, value = var.split('=', 1)
-        tc[key] = value
-    ns.feed_raw(tc)
+    ns.feed_raw(call_from_args(template_name, variables))
     ns.expand()
 
     if validate:
@@ -177,12 +179,10 @@ def template_expand(
 
 @template.command('compare')
 @click.argument('template_name', metavar='NAME')
+@click.argument('variables', metavar='KEY=VALUE', nargs=-1)
 @click.option(
     '--templates', '-T', 'template_dirs', metavar='PATH', multiple=True,
     help="Load templates from the given paths")
-@click.option(
-    '--var', '-V', 'variables', metavar='KEY=VALUE', multiple=True,
-    help="Set template variable (can be specified multiple times)")
 @click.option(
     '--profile', default='koji',
     help="Koji profile to use for connection")
@@ -192,31 +192,19 @@ def template_expand(
 @catchall
 def template_compare(
         template_name,
-        template_dirs=[],
         variables=[],
+        template_dirs=[],
         profile='koji',
         show_unchanged=False):
     """
     Compare a single template expansion with koji.
 
-    NAME is the name of the template to expand and compare.
+    NAME is the name of the template to expand with the given KEY=VALUE variables
 
-    PATH can be directories containing template files.
-
-    Use --var to provide template variables.
+    The expanded objects will then be compared with the objects on the koji instance.
     """
 
-    data = {
-        '__file__': "<user-input>",
-        'type': template_name,
-    }
-    for var in variables:
-        if '=' not in var:
-            key, value = var, ''
-        else:
-            key, value = var.split('=', 1)
-        data[key] = value
-
+    data = call_from_args(template_name, variables)
 
     workflow = CompareDictWorkflow(
         objects=[data],
@@ -233,12 +221,10 @@ def template_compare(
 
 @template.command('apply')
 @click.argument('template_name', metavar='NAME')
+@click.argument('variables', metavar='KEY=VALUE', nargs=-1)
 @click.option(
     '--templates', '-T', 'template_dirs', metavar='PATH', multiple=True,
     help="Load templates from the given paths")
-@click.option(
-    '--var', '-V', 'variables', metavar='KEY=VALUE', multiple=True,
-    help="Set template variable (can be specified multiple times)")
 @click.option(
     '--profile', default='koji',
     help="Koji profile to use for connection")
@@ -248,23 +234,31 @@ def template_compare(
 @catchall
 def template_apply(
         template_name,
-        dirs=[],
-        template_dirs=[],
         variables=[],
+        template_dirs=[],
         profile='koji',
         show_unchanged=False):
     """
-    Apply a single template expansion to koji.
+    Apply a single template expansion with koji.
 
-    NAME is the name of the template to expand and apply.
+    NAME is the name of the template to expand with the given KEY=VALUE variables
 
-    PATH can be directories containing template files.
-
-    Use --var to provide template variables.
+    The expanded objects will then be compared against and applied to the koji instance.
     """
 
-    # TODO: Implementation - expand template and apply to koji
-    print(f"template apply {template_name} - not yet implemented")
+    data = call_from_args(template_name, variables)
+
+    workflow = ApplyDictWorkflow(
+        objects=[data],
+        template_paths=template_dirs,
+        profile=profile,
+    )
+    workflow.run()
+
+    display_summary(workflow.summary, show_unchanged)
+    display_resolver_report(workflow.resolver_report)
+
+    return 1 if workflow.resolver_report.phantoms else 0
 
 
 # The end.

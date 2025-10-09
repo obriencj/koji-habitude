@@ -386,19 +386,10 @@ class CompareWorkflow(Workflow):
         return session(profile, authenticate=False)
 
 
+@dataclass
 class DictWorkflow(Workflow):
-    def __init__(
-            self,
-            objects: List[Dict[str, Any]],
-            template_paths: List[str | Path] = None,
-            profile: str = 'koji',
-            chunk_size: int = 100,
-            skip_phantoms: bool = False):
-
-        super().__init__(
-            [], template_paths, profile, chunk_size, skip_phantoms)
-
-        self.objects = objects
+    objects: List[Dict[str, Any]] = field(default_factory=list)
+    paths: None = field(init=False, default=None)
 
     def load_data(
             self,
@@ -413,8 +404,26 @@ class DictWorkflow(Workflow):
         return data_ns
 
 
+class ApplyDictWorkflow(DictWorkflow):
+    def __init__(
+            self,
+            objects: List[Dict[str, Any]],
+            template_paths: List[str | Path] = None,
+            profile: str = 'koji',
+            chunk_size: int = 100,
+            skip_phantoms: bool = False):
+        super().__init__(objects, template_paths, profile, chunk_size, skip_phantoms)
+
+
 class CompareDictWorkflow(DictWorkflow, CompareWorkflow):
-    pass
+    def __init__(
+            self,
+            objects: List[Dict[str, Any]],
+            template_paths: List[str | Path] = None,
+            profile: str = 'koji',
+            chunk_size: int = 100,
+            skip_phantoms: bool = False):
+        super().__init__(objects, template_paths, profile, chunk_size, skip_phantoms)
 
 
 # The end.
