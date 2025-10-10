@@ -71,7 +71,7 @@ def print_template(tmpl: Template, full: bool = False):
         else:
             echo(style("Content:", fg="yellow") + " '''\n" +
                  style(f"{tmpl.template_content}\n", fg="magenta") +
-                 "''' " + style(f"# end content for {tmpl.name}"))
+                 "''' " + style(f"# end content for {tmpl.name}", fg="bright_black"))
 
 
 @main.command()
