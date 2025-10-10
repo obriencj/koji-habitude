@@ -35,9 +35,9 @@ class UserCreate(Create):
             status = 0 if self.obj.enabled else 1
         return session.createUser(self.obj.name, status=status)
 
-    def explain(self) -> str:
+    def summary(self) -> str:
         status_info = f" (enabled={self.obj.enabled})" if self.obj.enabled is not None else ""
-        return f"Create user '{self.obj.name}'{status_info}"
+        return f"Create user {self.obj.name}{status_info}"
 
 
 @dataclass
