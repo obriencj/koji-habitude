@@ -72,7 +72,7 @@ class GroupAddMember(Add):
         return session.addGroupMember(self.obj.name, self.member)
 
     def summary(self) -> str:
-        return f"Add member '{self.member}'"
+        return f"Add member {self.member}"
 
 
 @dataclass
@@ -84,7 +84,7 @@ class GroupRemoveMember(Remove):
         return session.dropGroupMember(self.obj.name, self.member)
 
     def summary(self) -> str:
-        return f"Remove member '{self.member}'"
+        return f"Remove member {self.member}"
 
 
 @dataclass
@@ -102,7 +102,7 @@ class GroupAddPermission(Add):
         return session.grantPermission(self.obj.name, self.permission, create=True)
 
     def summary(self) -> str:
-        return f"Grant permission '{self.permission}'"
+        return f"Grant permission {self.permission}"
 
 
 @dataclass
@@ -114,7 +114,7 @@ class GroupRemovePermission(Remove):
         return session.revokePermission(self.obj.name, self.permission)
 
     def summary(self) -> str:
-        return f"Revoke permission '{self.permission}'"
+        return f"Revoke permission {self.permission}"
 
 
 class GroupChangeReport(ChangeReport):

@@ -383,7 +383,7 @@ class TagAddExternalRepo(Add):
             arches=arches)
 
     def summary(self) -> str:
-        msg = "with priority {self.repo.priority}"
+        msg = f"with priority {self.repo.priority}"
         if self.repo.arches:
             msg += f" and arches {self.repo.arches!r}"
         if self.repo.merge_mode:

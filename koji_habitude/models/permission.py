@@ -59,7 +59,7 @@ class PermissionCreate(Create):
 
     def summary(self) -> str:
         desc_info = f" with description {self.obj.description!r}" if self.obj.description else ""
-        return f"Create permission '{self.obj.name}'{desc_info}"
+        return f"Create permission {self.obj.name}{desc_info}"
 
 
 @dataclass
