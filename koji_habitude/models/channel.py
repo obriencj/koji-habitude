@@ -18,43 +18,42 @@ from koji import ClientSession, MultiCallSession, VirtualCall
 from pydantic import Field
 
 from .base import BaseObject, BaseKey
-from .change import ChangeReport, Change
+from .change import ChangeReport, Change, Create, Update, Add, Remove
 
 if TYPE_CHECKING:
     from ..resolver import Resolver
 
 
 @dataclass
-class ChannelCreate(Change):
-    name: str
-    description: Optional[str] = None
+class ChannelCreate(Create):
+    obj: 'Channel'
 
     def impl_apply(self, session: MultiCallSession):
-        return session.createChannel(self.name, self.description)
+        return session.createChannel(self.obj.name, self.obj.description)
 
     def explain(self) -> str:
-        desc_info = f" with description '{self.description}'" if self.description else ""
-        return f"Create channel '{self.name}'{desc_info}"
+        desc_info = f" with description '{self.obj.description}'" if self.obj.description else ""
+        return f"Create channel '{self.obj.name}'{desc_info}"
 
 
 @dataclass
-class ChannelSetDescription(Change):
-    name: str
-    description: Optional[str] = None
+class ChannelSetDescription(Update):
+    obj: 'Channel'
+    description: Optional[str]
 
     def impl_apply(self, session: MultiCallSession):
-        return session.editChannel(self.name, description=self.description)
+        return session.editChannel(self.obj.name, description=self.description)
 
     def explain(self) -> str:
         if self.description:
-            return f"Set description for channel '{self.name}' to '{self.description}'"
+            return f"Set description for channel '{self.obj.name}' to '{self.description}'"
         else:
-            return f"Remove description from channel '{self.name}'"
+            return f"Remove description from channel '{self.obj.name}'"
 
 
 @dataclass
-class ChannelAddHost(Change):
-    name: str
+class ChannelAddHost(Add):
+    obj: 'Channel'
     host: str
 
     _skippable: ClassVar[bool] = True
@@ -64,22 +63,22 @@ class ChannelAddHost(Change):
         return host.is_phantom()
 
     def impl_apply(self, session: MultiCallSession):
-        return session.addHostToChannel(self.host, self.name)
+        return session.addHostToChannel(self.host, self.obj.name)
 
-    def explain(self) -> str:
-        return f"Add host '{self.host}' to channel '{self.name}'"
+    def summary(self) -> str:
+        return f"Add host '{self.host}'"
 
 
 @dataclass
-class ChannelRemoveHost(Change):
-    name: str
+class ChannelRemoveHost(Remove):
+    obj: 'Channel'
     host: str
 
     def impl_apply(self, session: MultiCallSession):
-        return session.removeHostFromChannel(self.host, self.name)
+        return session.removeHostFromChannel(self.host, self.obj.name)
 
-    def explain(self) -> str:
-        return f"Remove host '{self.host}' from channel '{self.name}'"
+    def summary(self) -> str:
+        return f"Remove host '{self.host}'"
 
 
 class ChannelChangeReport(ChangeReport):
@@ -98,30 +97,30 @@ class ChannelChangeReport(ChangeReport):
             if not self.obj.was_split():
                 # we don't exist, and we didn't split our create to an earlier
                 # call, so create now.
-                yield ChannelCreate(self.obj.name, self.obj.description)
+                yield ChannelCreate(self.obj)
 
             if self.obj.is_split():
                 return
 
             for host in self.obj.hosts:
-                yield ChannelAddHost(self.obj.name, host)
+                yield ChannelAddHost(self.obj, host)
             return
 
         if self.obj.is_split():
             return
 
         if self.obj.description is not None and info['description'] != self.obj.description:
-            yield ChannelSetDescription(self.obj.name, self.obj.description)
+            yield ChannelSetDescription(self.obj, self.obj.description)
 
         hosts = {host['name']: host for host in self._hosts.result}
         for host in self.obj.hosts:
             if host not in hosts:
-                yield ChannelAddHost(self.obj.name, host)
+                yield ChannelAddHost(self.obj, host)
 
         if self.obj.exact_hosts:
             for host in hosts:
                 if host not in self.obj.hosts:
-                    yield ChannelRemoveHost(self.obj.name, host)
+                    yield ChannelRemoveHost(self.obj, host)
 
 
 class Channel(BaseObject):

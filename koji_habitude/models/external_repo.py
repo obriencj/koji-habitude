@@ -18,34 +18,33 @@ from koji import ClientSession, MultiCallSession, VirtualCall
 from pydantic import Field
 
 from .base import BaseObject, BaseKey
-from .change import ChangeReport, Change
+from .change import ChangeReport, Change, Create, Update
 
 if TYPE_CHECKING:
     from ..resolver import Resolver
 
 
 @dataclass
-class ExternalRepoCreate(Change):
-    name: str
-    url: str
+class ExternalRepoCreate(Create):
+    obj: 'ExternalRepo'
 
     def impl_apply(self, session: MultiCallSession):
-        return session.createExternalRepo(self.name, self.url)
+        return session.createExternalRepo(self.obj.name, self.obj.url)
 
     def explain(self) -> str:
-        return f"Create external repo '{self.name}' with URL '{self.url}'"
+        return f"Create external repo '{self.obj.name}' with URL '{self.obj.url}'"
 
 
 @dataclass
-class ExternalRepoSetURL(Change):
-    name: str
+class ExternalRepoSetURL(Update):
+    obj: 'ExternalRepo'
     url: str
 
     def impl_apply(self, session: MultiCallSession):
-        return session.editExternalRepo(self.name, url=self.url)
+        return session.editExternalRepo(self.obj.name, url=self.url)
 
-    def explain(self) -> str:
-        return f"Set URL for external repo '{self.name}' to '{self.url}'"
+    def summary(self) -> str:
+        return f"Set URL to '{self.url}'"
 
 
 class ExternalRepoChangeReport(ChangeReport):
@@ -57,11 +56,11 @@ class ExternalRepoChangeReport(ChangeReport):
     def impl_compare(self):
         info = self._external_repoinfo.result
         if not info:
-            yield ExternalRepoCreate(self.obj.name, self.obj.url)
+            yield ExternalRepoCreate(self.obj)
             return
 
         if info['url'] != self.obj.url:
-            yield ExternalRepoSetURL(self.obj.name, self.obj.url)
+            yield ExternalRepoSetURL(self.obj, self.obj.url)
 
 
 class ExternalRepo(BaseObject):

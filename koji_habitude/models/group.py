@@ -18,48 +18,48 @@ from koji import ClientSession, MultiCallSession, VirtualCall
 from pydantic import Field
 
 from .base import BaseObject, BaseKey
-from .change import Change, ChangeReport
+from .change import Change, ChangeReport, Create, Update, Add, Remove
 
 if TYPE_CHECKING:
     from ..resolver import Resolver
 
 
 @dataclass
-class GroupCreate(Change):
-    name: str
+class GroupCreate(Create):
+    obj: 'Group'
 
     def impl_apply(self, session: MultiCallSession):
-        return session.newGroup(self.name)
+        return session.newGroup(self.obj.name)
 
     def explain(self) -> str:
-        return f"Create group '{self.name}'"
+        return f"Create group '{self.obj.name}'"
 
 
 @dataclass
-class GroupEnable(Change):
-    name: str
+class GroupEnable(Update):
+    obj: 'Group'
 
     def impl_apply(self, session: MultiCallSession):
-        return session.enableUser(self.name)
+        return session.enableUser(self.obj.name)
 
-    def explain(self) -> str:
-        return f"Enable group '{self.name}'"
+    def summary(self) -> str:
+        return "Enable group"
 
 
 @dataclass
-class GroupDisable(Change):
-    name: str
+class GroupDisable(Update):
+    obj: 'Group'
 
     def impl_apply(self, session: MultiCallSession):
-        return session.disableUser(self.name)
+        return session.disableUser(self.obj.name)
 
-    def explain(self) -> str:
-        return f"Disable group '{self.name}'"
+    def summary(self) -> str:
+        return "Disable group"
 
 
 @dataclass
-class GroupAddMember(Change):
-    name: str
+class GroupAddMember(Add):
+    obj: 'Group'
     member: str
 
     _skippable: ClassVar[bool] = True
@@ -69,27 +69,27 @@ class GroupAddMember(Change):
         return member.is_phantom()
 
     def impl_apply(self, session: MultiCallSession):
-        return session.addGroupMember(self.name, self.member)
+        return session.addGroupMember(self.obj.name, self.member)
 
-    def explain(self) -> str:
-        return f"Add member '{self.member}' to group '{self.name}'"
+    def summary(self) -> str:
+        return f"Add member '{self.member}'"
 
 
 @dataclass
-class GroupRemoveMember(Change):
-    name: str
+class GroupRemoveMember(Remove):
+    obj: 'Group'
     member: str
 
     def impl_apply(self, session: MultiCallSession):
-        return session.dropGroupMember(self.name, self.member)
+        return session.dropGroupMember(self.obj.name, self.member)
 
-    def explain(self) -> str:
-        return f"Remove member '{self.member}' from group '{self.name}'"
+    def summary(self) -> str:
+        return f"Remove member '{self.member}'"
 
 
 @dataclass
-class GroupAddPermission(Change):
-    name: str
+class GroupAddPermission(Add):
+    obj: 'Group'
     permission: str
 
     _skippable: ClassVar[bool] = True
@@ -99,22 +99,22 @@ class GroupAddPermission(Change):
         return permission.is_phantom()
 
     def impl_apply(self, session: MultiCallSession):
-        return session.grantPermission(self.name, self.permission, create=True)
+        return session.grantPermission(self.obj.name, self.permission, create=True)
 
-    def explain(self) -> str:
-        return f"Grant permission '{self.permission}' to group '{self.name}'"
+    def summary(self) -> str:
+        return f"Grant permission '{self.permission}'"
 
 
 @dataclass
-class GroupRemovePermission(Change):
-    name: str
+class GroupRemovePermission(Remove):
+    obj: 'Group'
     permission: str
 
     def impl_apply(self, session: MultiCallSession):
-        return session.revokePermission(self.name, self.permission)
+        return session.revokePermission(self.obj.name, self.permission)
 
-    def explain(self) -> str:
-        return f"Revoke permission '{self.permission}' from group '{self.name}'"
+    def summary(self) -> str:
+        return f"Revoke permission '{self.permission}'"
 
 
 class GroupChangeReport(ChangeReport):
@@ -139,15 +139,15 @@ class GroupChangeReport(ChangeReport):
             if not self.obj.was_split():
                 # we don't exist, and we didn't split our create to an earlier
                 # call, so create now.
-                yield GroupCreate(self.obj.name)
+                yield GroupCreate(self.obj)
 
             if self.obj.is_split():
                 return
 
             for member in self.obj.members:
-                yield GroupAddMember(self.obj.name, member)
+                yield GroupAddMember(self.obj, member)
             for permission in self.obj.permissions:
-                yield GroupAddPermission(self.obj.name, permission)
+                yield GroupAddPermission(self.obj, permission)
             return
 
         if self.obj.is_split():
@@ -155,29 +155,29 @@ class GroupChangeReport(ChangeReport):
 
         if info['status'] != (0 if self.obj.enabled else 1):
             if self.obj.enabled:
-                yield GroupEnable(self.obj.name)
+                yield GroupEnable(self.obj)
             else:
-                yield GroupDisable(self.obj.name)
+                yield GroupDisable(self.obj)
 
         members = { m['name']: m for m in self._members.result }
         for member in self.obj.members:
             if member not in members:
-                yield GroupAddMember(self.obj.name, member)
+                yield GroupAddMember(self.obj, member)
 
         if self.obj.exact_members:
             for member in members:
                 if member not in self.obj.members:
-                    yield GroupRemoveMember(self.obj.name, member)
+                    yield GroupRemoveMember(self.obj, member)
 
         permissions = self._permissions.result
         for permission in self.obj.permissions:
             if permission not in permissions:
-                yield GroupAddPermission(self.obj.name, permission)
+                yield GroupAddPermission(self.obj, permission)
 
         if self.obj.exact_permissions:
             for permission in permissions:
                 if permission not in self.obj.permissions:
-                    yield GroupRemovePermission(self.obj.name, permission)
+                    yield GroupRemovePermission(self.obj, permission)
 
 
 class Group(BaseObject):

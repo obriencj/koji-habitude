@@ -5,7 +5,7 @@ Utility functions for the CLI.
 
 Author: Christopher O'Brien <obriencj@gmail.com>
 License: GNU General Public License v3
-AI-Assistant: Claude 3.5 Sonnet via Cursor
+AI-Assistant: Claude 4.5 Sonnet via Cursor
 """
 
 
@@ -14,6 +14,7 @@ from typing import List
 from functools import wraps
 from koji import GSSAPIAuthError, GenericError
 
+from .theme import select_theme
 from ..exceptions import (
     HabitudeError,
     YAMLError,
@@ -115,10 +116,16 @@ def catchall(func):
     return wrapper
 
 
-def display_summary(summary, show_unchanged):
+def display_summary(summary, show_unchanged, theme=None):
     """
     Display the summary of the changes with proper grouping and indentation.
     """
+
+    if theme is None:
+        theme = select_theme()
+
+    style = theme.style
+    secho = theme.secho
 
     # Group change reports by object type
     by_type = {}
@@ -139,11 +146,11 @@ def display_summary(summary, show_unchanged):
         echo()
 
         for typename in sorted(by_type.keys()):
-            echo(f"{typename}:")
+            echo(style(f"{typename}:", tp='type_heading'))
             for name, change_report in sorted(by_type[typename]):
-                echo(f"  {name}:")
+                echo(f"  {style(name, tp='object_name')}:")
                 for change in change_report.changes:
-                    echo(f"    {change.explain()}")
+                    echo(f"    {style(change.summary(), tp=change.style_name)}")
             echo()
 
     # Display unchanged objects if requested
@@ -158,9 +165,9 @@ def display_summary(summary, show_unchanged):
             by_type_unchanged[typename].append(name)
 
         for typename in sorted(by_type_unchanged.keys()):
-            echo(f"{typename}:")
+            secho(f"{typename}:", tp='type_heading')
             for name in sorted(by_type_unchanged[typename]):
-                echo(f"  {name}")
+                secho(f"  {name}", tp='unchanged_text')
             echo()
 
     # Summary
@@ -169,32 +176,50 @@ def display_summary(summary, show_unchanged):
     unchanged_count = len(unchanged_objects)
 
     if total_changes > 0:
-        echo(f"Summary: {total_changes} changes across {total_objects - unchanged_count} objects")
+        summary_msg = f"Summary: {total_changes} changes across {total_objects - unchanged_count} objects"
+        secho(summary_msg, tp='summary_text')
     else:
-        echo("Summary: No changes needed")
+        secho("Summary: No changes needed", tp='summary_text')
 
     if show_unchanged and unchanged_count > 0:
-        echo(f"({unchanged_count} objects unchanged)")
+        unchanged_msg = f"({unchanged_count} objects unchanged)"
+        secho(unchanged_msg, tp='unchanged_text')
 
     echo()
 
 
-def display_resolver_report(report):
-    if report:
-        total_dependencies = len(report.discovered) + len(report.phantoms)
-        echo(f"Resolver identified {total_dependencies} dependency references not defined in the data set")
-        echo(f"({len(report.discovered)} were discovered in the system,"
-                   f" {len(report.phantoms)} phantoms remain)")
+def display_resolver_report(report, theme=None):
+    """
+    Display the resolver report with colorization.
+    """
+
+    if theme is None:
+        theme = select_theme()
+
+    style = theme.style
+    secho = theme.secho
+
+    total_dependencies = len(report.discovered) + len(report.phantoms)
+
+    if not total_dependencies:
+        return
+
+    main_msg = f"Resolver identified {total_dependencies} dependency references not defined in the data set"
+    secho(main_msg, tp='summary_text')
+
+    detail_msg = (f"({len(report.discovered)} were discovered in the system,"
+                  f" {len(report.phantoms)} phantoms remain)")
+    secho(detail_msg, tp='unchanged_text')
 
     if report.discovered:
-        echo("Discovered references:")
+        secho("Discovered references:", tp='type_heading')
         for key in report.discovered:
-            echo(f"  {key[0]} {key[1]}")
+            echo(f"  {style(key[0], tp='object_name')} {style(key[1], tp='object_name')}")
 
     if report.phantoms:
-        echo("Phantom references:")
+        secho("Phantom references:", tp='type_heading')
         for key in report.phantoms:
-            echo(f"  {key[0]} {key[1]}")
+            echo(f"  {style(key[0], tp='object_name')} {style(key[1], tp='object_name')}")
 
     echo()
 

@@ -16,7 +16,7 @@ from types import MappingProxyType
 
 
 from .base import Base, BaseObject, BaseKey, BaseStatus
-from .change import ChangeReport, Change
+from .change import ChangeReport, Change, Create, Update, Add, Remove, Modify
 from .channel import Channel
 from .external_repo import ExternalRepo
 from .group import Group
@@ -38,6 +38,11 @@ __all__ = (
 
     'Change',
     'ChangeReport',
+    'Create',
+    'Update',
+    'Add',
+    'Remove',
+    'Modify',
 
     'Channel',
     'ExternalRepo',
