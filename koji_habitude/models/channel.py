@@ -65,8 +65,8 @@ class ChannelAddHost(Add):
     def impl_apply(self, session: MultiCallSession):
         return session.addHostToChannel(self.host, self.obj.name)
 
-    def explain(self) -> str:
-        return f"Add host '{self.host}' to channel '{self.obj.name}'"
+    def summary(self) -> str:
+        return f"Add host '{self.host}'"
 
 
 @dataclass
@@ -77,8 +77,8 @@ class ChannelRemoveHost(Remove):
     def impl_apply(self, session: MultiCallSession):
         return session.removeHostFromChannel(self.host, self.obj.name)
 
-    def explain(self) -> str:
-        return f"Remove host '{self.host}' from channel '{self.obj.name}'"
+    def summary(self) -> str:
+        return f"Remove host '{self.host}'"
 
 
 class ChannelChangeReport(ChangeReport):

@@ -88,9 +88,9 @@ class TagSetLocked(Update):
     def impl_apply(self, session: MultiCallSession):
         return session.editTag2(self.obj.name, locked=self.locked)
 
-    def explain(self) -> str:
+    def summary(self) -> str:
         action = "Lock" if self.locked else "Unlock"
-        return f"{action} tag '{self.obj.name}'"
+        return f"{action} tag"
 
 
 @dataclass
@@ -142,9 +142,9 @@ class TagSetArches(Update):
     def impl_apply(self, session: MultiCallSession):
         return session.editTag2(self.obj.name, arches=' '.join(self.arches))
 
-    def explain(self) -> str:
+    def summary(self) -> str:
         arches_str = ', '.join(self.arches)
-        return f"Set arches for tag '{self.obj.name}' to [{arches_str}]"
+        return f"Set arches to [{arches_str}]"
 
 
 @dataclass
@@ -155,9 +155,9 @@ class TagSetExtras(Update):
     def impl_apply(self, session: MultiCallSession):
         return session.editTag2(self.obj.name, extra=self.extras)
 
-    def explain(self) -> str:
+    def summary(self) -> str:
         extras_str = ', '.join(f"{k}={v}" for k, v in self.extras.items())
-        return f"Set extra fields for tag '{self.obj.name}': {extras_str}"
+        return f"Set extra fields: {extras_str}"
 
 
 @dataclass
@@ -205,8 +205,8 @@ class TagRemoveGroup(Remove):
     def impl_apply(self, session: MultiCallSession):
         return session.groupListRemove(self.obj.name, self.group)
 
-    def explain(self) -> str:
-        return f"Remove group '{self.group}' from tag '{self.obj.name}'"
+    def summary(self) -> str:
+        return f"Remove group '{self.group}'"
 
 
 @dataclass
@@ -414,8 +414,8 @@ class TagRemoveExternalRepo(Remove):
     def impl_apply(self, session: MultiCallSession):
         return session.removeExternalRepoFromTag(self.obj.name, self.repo)
 
-    def explain(self) -> str:
-        return f"Remove external repo '{self.repo}' from tag '{self.obj.name}'"
+    def summary(self) -> str:
+        return f"Remove external repo '{self.repo}'"
 
 
 @dataclass
@@ -434,8 +434,8 @@ class TagPackageListAdd(Add):
             extra_arches=arches,
             force=True)
 
-    def explain(self) -> str:
-        return f"Add package '{self.package.name}' to tag '{self.obj.name}'"
+    def summary(self) -> str:
+        return f"Add package '{self.package.name}'"
 
 
 @dataclass
@@ -446,8 +446,8 @@ class TagPackageListBlock(Add):
     def impl_apply(self, session: MultiCallSession):
         return session.packageListBlock(self.obj.name, self.package, force=True)
 
-    def explain(self) -> str:
-        return f"Block package '{self.package}' in tag '{self.obj.name}'"
+    def summary(self) -> str:
+        return f"Block package '{self.package}'"
 
 
 @dataclass
@@ -471,8 +471,8 @@ class TagPackageListSetOwner(Modify):
     def impl_apply(self, session: MultiCallSession):
         return session.packageListSetOwner(self.obj.name, self.package, self.owner, force=True)
 
-    def explain(self) -> str:
-        return f"Set owner for package '{self.package}' in tag '{self.obj.name}' to '{self.owner}'"
+    def summary(self) -> str:
+        return f"Set package '{self.package}' owner to '{self.owner}'"
 
 
 @dataclass
@@ -485,8 +485,8 @@ class TagPackageListSetArches(Modify):
         arches = ' '.join(self.arches) if self.arches else None
         return session.packageListSetArches(self.obj.name, self.package, arches, force=True)
 
-    def explain(self) -> str:
-        return f"Set extra_arches for package '{self.package}' in tag '{self.obj.name}' to '{self.arches}'"
+    def summary(self) -> str:
+        return f"Set package '{self.package}' extra_arches to '{self.arches}'"
 
 
 @dataclass
@@ -497,8 +497,8 @@ class TagPackageListRemove(Remove):
     def impl_apply(self, session: MultiCallSession):
         return session.packageListRemove(self.obj.name, self.package, force=True)
 
-    def explain(self) -> str:
-        return f"Remove package '{self.package}' from tag '{self.obj.name}'"
+    def summary(self) -> str:
+        return f"Remove package '{self.package}'"
 
 
 class TagChangeReport(ChangeReport):

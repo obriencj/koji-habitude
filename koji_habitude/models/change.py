@@ -225,45 +225,214 @@ class Change:
 class Create(Change):
     """
     Creates a new object in Koji.
+
+    Subclasses should implement summary() to provide a description of what's
+    being created (without the "Create" verb). The explain() method will
+    automatically prepend "Create" to the summary.
+
+    For complex cases, subclasses can override explain() directly.
+
+    Example summary(): "tag 'f39-build' with arches [x86_64, aarch64]"
+    Example explain(): "Create tag 'f39-build' with arches [x86_64, aarch64]"
     """
 
-    pass
+    def summary(self) -> str:
+        """
+        Return a minimal description of what's being created (without "Create" verb).
+
+        Override this method to provide a summary, or override explain() directly
+        for complex formatting needs.
+        """
+
+        return f"{self.obj.__class__.__name__.lower()} '{self.obj.name}'"
+
+
+    def explain(self) -> str:
+        """
+        Return a full explanation of what this change will do.
+
+        By default, this prepends "Create" to the summary(). Override this method
+        directly for complex cases where the two-stage approach doesn't fit.
+        """
+
+        return f"Create {self.summary()}"
 
 
 @dataclass
 class Update(Change):
     """
     Updates properties of an existing object.
+
+    Subclasses should implement summary() to provide the update action with verb
+    (e.g., "Lock tag", "Set permission to 'admin'"). The explain() method will
+    automatically add the object context.
+
+    For complex cases, subclasses can override explain() directly.
+
+    Example summary(): "Lock tag"
+    Example explain(): "Lock tag 'f39-build'"
     """
 
-    pass
+    def summary(self) -> str:
+        """
+        Return a minimal action summary with verb.
+
+        Override this method to provide a summary, or override explain() directly
+        for complex formatting needs.
+        """
+
+        return None
+
+
+    def explain(self) -> str:
+        """
+        Return a full explanation of what this change will do.
+
+        By default, this adds object context to the summary(). Override this method
+        directly for complex cases where the two-stage approach doesn't fit.
+        """
+
+        summary = self.summary()
+        if summary is None:
+            raise NotImplementedError(
+                f"{self.__class__.__name__} must implement summary() or explain()")
+
+        obj_type = self.obj.__class__.__name__.lower()
+        # If summary ends with the object type, append the name
+        if summary.endswith(obj_type):
+            return f"{summary} '{self.obj.name}'"
+        else:
+            # Summary has specific action, add context with "for"
+            return f"{summary} for {obj_type} '{self.obj.name}'"
 
 
 @dataclass
 class Add(Change):
     """
     Adds a feature or relation to an existing object.
+
+    Subclasses should implement summary() to provide the addition action with verb
+    (e.g., "Add package 'httpd'", "Add inheritance from 'parent'"). The explain()
+    method will automatically add "to {object}" context.
+
+    For complex cases, subclasses can override explain() directly.
+
+    Example summary(): "Add package 'httpd'"
+    Example explain(): "Add package 'httpd' to tag 'f39-build'"
     """
 
-    pass
+    def summary(self) -> str:
+        """
+        Return a minimal action summary with "Add" verb.
+
+        Override this method to provide a summary, or override explain() directly
+        for complex formatting needs.
+        """
+
+        return None
+
+
+    def explain(self) -> str:
+        """
+        Return a full explanation of what this change will do.
+
+        By default, this adds "to {object}" context to the summary(). Override this
+        method directly for complex cases where the two-stage approach doesn't fit.
+        """
+
+        summary = self.summary()
+        if summary is None:
+            raise NotImplementedError(
+                f"{self.__class__.__name__} must implement summary() or explain()")
+
+        obj_type = self.obj.__class__.__name__.lower()
+        return f"{summary} to {obj_type} '{self.obj.name}'"
 
 
 @dataclass
 class Remove(Change):
     """
     Removes a feature or relation from an existing object.
+
+    Subclasses should implement summary() to provide the removal action with verb
+    (e.g., "Remove package 'httpd'", "Remove group 'build'"). The explain()
+    method will automatically add "from {object}" context.
+
+    For complex cases, subclasses can override explain() directly.
+
+    Example summary(): "Remove package 'httpd'"
+    Example explain(): "Remove package 'httpd' from tag 'f39-build'"
     """
 
-    pass
+    def summary(self) -> str:
+        """
+        Return a minimal action summary with "Remove" verb.
+
+        Override this method to provide a summary, or override explain() directly
+        for complex formatting needs.
+        """
+
+        return None
+
+
+    def explain(self) -> str:
+        """
+        Return a full explanation of what this change will do.
+
+        By default, this adds "from {object}" context to the summary(). Override this
+        method directly for complex cases where the two-stage approach doesn't fit.
+        """
+
+        summary = self.summary()
+        if summary is None:
+            raise NotImplementedError(
+                f"{self.__class__.__name__} must implement summary() or explain()")
+
+        obj_type = self.obj.__class__.__name__.lower()
+        return f"{summary} from {obj_type} '{self.obj.name}'"
 
 
 @dataclass
 class Modify(Change):
     """
     Modifies an existing feature or relation of an object.
+
+    Subclasses should implement summary() to provide the modification action with verb
+    (e.g., "Set package 'httpd' owner to 'webteam'", "Update group 'build' description").
+    The explain() method will automatically add "in {object}" context.
+
+    For complex cases, subclasses can override explain() directly.
+
+    Example summary(): "Set package 'httpd' owner to 'webteam'"
+    Example explain(): "Set package 'httpd' owner to 'webteam' in tag 'f39-build'"
     """
 
-    pass
+    def summary(self) -> str:
+        """
+        Return a minimal action summary with verb.
+
+        Override this method to provide a summary, or override explain() directly
+        for complex formatting needs.
+        """
+
+        return None
+
+
+    def explain(self) -> str:
+        """
+        Return a full explanation of what this change will do.
+
+        By default, this adds "in {object}" context to the summary(). Override this
+        method directly for complex cases where the two-stage approach doesn't fit.
+        """
+
+        summary = self.summary()
+        if summary is None:
+            raise NotImplementedError(
+                f"{self.__class__.__name__} must implement summary() or explain()")
+
+        obj_type = self.obj.__class__.__name__.lower()
+        return f"{summary} in {obj_type} '{self.obj.name}'"
 
 
 class ChangeReport:

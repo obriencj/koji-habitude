@@ -47,8 +47,8 @@ class UserEnable(Update):
     def impl_apply(self, session: MultiCallSession):
         return session.enableUser(self.obj.name)
 
-    def explain(self) -> str:
-        return f"Enable user '{self.obj.name}'"
+    def summary(self) -> str:
+        return "Enable user"
 
 
 @dataclass
@@ -58,8 +58,8 @@ class UserDisable(Update):
     def impl_apply(self, session: MultiCallSession):
         return session.disableUser(self.obj.name)
 
-    def explain(self) -> str:
-        return f"Disable user '{self.obj.name}'"
+    def summary(self) -> str:
+        return "Disable user"
 
 
 @dataclass
@@ -76,8 +76,8 @@ class UserGrantPermission(Add):
     def impl_apply(self, session: MultiCallSession):
         return session.grantPermission(self.obj.name, self.permission, create=True)
 
-    def explain(self) -> str:
-        return f"Grant permission '{self.permission}' to user '{self.obj.name}'"
+    def summary(self) -> str:
+        return f"Grant permission '{self.permission}'"
 
 
 @dataclass
@@ -88,8 +88,8 @@ class UserRevokePermission(Remove):
     def impl_apply(self, session: MultiCallSession):
         return session.revokePermission(self.obj.name, self.permission)
 
-    def explain(self) -> str:
-        return f"Revoke permission '{self.permission}' from user '{self.obj.name}'"
+    def summary(self) -> str:
+        return f"Revoke permission '{self.permission}'"
 
 
 @dataclass
@@ -106,8 +106,8 @@ class UserAddToGroup(Add):
     def impl_apply(self, session: MultiCallSession):
         return session.addGroupMember(self.group, self.obj.name, strict=False)
 
-    def explain(self) -> str:
-        return f"Add user '{self.obj.name}' to group '{self.group}'"
+    def summary(self) -> str:
+        return f"Add group '{self.group}'"
 
 
 @dataclass
@@ -118,8 +118,8 @@ class UserRemoveFromGroup(Remove):
     def impl_apply(self, session: MultiCallSession):
         return session.dropGroupMember(self.group, self.obj.name)
 
-    def explain(self) -> str:
-        return f"Remove user '{self.obj.name}' from group '{self.group}'"
+    def summary(self) -> str:
+        return f"Remove group '{self.group}'"
 
 
 class UserChangeReport(ChangeReport):

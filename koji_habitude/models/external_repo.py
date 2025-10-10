@@ -43,8 +43,8 @@ class ExternalRepoSetURL(Update):
     def impl_apply(self, session: MultiCallSession):
         return session.editExternalRepo(self.obj.name, url=self.url)
 
-    def explain(self) -> str:
-        return f"Set URL for external repo '{self.obj.name}' to '{self.url}'"
+    def summary(self) -> str:
+        return f"Set URL to '{self.url}'"
 
 
 class ExternalRepoChangeReport(ChangeReport):

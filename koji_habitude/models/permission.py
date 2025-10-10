@@ -70,8 +70,8 @@ class PermissionSetDescription(Update):
     def impl_apply(self, session: MultiCallSession):
         return session.editPermission(self.obj.name, description=self.description)
 
-    def explain(self) -> str:
-        return f"Set description for permission '{self.obj.name}' to '{self.description}'"
+    def summary(self) -> str:
+        return f"Set description to '{self.description}'"
 
 
 class PermissionChangeReport(ChangeReport):
