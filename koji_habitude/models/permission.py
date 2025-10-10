@@ -57,8 +57,8 @@ class PermissionCreate(Create):
         session.revokePermission(currentuser, self.obj.name)
         return res
 
-    def explain(self) -> str:
-        desc_info = f" with description '{self.obj.description}'" if self.obj.description else ""
+    def summary(self) -> str:
+        desc_info = f" with description {self.obj.description!r}" if self.obj.description else ""
         return f"Create permission '{self.obj.name}'{desc_info}"
 
 
@@ -71,7 +71,10 @@ class PermissionSetDescription(Update):
         return session.editPermission(self.obj.name, description=self.description)
 
     def summary(self) -> str:
-        return f"Set description to '{self.description}'"
+        if self.description:
+            return f"Set description to {self.description!r}"
+        else:
+            return "Clear description"
 
 
 class PermissionChangeReport(ChangeReport):

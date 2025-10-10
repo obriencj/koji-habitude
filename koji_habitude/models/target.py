@@ -42,9 +42,9 @@ class TargetCreate(Create):
     def impl_apply(self, session: MultiCallSession) -> VirtualCall:
         return session.createBuildTarget(self.obj.name, self.obj.build_tag, self.obj.dest_tag or self.obj.name)
 
-    def explain(self) -> str:
+    def summary(self) -> str:
         dest_tag = self.obj.dest_tag or self.obj.name
-        return f"Create target '{self.obj.name}' with build_tag '{self.obj.build_tag}' and dest_tag '{dest_tag}'"
+        return f"Create target {self.obj.name} with build_tag {self.obj.build_tag} and dest_tag {dest_tag}"
 
 
 @dataclass
@@ -69,9 +69,9 @@ class TargetEdit(Update):
         # thank you, koji-typing
         return session.editBuildTarget(self.obj.name, self.obj.name, self.obj.build_tag, self.obj.dest_tag or self.obj.name)
 
-    def explain(self) -> str:
+    def summary(self) -> str:
         dest_tag = self.obj.dest_tag or self.obj.name
-        return f"Edit target '{self.obj.name}' to use build_tag '{self.obj.build_tag}' and dest_tag '{dest_tag}'"
+        return f"Update build_tag to {self.obj.build_tag} and dest_tag to {dest_tag}"
 
 
 class TargetChangeReport(ChangeReport):

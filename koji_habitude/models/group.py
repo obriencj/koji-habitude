@@ -31,8 +31,8 @@ class GroupCreate(Create):
     def impl_apply(self, session: MultiCallSession):
         return session.newGroup(self.obj.name)
 
-    def explain(self) -> str:
-        return f"Create group '{self.obj.name}'"
+    def summary(self) -> str:
+        return f"Create group {self.obj.name}"
 
 
 @dataclass

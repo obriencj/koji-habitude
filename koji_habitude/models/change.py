@@ -257,7 +257,7 @@ class Create(Change):
         directly for complex cases where the two-stage approach doesn't fit.
         """
 
-        return f"Create {self.obj.typename} {self.obj.name}"
+        return self.summary()
 
 
 @dataclass

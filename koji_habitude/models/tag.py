@@ -59,14 +59,18 @@ class TagCreate(Create):
 
         return res
 
-    def explain(self) -> str:
-        arches_str = ', '.join(self.obj.arches)
+    def summary(self) -> str:
+        arches_info = ''
+        if self.obj.arches:
+            arches_str = ', '.join(self.obj.arches)
+            arches_info = f" with arches [{arches_str}]"
         maven_info = ''
         if self.obj.maven_support or self.obj.maven_include_all:
-            maven_info = f" with Maven support (include_all={self.obj.maven_include_all})"
+            mvn = 'enabled' if self.obj.maven_support else 'disabled'
+            maven_info = f" with Maven support {mvn} (include_all={self.obj.maven_include_all})"
         perm_info = f" with permission '{self.obj.permission}'" if self.obj.permission else ''
         locked_info = " (locked)" if self.obj.locked else ''
-        return f"Create tag '{self.obj.name}' with arches [{arches_str}]{maven_info}{perm_info}{locked_info}"
+        return f"Create tag {self.obj.name}{perm_info}{locked_info}{arches_info}{maven_info}"
 
 
 @dataclass
@@ -221,9 +225,9 @@ class TagAddGroupPackage(Add):
             block=self.package.block,
             force=True)
 
-    def explain(self) -> str:
-        block_info = " (blocked)" if self.package.block else ""
-        return f"Add package '{self.package.name}' to group '{self.group}' in tag '{self.obj.name}'{block_info}"
+    def summary(self) -> str:
+        act = "Block" if self.package.block else "Add"
+        return f"{act} package {self.package.name} in group {self.group}"
 
 
 @dataclass
@@ -239,9 +243,9 @@ class TagUpdateGroupPackage(Modify):
             block=self.package.block,
             force=True)
 
-    def explain(self) -> str:
-        block_info = " (blocked)" if self.package.block else ""
-        return f"Update package '{self.package.name}' in group '{self.group}' of tag '{self.obj.name}'{block_info}"
+    def summary(self) -> str:
+        act = "Block" if self.package.block else "Unblock"
+        return f"{act} package {self.package.name} in group {self.group}"
 
 
 @dataclass
@@ -253,8 +257,8 @@ class TagRemoveGroupPackage(Remove):
     def impl_apply(self, session: MultiCallSession):
         return session.groupPackageListRemove(self.obj.name, self.group, self.package)
 
-    def explain(self) -> str:
-        return f"Remove package '{self.package}' from group '{self.group}' in tag '{self.obj.name}'"
+    def summary(self) -> str:
+        return f"Remove package {self.package} from group {self.group}"
 
 
 @dataclass

@@ -33,9 +33,9 @@ class HostCreate(Create):
             self.obj.name,
             arches=' '.join(self.obj.arches))
 
-    def explain(self) -> str:
+    def summary(self) -> str:
         arches_str = ', '.join(self.obj.arches)
-        return f"Create host '{self.obj.name}' with arches [{arches_str}]"
+        return f"Create host {self.obj.name} with arches [{arches_str}]"
 
 
 @dataclass

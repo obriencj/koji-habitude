@@ -31,8 +31,8 @@ class ExternalRepoCreate(Create):
     def impl_apply(self, session: MultiCallSession):
         return session.createExternalRepo(self.obj.name, self.obj.url)
 
-    def explain(self) -> str:
-        return f"Create external repo '{self.obj.name}' with URL '{self.obj.url}'"
+    def summary(self) -> str:
+        return f"Create external repo {self.obj.name} with URL {self.obj.url}"
 
 
 @dataclass
@@ -44,7 +44,7 @@ class ExternalRepoSetURL(Update):
         return session.editExternalRepo(self.obj.name, url=self.url)
 
     def summary(self) -> str:
-        return f"Set URL to '{self.url}'"
+        return f"Set URL to {self.url}"
 
 
 class ExternalRepoChangeReport(ChangeReport):
