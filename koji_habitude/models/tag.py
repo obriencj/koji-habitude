@@ -443,7 +443,14 @@ class TagPackageListAdd(Add):
             force=True)
 
     def summary(self) -> str:
-        return f"Add package '{self.package.name}'"
+        if self.package.block:
+            return f"Block package {self.package.name}"
+        else:
+            info = " with owner {self.package.owner}" if self.package.owner else ""
+            if self.package.extra_arches:
+                arches_str = ', '.join(self.package.extra_arches)
+                info += f" with extra_arches [{arches_str}]"
+            return f"Add package {self.package.name}{info}"
 
 
 @dataclass
