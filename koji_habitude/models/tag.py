@@ -18,7 +18,7 @@ from pydantic import Field, field_validator, model_validator
 from koji import ClientSession, MultiCallNotReady, MultiCallSession, VirtualCall
 
 from .base import BaseKey, BaseObject, SubModel
-from .change import Change, ChangeReport
+from .change import Change, ChangeReport, Create, Update, Add, Remove, Modify
 
 if TYPE_CHECKING:
     from ..resolver import Resolver
@@ -37,7 +37,7 @@ def _compare_arches(koji_arches: Optional[str], arches: Optional[List[str]]) -> 
 
 
 @dataclass
-class TagCreate(Change):
+class TagCreate(Create):
     obj: 'Tag'
 
     def impl_apply(self, session: MultiCallSession):
@@ -70,7 +70,7 @@ class TagCreate(Change):
 
 
 @dataclass
-class SplitTagCheckup(Change):
+class SplitTagCheckup(Update):
     obj: 'Tag'
 
     def impl_apply(self, session: MultiCallSession):
@@ -81,7 +81,7 @@ class SplitTagCheckup(Change):
 
 
 @dataclass
-class TagSetLocked(Change):
+class TagSetLocked(Update):
     name: str
     locked: bool
 
@@ -94,7 +94,7 @@ class TagSetLocked(Change):
 
 
 @dataclass
-class TagSetPermission(Change):
+class TagSetPermission(Update):
     name: str
     permission: Optional[str]
 
@@ -115,7 +115,7 @@ class TagSetPermission(Change):
 
 
 @dataclass
-class TagSetMaven(Change):
+class TagSetMaven(Update):
     name: str
     maven_support   : bool
     maven_include_all: bool
@@ -135,7 +135,7 @@ class TagSetMaven(Change):
 
 
 @dataclass
-class TagSetArches(Change):
+class TagSetArches(Update):
     name: str
     arches: List[str]
 
@@ -148,7 +148,7 @@ class TagSetArches(Change):
 
 
 @dataclass
-class TagSetExtras(Change):
+class TagSetExtras(Update):
     name: str
     extras: Dict[str, Any]
 
@@ -161,7 +161,7 @@ class TagSetExtras(Change):
 
 
 @dataclass
-class TagAddGroup(Change):
+class TagAddGroup(Add):
     name: str  # the tag name
     group: 'TagGroup'
 
@@ -179,7 +179,7 @@ class TagAddGroup(Change):
 
 
 @dataclass
-class TagUpdateGroup(Change):
+class TagUpdateGroup(Modify):
     name: str  # the tag name
     group: 'TagGroup'
 
@@ -198,7 +198,7 @@ class TagUpdateGroup(Change):
 
 
 @dataclass
-class TagRemoveGroup(Change):
+class TagRemoveGroup(Remove):
     name: str   # the tag name
     group: str  # the group name
 
@@ -210,7 +210,7 @@ class TagRemoveGroup(Change):
 
 
 @dataclass
-class TagAddGroupPackage(Change):
+class TagAddGroupPackage(Add):
     name: str     # the tag name
     group: str    # the group name
     package: 'TagGroupPackage'
@@ -227,7 +227,7 @@ class TagAddGroupPackage(Change):
 
 
 @dataclass
-class TagUpdateGroupPackage(Change):
+class TagUpdateGroupPackage(Modify):
     name: str     # the tag name
     group: str    # the group name
     package: 'TagGroupPackage'
@@ -245,7 +245,7 @@ class TagUpdateGroupPackage(Change):
 
 
 @dataclass
-class TagRemoveGroupPackage(Change):
+class TagRemoveGroupPackage(Remove):
     name: str     # the tag name
     group: str    # the group name
     package: str  # the package name
@@ -258,7 +258,7 @@ class TagRemoveGroupPackage(Change):
 
 
 @dataclass
-class TagAddInheritance(Change):
+class TagAddInheritance(Add):
     name: str
     parent: 'InheritanceLink'
 
@@ -319,7 +319,7 @@ class TagAddInheritance(Change):
 
 
 @dataclass
-class TagUpdateInheritance(Change):
+class TagUpdateInheritance(Modify):
     name: str
     parent: 'InheritanceLink'
     parent_id: int
@@ -347,7 +347,7 @@ class TagUpdateInheritance(Change):
 
 
 @dataclass
-class TagRemoveInheritance(Change):
+class TagRemoveInheritance(Remove):
     name: str
     parent_id: str
     parent_name: str
@@ -361,7 +361,7 @@ class TagRemoveInheritance(Change):
 
 
 @dataclass
-class TagAddExternalRepo(Change):
+class TagAddExternalRepo(Add):
     name: str
     repo: 'ExternalRepoLink'
 
@@ -387,7 +387,7 @@ class TagAddExternalRepo(Change):
 
 
 @dataclass
-class TagUpdateExternalRepo(Change):
+class TagUpdateExternalRepo(Modify):
     name: str
     repo: 'ExternalRepoLink'
 
@@ -407,7 +407,7 @@ class TagUpdateExternalRepo(Change):
 
 
 @dataclass
-class TagRemoveExternalRepo(Change):
+class TagRemoveExternalRepo(Remove):
     name: str
     repo: str
 
@@ -419,7 +419,7 @@ class TagRemoveExternalRepo(Change):
 
 
 @dataclass
-class TagPackageListAdd(Change):
+class TagPackageListAdd(Add):
     name: str
     package: 'PackageEntry'
 
@@ -439,7 +439,7 @@ class TagPackageListAdd(Change):
 
 
 @dataclass
-class TagPackageListBlock(Change):
+class TagPackageListBlock(Add):
     name: str
     package: str
 
@@ -451,7 +451,7 @@ class TagPackageListBlock(Change):
 
 
 @dataclass
-class TagPackageListUnblock(Change):
+class TagPackageListUnblock(Remove):
     name: str
     package: str
 
@@ -463,7 +463,7 @@ class TagPackageListUnblock(Change):
 
 
 @dataclass
-class TagPackageListSetOwner(Change):
+class TagPackageListSetOwner(Modify):
     name: str
     package: str
     owner: str
@@ -476,7 +476,7 @@ class TagPackageListSetOwner(Change):
 
 
 @dataclass
-class TagPackageListSetArches(Change):
+class TagPackageListSetArches(Modify):
     name: str
     package: str
     arches: List[str]
@@ -490,7 +490,7 @@ class TagPackageListSetArches(Change):
 
 
 @dataclass
-class TagPackageListRemove(Change):
+class TagPackageListRemove(Remove):
     name: str
     package: str
 

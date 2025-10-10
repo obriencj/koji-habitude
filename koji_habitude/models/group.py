@@ -18,14 +18,14 @@ from koji import ClientSession, MultiCallSession, VirtualCall
 from pydantic import Field
 
 from .base import BaseObject, BaseKey
-from .change import Change, ChangeReport
+from .change import Change, ChangeReport, Create, Update, Add, Remove
 
 if TYPE_CHECKING:
     from ..resolver import Resolver
 
 
 @dataclass
-class GroupCreate(Change):
+class GroupCreate(Create):
     name: str
 
     def impl_apply(self, session: MultiCallSession):
@@ -36,7 +36,7 @@ class GroupCreate(Change):
 
 
 @dataclass
-class GroupEnable(Change):
+class GroupEnable(Update):
     name: str
 
     def impl_apply(self, session: MultiCallSession):
@@ -47,7 +47,7 @@ class GroupEnable(Change):
 
 
 @dataclass
-class GroupDisable(Change):
+class GroupDisable(Update):
     name: str
 
     def impl_apply(self, session: MultiCallSession):
@@ -58,7 +58,7 @@ class GroupDisable(Change):
 
 
 @dataclass
-class GroupAddMember(Change):
+class GroupAddMember(Add):
     name: str
     member: str
 
@@ -76,7 +76,7 @@ class GroupAddMember(Change):
 
 
 @dataclass
-class GroupRemoveMember(Change):
+class GroupRemoveMember(Remove):
     name: str
     member: str
 
@@ -88,7 +88,7 @@ class GroupRemoveMember(Change):
 
 
 @dataclass
-class GroupAddPermission(Change):
+class GroupAddPermission(Add):
     name: str
     permission: str
 
@@ -106,7 +106,7 @@ class GroupAddPermission(Change):
 
 
 @dataclass
-class GroupRemovePermission(Change):
+class GroupRemovePermission(Remove):
     name: str
     permission: str
 

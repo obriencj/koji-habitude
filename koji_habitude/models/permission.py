@@ -20,7 +20,7 @@ from koji import MultiCallSession, VirtualCall, ClientSession
 from pydantic import Field
 
 from .base import BaseObject, BaseKey
-from .change import Change, ChangeReport
+from .change import Change, ChangeReport, Create, Update
 from ..koji import call_processor
 
 if TYPE_CHECKING:
@@ -43,7 +43,7 @@ def getPermission(session: ClientSession, name: str):
 
 
 @dataclass
-class PermissionCreate(Change):
+class PermissionCreate(Create):
     name: str
     description: Optional[str]
 
@@ -64,7 +64,7 @@ class PermissionCreate(Change):
 
 
 @dataclass
-class PermissionSetDescription(Change):
+class PermissionSetDescription(Update):
     name: str
     description: str
 

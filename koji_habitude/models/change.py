@@ -11,7 +11,7 @@ License: GNU General Public License v3
 AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
-# Vibe-Coding State: Pure Human
+# Vibe-Coding State: AI Assisted, Mostly Human
 
 
 from dataclasses import dataclass, field
@@ -217,6 +217,51 @@ class Change:
 
     def __str__(self) -> str:
         return self.explain()
+
+
+@dataclass
+class Create(Change):
+    """
+    Creates a new object in Koji.
+    """
+
+    pass
+
+
+@dataclass
+class Update(Change):
+    """
+    Updates properties of an existing object.
+    """
+
+    pass
+
+
+@dataclass
+class Add(Change):
+    """
+    Adds a feature or relation to an existing object.
+    """
+
+    pass
+
+
+@dataclass
+class Remove(Change):
+    """
+    Removes a feature or relation from an existing object.
+    """
+
+    pass
+
+
+@dataclass
+class Modify(Change):
+    """
+    Modifies an existing feature or relation of an object.
+    """
+
+    pass
 
 
 class ChangeReport:

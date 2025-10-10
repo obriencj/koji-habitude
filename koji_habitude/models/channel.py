@@ -18,14 +18,14 @@ from koji import ClientSession, MultiCallSession, VirtualCall
 from pydantic import Field
 
 from .base import BaseObject, BaseKey
-from .change import ChangeReport, Change
+from .change import ChangeReport, Change, Create, Update, Add, Remove
 
 if TYPE_CHECKING:
     from ..resolver import Resolver
 
 
 @dataclass
-class ChannelCreate(Change):
+class ChannelCreate(Create):
     name: str
     description: Optional[str] = None
 
@@ -38,7 +38,7 @@ class ChannelCreate(Change):
 
 
 @dataclass
-class ChannelSetDescription(Change):
+class ChannelSetDescription(Update):
     name: str
     description: Optional[str] = None
 
@@ -53,7 +53,7 @@ class ChannelSetDescription(Change):
 
 
 @dataclass
-class ChannelAddHost(Change):
+class ChannelAddHost(Add):
     name: str
     host: str
 
@@ -71,7 +71,7 @@ class ChannelAddHost(Change):
 
 
 @dataclass
-class ChannelRemoveHost(Change):
+class ChannelRemoveHost(Remove):
     name: str
     host: str
 

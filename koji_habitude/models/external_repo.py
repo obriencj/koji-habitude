@@ -18,14 +18,14 @@ from koji import ClientSession, MultiCallSession, VirtualCall
 from pydantic import Field
 
 from .base import BaseObject, BaseKey
-from .change import ChangeReport, Change
+from .change import ChangeReport, Change, Create, Update
 
 if TYPE_CHECKING:
     from ..resolver import Resolver
 
 
 @dataclass
-class ExternalRepoCreate(Change):
+class ExternalRepoCreate(Create):
     name: str
     url: str
 
@@ -37,7 +37,7 @@ class ExternalRepoCreate(Change):
 
 
 @dataclass
-class ExternalRepoSetURL(Change):
+class ExternalRepoSetURL(Update):
     name: str
     url: str
 

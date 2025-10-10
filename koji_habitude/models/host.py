@@ -18,14 +18,14 @@ from koji import MultiCallSession, VirtualCall, ClientSession
 from pydantic import Field
 
 from .base import BaseObject, BaseKey
-from .change import ChangeReport, Change
+from .change import ChangeReport, Change, Create, Update, Add, Remove
 
 if TYPE_CHECKING:
     from ..resolver import Resolver
 
 
 @dataclass
-class HostCreate(Change):
+class HostCreate(Create):
     name: str
     arches: List[str]
 
@@ -40,7 +40,7 @@ class HostCreate(Change):
 
 
 @dataclass
-class HostSetArches(Change):
+class HostSetArches(Update):
     name: str
     arches: List[str]
 
@@ -53,7 +53,7 @@ class HostSetArches(Change):
 
 
 @dataclass
-class HostSetCapacity(Change):
+class HostSetCapacity(Update):
     name: str
     capacity: float
 
@@ -65,7 +65,7 @@ class HostSetCapacity(Change):
 
 
 @dataclass
-class HostSetEnabled(Change):
+class HostSetEnabled(Update):
     name: str
     enabled: bool
 
@@ -78,7 +78,7 @@ class HostSetEnabled(Change):
 
 
 @dataclass
-class HostSetDescription(Change):
+class HostSetDescription(Update):
     name: str
     description: str
 
@@ -90,7 +90,7 @@ class HostSetDescription(Change):
 
 
 @dataclass
-class HostAddChannel(Change):
+class HostAddChannel(Add):
     name: str
     channel: str
 
@@ -108,7 +108,7 @@ class HostAddChannel(Change):
 
 
 @dataclass
-class HostRemoveChannel(Change):
+class HostRemoveChannel(Remove):
     name: str
     channel: str
 

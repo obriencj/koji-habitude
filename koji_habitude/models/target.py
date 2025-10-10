@@ -15,14 +15,14 @@ from koji import ClientSession, MultiCallSession, VirtualCall
 from pydantic import Field
 
 from .base import BaseKey, BaseObject
-from .change import Change, ChangeReport
+from .change import Change, ChangeReport, Create, Update
 
 if TYPE_CHECKING:
     from ..resolver import Resolver
 
 
 @dataclass
-class TargetCreate(Change):
+class TargetCreate(Create):
     name: str
     build_tag: str
     dest_tag: Optional[str] = None
@@ -50,7 +50,7 @@ class TargetCreate(Change):
 
 
 @dataclass
-class TargetEdit(Change):
+class TargetEdit(Update):
     name: str
     build_tag: str
     dest_tag: Optional[str] = None
