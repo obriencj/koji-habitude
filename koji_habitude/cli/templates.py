@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import click
+from click import secho, echo, style
 
 from . import main
 from ..loader import load_yaml_files, pretty_yaml, pretty_yaml_all
@@ -42,45 +43,35 @@ def call_from_args(
 
 
 def print_template(tmpl: Template, full: bool = False):
-    print(f"{tmpl.name}")
+    # TODO: let's rethink how better to format this, maybe with some color
+
+    echo(style("Template: ", fg="yellow") + style(tmpl.name, bold=True))
+    if tmpl.description:
+        secho(tmpl.description, fg="blue")
+    missing = tmpl.get_missing()
+    if missing:
+        echo(style("Required: ", fg="yellow"))
+        for var in missing:
+            echo(f"  {var}")
+    if tmpl.defaults:
+        echo(style("Optional: ", fg="yellow"))
+        for var, value in tmpl.defaults.items():
+            echo(f"  {var}: {value!r}")
+
     if full:
-        print(f"  declared at: {tmpl.filename}:{tmpl.lineno}")
+        echo(style("Declared at: ", fg="yellow") + f"{tmpl.filename}:{tmpl.lineno}")
         if tmpl.trace:
-            print("  expanded from:")
+            echo(style("Expanded from: ", fg="yellow"))
             for step in tmpl.trace:
-                print(f"    {step['name']} at {step['file']}:{step['line']}")
-        if tmpl.description:
-            # TODO: add nice multi-line description indenting
-            print(f"  description:\n{tmpl.description}")
-        if tmpl.template_schema:
-            print(f"  schema: {tmpl.template_schema}")
-        if tmpl.defaults:
-            print("  defaults:")
-            for var, value in tmpl.defaults.items():
-                print(f"    {var}: {value!r}")
-        missing = tmpl.get_missing()
-        if missing:
-            print(f"  required:")
-            for var in missing:
-                print(f"    {var}")
+                echo(f"  {step['name']} at {step['file']}:{step['line']}")
+        # if tmpl.template_schema:
+        #     echo(style("Schema:", fg="yellow") + f"{tmpl.template_schema}")
         if tmpl.template_file:
-            print(f"  content: <file: {tmpl.template_file}>")
+            echo(style("Content:", fg="yellow") + f"<file: {tmpl.template_file}>")
         else:
-            print(f"  content: '''\n{tmpl.template_content}\n"
-                  f"''' # end content for {tmpl.name}")
-    else:
-        if tmpl.description:
-            # TODO: add nice multi-line description indenting
-            print(f"  description:\n{tmpl.description}")
-        if tmpl.defaults:
-            print("  defaults:")
-            for var, value in tmpl.defaults.items():
-                print(f"    {var}: {value!r}")
-        missing = tmpl.get_missing()
-        if missing:
-            print(f"  required:")
-            for var in missing:
-                print(f"    {var}")
+            echo(style("Content:", fg="yellow") + " '''\n" +
+                 style(f"{tmpl.template_content}\n", fg="magenta") +
+                 "''' " + style(f"# end content for {tmpl.name}"))
 
 
 @main.command()
@@ -159,11 +150,15 @@ def template():
 @click.option(
     '--yaml', 'yaml', is_flag=True, default=False,
     help="Template definition as yaml")
+@click.option(
+    '--full', 'full', is_flag=True, default=False,
+    help="Show full template details")
 @catchall
 def template_show(
         template_name,
         template_dirs=[],
-        yaml=False):
+        yaml=False,
+        full=False):
     """
     Show the definition of a single template.
 
@@ -187,7 +182,7 @@ def template_show(
         pretty_yaml(tmpl.to_dict())
         return
 
-    print_template(tmpl, True)
+    print_template(tmpl, full)
     click.echo()
 
 
