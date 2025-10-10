@@ -143,7 +143,7 @@ def display_summary(summary, show_unchanged):
             for name, change_report in sorted(by_type[typename]):
                 echo(f"  {name}:")
                 for change in change_report.changes:
-                    echo(f"    {change.explain()}")
+                    echo(f"    {change.summary()}")
             echo()
 
     # Display unchanged objects if requested
