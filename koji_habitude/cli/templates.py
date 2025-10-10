@@ -18,11 +18,11 @@ import click
 from click import echo
 
 from . import main
-from .theme import select_theme
 from ..loader import load_yaml_files, pretty_yaml, pretty_yaml_all
 from ..namespace import ExpanderNamespace, Namespace, TemplateNamespace
 from ..templates import Template
 from ..workflow import ApplyDictWorkflow, CompareDictWorkflow
+from .theme import select_theme
 from .util import catchall, display_resolver_report, display_summary
 
 

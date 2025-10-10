@@ -122,7 +122,7 @@ def display_summary(summary, show_unchanged, theme=None):
     """
 
     if theme is None:
-        theme = DEFAULT_THEME
+        theme = select_theme()
 
     style = theme.style
     secho = theme.secho
@@ -197,6 +197,7 @@ def display_resolver_report(report, theme=None):
         theme = select_theme()
 
     style = theme.style
+    secho = theme.secho
 
     total_dependencies = len(report.discovered) + len(report.phantoms)
 
@@ -204,21 +205,21 @@ def display_resolver_report(report, theme=None):
         return
 
     main_msg = f"Resolver identified {total_dependencies} dependency references not defined in the data set"
-    echo(style(main_msg, fg='summary_text', bold=True))
+    secho(main_msg, tp='summary_text')
 
     detail_msg = (f"({len(report.discovered)} were discovered in the system,"
                   f" {len(report.phantoms)} phantoms remain)")
-    echo(style(detail_msg, fg='unchanged_text'))
+    secho(detail_msg, tp='unchanged_text')
 
     if report.discovered:
-        echo(style("Discovered references:", fg='type_heading'))
+        secho("Discovered references:", tp='type_heading')
         for key in report.discovered:
-            echo(f"  {style(key[0], fg='object_name')} {style(key[1], fg='object_name')}")
+            echo(f"  {style(key[0], tp='object_name')} {style(key[1], tp='object_name')}")
 
     if report.phantoms:
-        echo(style("Phantom references:", fg='type_heading'))
+        secho("Phantom references:", tp='type_heading')
         for key in report.phantoms:
-            echo(f"  {style(key[0], fg='object_name')} {style(key[1], fg='object_name')}")
+            echo(f"  {style(key[0], tp='object_name')} {style(key[1], tp='object_name')}")
 
     echo()
 
