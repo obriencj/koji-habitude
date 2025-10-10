@@ -5,17 +5,20 @@ List templates.
 
 Author: Christopher O'Brien <obriencj@gmail.com>
 License: GNU General Public License v3
-AI-Assistant: Claude 3.5 Sonnet via Cursor
+AI-Assistant: Claude 4.5 Sonnet via Cursor
 """
+
+# Vibe-Coding State: AI Assisted, Mostly Human
 
 
 from pathlib import Path
 from typing import Any, Dict, List
 
 import click
-from click import secho, echo, style
+from click import echo
 
 from . import main
+from .theme import select_theme
 from ..loader import load_yaml_files, pretty_yaml, pretty_yaml_all
 from ..namespace import ExpanderNamespace, Namespace, TemplateNamespace
 from ..templates import Template
@@ -42,36 +45,43 @@ def call_from_args(
     return data
 
 
-def print_template(tmpl: Template, full: bool = False):
-    # TODO: let's rethink how better to format this, maybe with some color
+def print_template(tmpl: Template, full: bool = False, theme=None):
+    """
+    Print template information with themed styling.
+    """
 
-    echo(style("Template: ", fg="yellow") + style(tmpl.name, bold=True))
+    if theme is None:
+        theme = select_theme()
+
+    style = theme.style
+
+    echo(style("Template: ", tp='template_label') + style(tmpl.name, tp='template_name'))
     if tmpl.description:
-        secho(tmpl.description, fg="blue")
+        echo(style(tmpl.description, tp='template_description'))
     missing = tmpl.get_missing()
     if missing:
-        echo(style("Required: ", fg="yellow"))
+        echo(style("Required: ", tp='template_label'))
         for var in missing:
-            echo(f"  {var}")
+            echo(f"  {style(var, tp='template_value')}")
     if tmpl.defaults:
-        echo(style("Optional: ", fg="yellow"))
+        echo(style("Optional: ", tp='template_label'))
         for var, value in tmpl.defaults.items():
-            echo(f"  {var}: {value!r}")
+            echo(f"  {style(var, tp='template_value')}: {value!r}")
 
     if full:
-        echo(style("Declared at: ", fg="yellow") + f"{tmpl.filename}:{tmpl.lineno}")
+        echo(style("Declared at: ", tp='template_label') + f"{tmpl.filename}:{tmpl.lineno}")
         if tmpl.trace:
-            echo(style("Expanded from: ", fg="yellow"))
+            echo(style("Expanded from: ", tp='template_label'))
             for step in tmpl.trace:
                 echo(f"  {step['name']} at {step['file']}:{step['line']}")
         # if tmpl.template_schema:
-        #     echo(style("Schema:", fg="yellow") + f"{tmpl.template_schema}")
+        #     echo(style("Schema:", tp='template_label') + f"{tmpl.template_schema}")
         if tmpl.template_file:
-            echo(style("Content:", fg="yellow") + f"<file: {tmpl.template_file}>")
+            echo(style("Content:", tp='template_label') + f"<file: {tmpl.template_file}>")
         else:
-            echo(style("Content:", fg="yellow") + " '''\n" +
-                 style(f"{tmpl.template_content}\n", fg="magenta") +
-                 "''' " + style(f"# end content for {tmpl.name}", fg="bright_black"))
+            echo(style("Content:", tp='template_label') + " '''\n" +
+                 style(f"{tmpl.template_content}\n", tp='template_content') +
+                 "''' " + style(f"# end content for {tmpl.name}", tp='template_comment'))
 
 
 @main.command()

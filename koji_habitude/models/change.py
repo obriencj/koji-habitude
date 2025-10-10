@@ -236,6 +236,8 @@ class Create(Change):
     Example explain(): "Create tag 'f39-build' with arches [x86_64, aarch64]"
     """
 
+    style_name: ClassVar[str] = 'create'
+
     def summary(self) -> str:
         """
         Return a minimal description of what's being created (without "Create" verb).
@@ -272,6 +274,8 @@ class Update(Change):
     Example summary(): "Lock tag"
     Example explain(): "Lock tag 'f39-build'"
     """
+
+    style_name: ClassVar[str] = 'update'
 
     def summary(self) -> str:
         """
@@ -321,6 +325,8 @@ class Add(Change):
     Example explain(): "Add package 'httpd' to tag 'f39-build'"
     """
 
+    style_name: ClassVar[str] = 'add'
+
     def summary(self) -> str:
         """
         Return a minimal action summary with "Add" verb.
@@ -364,6 +370,8 @@ class Remove(Change):
     Example explain(): "Remove package 'httpd' from tag 'f39-build'"
     """
 
+    style_name: ClassVar[str] = 'remove'
+
     def summary(self) -> str:
         """
         Return a minimal action summary with "Remove" verb.
@@ -406,6 +414,8 @@ class Modify(Change):
     Example summary(): "Set package 'httpd' owner to 'webteam'"
     Example explain(): "Set package 'httpd' owner to 'webteam' in tag 'f39-build'"
     """
+
+    style_name: ClassVar[str] = 'modify'
 
     def summary(self) -> str:
         """
