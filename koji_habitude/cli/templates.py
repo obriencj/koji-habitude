@@ -49,6 +49,9 @@ def print_template(tmpl: Template, full: bool = False):
             print("  expanded from:")
             for step in tmpl.trace:
                 print(f"    {step['name']} at {step['file']}:{step['line']}")
+        if tmpl.description:
+            # TODO: add nice multi-line description indenting
+            print(f"  description:\n{tmpl.description}")
         if tmpl.template_schema:
             print(f"  schema: {tmpl.template_schema}")
         if tmpl.defaults:
@@ -66,6 +69,9 @@ def print_template(tmpl: Template, full: bool = False):
             print(f"  content: '''\n{tmpl.template_content}\n"
                   f"''' # end content for {tmpl.name}")
     else:
+        if tmpl.description:
+            # TODO: add nice multi-line description indenting
+            print(f"  description:\n{tmpl.description}")
         if tmpl.defaults:
             print("  defaults:")
             for var, value in tmpl.defaults.items():
@@ -235,7 +241,7 @@ def template_expand(
     '--templates', '-T', 'template_dirs', metavar='PATH', multiple=True,
     help="Load templates from the given paths")
 @click.option(
-    '--profile', default='koji',
+    '--profile', "-p", default='koji',
     help="Koji profile to use for connection")
 @click.option(
     '--show-unchanged', 'show_unchanged', is_flag=True, default=False,
@@ -281,7 +287,7 @@ def template_compare(
     '--templates', '-T', 'template_dirs', metavar='PATH', multiple=True,
     help="Load templates from the given paths")
 @click.option(
-    '--profile', default='koji',
+    '--profile', "-p", default='koji',
     help="Koji profile to use for connection")
 @click.option(
     '--show-unchanged', 'show_unchanged', is_flag=True, default=False,

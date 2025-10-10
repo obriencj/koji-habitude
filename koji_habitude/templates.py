@@ -112,6 +112,7 @@ class Template(BaseObject):
     template_content: Optional[str] = Field(alias='content', default=None)
     template_schema: Optional[Dict[str, Any]] = Field(alias='schema',
                                                       default=None)
+    description: Optional[str] = Field(alias='description', default=None)
 
     _undeclared: Set[str]
     _jinja2_template: Jinja2Template

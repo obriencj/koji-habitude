@@ -32,7 +32,7 @@ class ApplyWorkflow(_ApplyWorkflow):
     '--templates', metavar='PATH', multiple=True,
     help="Location to find templates that are not available in DATA")
 @click.option(
-    '--profile', default='koji',
+    '--profile', "-p", default='koji',
     help="Koji profile to use for connection")
 @click.option(
     '--show-unchanged', 'show_unchanged', is_flag=True, default=False,
