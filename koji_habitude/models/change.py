@@ -192,7 +192,7 @@ class Change:
         Subclasses should override this method to provide specific explanations.
         """
 
-        return f"Apply [{self._state.value}] {self.__class__.__name__}"
+        return f"Apply {self.__class__.__name__} for {self.obj.typename} {self.obj.name}"
 
 
     def break_multicall(self, resolver: 'Resolver') -> bool:
@@ -246,7 +246,7 @@ class Create(Change):
         for complex formatting needs.
         """
 
-        return f"{self.obj.__class__.__name__.lower()} '{self.obj.name}'"
+        return f"Create {self.obj.typename} {self.obj.name}"
 
 
     def explain(self) -> str:
@@ -257,7 +257,7 @@ class Create(Change):
         directly for complex cases where the two-stage approach doesn't fit.
         """
 
-        return f"Create {self.summary()}"
+        return f"Create {self.obj.typename} {self.obj.name}"
 
 
 @dataclass
@@ -271,7 +271,7 @@ class Update(Change):
 
     For complex cases, subclasses can override explain() directly.
 
-    Example summary(): "Lock tag"
+    Example summary(): "Lock"
     Example explain(): "Lock tag 'f39-build'"
     """
 
@@ -301,7 +301,7 @@ class Update(Change):
             raise NotImplementedError(
                 f"{self.__class__.__name__} must implement summary() or explain()")
 
-        obj_type = self.obj.__class__.__name__.lower()
+        obj_type = self.obj.typename
         # If summary ends with the object type, append the name
         if summary.endswith(obj_type):
             return f"{summary} '{self.obj.name}'"
@@ -351,8 +351,7 @@ class Add(Change):
             raise NotImplementedError(
                 f"{self.__class__.__name__} must implement summary() or explain()")
 
-        obj_type = self.obj.__class__.__name__.lower()
-        return f"{summary} to {obj_type} '{self.obj.name}'"
+        return f"{summary} to {self.obj.typename} {self.obj.name}"
 
 
 @dataclass
@@ -396,8 +395,7 @@ class Remove(Change):
             raise NotImplementedError(
                 f"{self.__class__.__name__} must implement summary() or explain()")
 
-        obj_type = self.obj.__class__.__name__.lower()
-        return f"{summary} from {obj_type} '{self.obj.name}'"
+        return f"{summary} from {self.obj.typename} '{self.obj.name}'"
 
 
 @dataclass
@@ -441,8 +439,7 @@ class Modify(Change):
             raise NotImplementedError(
                 f"{self.__class__.__name__} must implement summary() or explain()")
 
-        obj_type = self.obj.__class__.__name__.lower()
-        return f"{summary} in {obj_type} '{self.obj.name}'"
+        return f"{summary} in {self.obj.typename} '{self.obj.name}'"
 
 
 class ChangeReport:
