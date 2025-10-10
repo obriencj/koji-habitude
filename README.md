@@ -250,7 +250,7 @@ pip install -e .
 **Repository**: https://github.com/obriencj/koji-habitude
 
 **AI Assistance**: This project was developed with assistance from
-[Claude](https://claude.ai) (Claude 3.5 Sonnet) via [Cursor
+[Claude](https://claude.ai) (Claude 3.5 and 4.5 Sonnet) via [Cursor
 IDE](https://cursor.com). See [VIBE.md](VIBE.md) for details.
 
 **License**: GNU General Public License v3 or later. See

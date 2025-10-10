@@ -280,7 +280,7 @@ Contact & License
 **Repository**: https://github.com/obriencj/koji-habitude
 
 **AI Assistance**: This project was developed with assistance from
-`Claude <https://claude.ai>`__ (Claude 3.5 Sonnet) via `Cursor
+`Claude <https://claude.ai>`__ (Claude 3.5 and 4.5 Sonnet) via `Cursor
 IDE <https://cursor.com>`__. See `VIBE.md <VIBE.md>`__ for details.
 
 **License**: GNU General Public License v3 or later. See

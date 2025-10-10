@@ -51,9 +51,10 @@ This is a Python project called koji-habitude that synchronizes local koji data 
 
   Detailed description
 
-  Assisted-by: Claude 3.5 Sonnet via Cursor
+  Assisted-by: Claude 4.5 Sonnet via Cursor
   EOF
   ```
+- Use the factual and real AI model identity
 - All commits authored by AI must include an "Assisted-by:" line at the end with proper attribution (model name + platform)
 - The AI assistant is *FORBIDDEN* from running `git checkout` or `git reset` or `git revert` commands, under all circumstances, forever.
 
@@ -101,9 +102,10 @@ This is a Python project called koji-habitude that synchronizes local koji data 
 
   Author: Christopher O'Brien <obriencj@gmail.com>
   License: GNU General Public License v3
-  AI-Assistant: Claude 3.5 Sonnet via Cursor
+  AI-Assistant: Claude 4.5 Sonnet via Cursor
   """
   ```
+- Use the factual and real model identity, the above is only an example
 
 ## Docstring Formatting
 - Triple quotes should be on their own lines (opening and closing)
