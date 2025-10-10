@@ -73,6 +73,8 @@ class Change:
     Represents an atomic change in Koji, applicable to a single Base object.
     """
 
+    obj: Base
+
     _skippable: ClassVar[bool] = False
 
     _result: Optional[VirtualCall] = field(default=None, init=False)

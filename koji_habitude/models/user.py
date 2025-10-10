@@ -26,46 +26,45 @@ if TYPE_CHECKING:
 
 @dataclass
 class UserCreate(Create):
-    name: str
-    enabled: Optional[bool]
+    obj: 'User'
 
     def impl_apply(self, session: MultiCallSession):
-        if self.enabled is None:
+        if self.obj.enabled is None:
             status = 0
         else:
-            status = 0 if self.enabled else 1
-        return session.createUser(self.name, status=status)
+            status = 0 if self.obj.enabled else 1
+        return session.createUser(self.obj.name, status=status)
 
     def explain(self) -> str:
-        status_info = f" (enabled={self.enabled})" if self.enabled is not None else ""
-        return f"Create user '{self.name}'{status_info}"
+        status_info = f" (enabled={self.obj.enabled})" if self.obj.enabled is not None else ""
+        return f"Create user '{self.obj.name}'{status_info}"
 
 
 @dataclass
 class UserEnable(Update):
-    name: str
+    obj: 'User'
 
     def impl_apply(self, session: MultiCallSession):
-        return session.enableUser(self.name)
+        return session.enableUser(self.obj.name)
 
     def explain(self) -> str:
-        return f"Enable user '{self.name}'"
+        return f"Enable user '{self.obj.name}'"
 
 
 @dataclass
 class UserDisable(Update):
-    name: str
+    obj: 'User'
 
     def impl_apply(self, session: MultiCallSession):
-        return session.disableUser(self.name)
+        return session.disableUser(self.obj.name)
 
     def explain(self) -> str:
-        return f"Disable user '{self.name}'"
+        return f"Disable user '{self.obj.name}'"
 
 
 @dataclass
 class UserGrantPermission(Add):
-    name: str
+    obj: 'User'
     permission: str
 
     _skippable: ClassVar[bool] = True
@@ -75,27 +74,27 @@ class UserGrantPermission(Add):
         return perm.is_phantom()
 
     def impl_apply(self, session: MultiCallSession):
-        return session.grantPermission(self.name, self.permission, create=True)
+        return session.grantPermission(self.obj.name, self.permission, create=True)
 
     def explain(self) -> str:
-        return f"Grant permission '{self.permission}' to user '{self.name}'"
+        return f"Grant permission '{self.permission}' to user '{self.obj.name}'"
 
 
 @dataclass
 class UserRevokePermission(Remove):
-    name: str
+    obj: 'User'
     permission: str
 
     def impl_apply(self, session: MultiCallSession):
-        return session.revokePermission(self.name, self.permission)
+        return session.revokePermission(self.obj.name, self.permission)
 
     def explain(self) -> str:
-        return f"Revoke permission '{self.permission}' from user '{self.name}'"
+        return f"Revoke permission '{self.permission}' from user '{self.obj.name}'"
 
 
 @dataclass
 class UserAddToGroup(Add):
-    name: str
+    obj: 'User'
     group: str
 
     _skippable: ClassVar[bool] = True
@@ -105,22 +104,22 @@ class UserAddToGroup(Add):
         return group.is_phantom()
 
     def impl_apply(self, session: MultiCallSession):
-        return session.addGroupMember(self.group, self.name, strict=False)
+        return session.addGroupMember(self.group, self.obj.name, strict=False)
 
     def explain(self) -> str:
-        return f"Add user '{self.name}' to group '{self.group}'"
+        return f"Add user '{self.obj.name}' to group '{self.group}'"
 
 
 @dataclass
 class UserRemoveFromGroup(Remove):
-    name: str
+    obj: 'User'
     group: str
 
     def impl_apply(self, session: MultiCallSession):
-        return session.dropGroupMember(self.group, self.name)
+        return session.dropGroupMember(self.group, self.obj.name)
 
     def explain(self) -> str:
-        return f"Remove user '{self.name}' from group '{self.group}'"
+        return f"Remove user '{self.obj.name}' from group '{self.group}'"
 
 
 class UserChangeReport(ChangeReport):
@@ -139,15 +138,15 @@ class UserChangeReport(ChangeReport):
             if not self.obj.was_split():
                 # we don't exist, and we didn't split our create to an earlier
                 # call, so create now.
-                yield UserCreate(self.obj.name, self.obj.enabled)
+                yield UserCreate(self.obj)
 
             if self.obj.is_split():
                 return
 
             for permission in self.obj.permissions:
-                yield UserGrantPermission(self.obj.name, permission)
+                yield UserGrantPermission(self.obj, permission)
             for group in self.obj.groups:
-                yield UserAddToGroup(self.obj.name, group)
+                yield UserAddToGroup(self.obj, group)
             return
 
         if self.obj.is_split():
@@ -156,29 +155,29 @@ class UserChangeReport(ChangeReport):
         if self.obj.enabled is not None:
             if info['status'] != (0 if self.obj.enabled else 1):
                 if self.obj.enabled:
-                    yield UserEnable(self.obj.name)
+                    yield UserEnable(self.obj)
                 else:
-                    yield UserDisable(self.obj.name)
+                    yield UserDisable(self.obj)
 
         groups = info['groups']
         for group in self.obj.groups:
             if group not in groups:
-                yield UserAddToGroup(self.obj.name, group)
+                yield UserAddToGroup(self.obj, group)
 
         if self.obj.exact_groups:
             for group in groups:
                 if group not in self.obj.groups:
-                    yield UserRemoveFromGroup(self.obj.name, group)
+                    yield UserRemoveFromGroup(self.obj, group)
 
         perms = self._permissions.result
         for perm in self.obj.permissions:
             if perm not in perms:
-                yield UserGrantPermission(self.obj.name, perm)
+                yield UserGrantPermission(self.obj, perm)
 
         if self.obj.exact_permissions:
             for perm in perms:
                 if perm not in self.obj.permissions:
-                    yield UserRevokePermission(self.obj.name, perm)
+                    yield UserRevokePermission(self.obj, perm)
 
 
 class User(BaseObject):

@@ -82,20 +82,20 @@ class SplitTagCheckup(Update):
 
 @dataclass
 class TagSetLocked(Update):
-    name: str
+    obj: 'Tag'
     locked: bool
 
     def impl_apply(self, session: MultiCallSession):
-        return session.editTag2(self.name, locked=self.locked)
+        return session.editTag2(self.obj.name, locked=self.locked)
 
     def explain(self) -> str:
         action = "Lock" if self.locked else "Unlock"
-        return f"{action} tag '{self.name}'"
+        return f"{action} tag '{self.obj.name}'"
 
 
 @dataclass
 class TagSetPermission(Update):
-    name: str
+    obj: 'Tag'
     permission: Optional[str]
 
     _skippable: ClassVar[bool] = True
@@ -105,69 +105,69 @@ class TagSetPermission(Update):
         return permission.is_phantom()
 
     def impl_apply(self, session: MultiCallSession):
-        return session.editTag2(self.name, perm=self.permission)
+        return session.editTag2(self.obj.name, perm=self.permission)
 
     def explain(self) -> str:
         if self.permission:
-            return f"Set permission for tag '{self.name}' to '{self.permission}'"
+            return f"Set permission for tag '{self.obj.name}' to '{self.permission}'"
         else:
-            return f"Remove permission from tag '{self.name}'"
+            return f"Remove permission from tag '{self.obj.name}'"
 
 
 @dataclass
 class TagSetMaven(Update):
-    name: str
+    obj: 'Tag'
     maven_support   : bool
     maven_include_all: bool
 
     def impl_apply(self, session: MultiCallSession):
         return session.editTag2(
-            self.name,
+            self.obj.name,
             maven_support=self.maven_support,
             maven_include_all=self.maven_include_all)
 
     def explain(self) -> str:
         if self.maven_support:
             include_all = "all" if self.maven_include_all else "specific"
-            return f"Enable Maven support for tag '{self.name}' (include {include_all} artifacts)"
+            return f"Enable Maven support for tag '{self.obj.name}' (include {include_all} artifacts)"
         else:
-            return f"Disable Maven support for tag '{self.name}'"
+            return f"Disable Maven support for tag '{self.obj.name}'"
 
 
 @dataclass
 class TagSetArches(Update):
-    name: str
+    obj: 'Tag'
     arches: List[str]
 
     def impl_apply(self, session: MultiCallSession):
-        return session.editTag2(self.name, arches=' '.join(self.arches))
+        return session.editTag2(self.obj.name, arches=' '.join(self.arches))
 
     def explain(self) -> str:
         arches_str = ', '.join(self.arches)
-        return f"Set arches for tag '{self.name}' to [{arches_str}]"
+        return f"Set arches for tag '{self.obj.name}' to [{arches_str}]"
 
 
 @dataclass
 class TagSetExtras(Update):
-    name: str
+    obj: 'Tag'
     extras: Dict[str, Any]
 
     def impl_apply(self, session: MultiCallSession):
-        return session.editTag2(self.name, extra=self.extras)
+        return session.editTag2(self.obj.name, extra=self.extras)
 
     def explain(self) -> str:
         extras_str = ', '.join(f"{k}={v}" for k, v in self.extras.items())
-        return f"Set extra fields for tag '{self.name}': {extras_str}"
+        return f"Set extra fields for tag '{self.obj.name}': {extras_str}"
 
 
 @dataclass
 class TagAddGroup(Add):
-    name: str  # the tag name
+    obj: 'Tag'
     group: 'TagGroup'
 
     def impl_apply(self, session: MultiCallSession):
         return session.groupListAdd(
-            self.name, self.group.name,
+            self.obj.name, self.group.name,
             description=self.group.description,
             block=self.group.block,
             force=True)
@@ -175,18 +175,18 @@ class TagAddGroup(Add):
     def explain(self) -> str:
         block_info = " (blocked)" if self.group.block else ""
         desc_info = f" - {self.group.description}" if self.group.description else ""
-        return f"Add group '{self.group.name}' to tag '{self.name}'{block_info}{desc_info}"
+        return f"Add group '{self.group.name}' to tag '{self.obj.name}'{block_info}{desc_info}"
 
 
 @dataclass
 class TagUpdateGroup(Modify):
-    name: str  # the tag name
+    obj: 'Tag'
     group: 'TagGroup'
 
     def impl_apply(self, session: MultiCallSession):
         # same method is used for adding and editing groups
         return session.groupListAdd(
-            self.name, self.group.name,
+            self.obj.name, self.group.name,
             description=self.group.description,
             block=self.group.block,
             force=True)
@@ -194,72 +194,72 @@ class TagUpdateGroup(Modify):
     def explain(self) -> str:
         block_info = " (blocked)" if self.group.block else ""
         desc_info = f" - {self.group.description}" if self.group.description else ""
-        return f"Update group '{self.group.name}' in tag '{self.name}'{block_info}{desc_info}"
+        return f"Update group '{self.group.name}' in tag '{self.obj.name}'{block_info}{desc_info}"
 
 
 @dataclass
 class TagRemoveGroup(Remove):
-    name: str   # the tag name
-    group: str  # the group name
+    obj: 'Tag'
+    group: str
 
     def impl_apply(self, session: MultiCallSession):
-        return session.groupListRemove(self.name, self.group)
+        return session.groupListRemove(self.obj.name, self.group)
 
     def explain(self) -> str:
-        return f"Remove group '{self.group}' from tag '{self.name}'"
+        return f"Remove group '{self.group}' from tag '{self.obj.name}'"
 
 
 @dataclass
 class TagAddGroupPackage(Add):
-    name: str     # the tag name
-    group: str    # the group name
+    obj: 'Tag'
+    group: str
     package: 'TagGroupPackage'
 
     def impl_apply(self, session: MultiCallSession):
         return session.groupPackageListAdd(
-            self.name, self.group, self.package.name,
+            self.obj.name, self.group, self.package.name,
             block=self.package.block,
             force=True)
 
     def explain(self) -> str:
         block_info = " (blocked)" if self.package.block else ""
-        return f"Add package '{self.package.name}' to group '{self.group}' in tag '{self.name}'{block_info}"
+        return f"Add package '{self.package.name}' to group '{self.group}' in tag '{self.obj.name}'{block_info}"
 
 
 @dataclass
 class TagUpdateGroupPackage(Modify):
-    name: str     # the tag name
-    group: str    # the group name
+    obj: 'Tag'
+    group: str
     package: 'TagGroupPackage'
 
     def impl_apply(self, session: MultiCallSession):
         # same method is used for adding and updating packages
         return session.groupPackageListAdd(
-            self.name, self.group, self.package.name,
+            self.obj.name, self.group, self.package.name,
             block=self.package.block,
             force=True)
 
     def explain(self) -> str:
         block_info = " (blocked)" if self.package.block else ""
-        return f"Update package '{self.package.name}' in group '{self.group}' of tag '{self.name}'{block_info}"
+        return f"Update package '{self.package.name}' in group '{self.group}' of tag '{self.obj.name}'{block_info}"
 
 
 @dataclass
 class TagRemoveGroupPackage(Remove):
-    name: str     # the tag name
-    group: str    # the group name
-    package: str  # the package name
+    obj: 'Tag'
+    group: str
+    package: str
 
     def impl_apply(self, session: MultiCallSession):
-        return session.groupPackageListRemove(self.name, self.group, self.package)
+        return session.groupPackageListRemove(self.obj.name, self.group, self.package)
 
     def explain(self) -> str:
-        return f"Remove package '{self.package}' from group '{self.group}' in tag '{self.name}'"
+        return f"Remove package '{self.package}' from group '{self.group}' in tag '{self.obj.name}'"
 
 
 @dataclass
 class TagAddInheritance(Add):
-    name: str
+    obj: 'Tag'
     parent: 'InheritanceLink'
 
     _skippable: ClassVar[bool] = True
@@ -277,7 +277,7 @@ class TagAddInheritance(Add):
             'noconfig': self.parent.noconfig,
             'pkg_filter': self.parent.pkgfilter,
         }]
-        return session.setInheritanceData(self.name, data)
+        return session.setInheritanceData(self.obj.name, data)
 
     def explain(self) -> str:
         msg = f"with priority {self.parent.priority}"
@@ -287,7 +287,7 @@ class TagAddInheritance(Add):
             msg += f" and noconfig={self.parent.noconfig}"
         if self.parent.pkgfilter is not None:
             msg += f" and pkgfilter={self.parent.pkgfilter}"
-        return f"Add inheritance from '{self.parent}' to tag '{self.name}' {msg}"
+        return f"Add inheritance from '{self.parent}' to tag '{self.obj.name}' {msg}"
 
     def break_multicall(self, resolver: 'Resolver') -> bool:
 
@@ -302,7 +302,7 @@ class TagAddInheritance(Add):
         # a MultiCallNotReady, then damnit we need to break out of the multicall
         # so it can complete and get us that value.
 
-        logger.debug(f"Checking if TagAddInheritance ({self.name}) needs to break out of multicall")
+        logger.debug(f"Checking if TagAddInheritance ({self.obj.name}) needs to break out of multicall")
 
         tag = resolver.resolve(self.parent.key())
         logger.debug(f"Resolved parent tag '{self.parent.name}' to {tag}")
@@ -320,7 +320,7 @@ class TagAddInheritance(Add):
 
 @dataclass
 class TagUpdateInheritance(Modify):
-    name: str
+    obj: 'Tag'
     parent: 'InheritanceLink'
     parent_id: int
 
@@ -333,7 +333,7 @@ class TagUpdateInheritance(Modify):
             'noconfig': self.parent.noconfig,
             'pkg_filter': self.parent.pkgfilter,
         }]
-        return session.setInheritanceData(self.name, data)
+        return session.setInheritanceData(self.obj.name, data)
 
     def explain(self) -> str:
         msg = f"with priority {self.parent.priority}"
@@ -343,26 +343,26 @@ class TagUpdateInheritance(Modify):
             msg += f" and noconfig={self.parent.noconfig}"
         if self.parent.pkgfilter is not None:
             msg += f" and pkgfilter={self.parent.pkgfilter}"
-        return f"Update inheritance from '{self.parent}' to tag '{self.name}' {msg}"
+        return f"Update inheritance from '{self.parent}' to tag '{self.obj.name}' {msg}"
 
 
 @dataclass
 class TagRemoveInheritance(Remove):
-    name: str
+    obj: 'Tag'
     parent_id: str
     parent_name: str
 
     def impl_apply(self, session: MultiCallSession):
         data = [{'parent_id': self.parent_id, 'delete link': True}]
-        return session.setInheritanceData(self.name, data)
+        return session.setInheritanceData(self.obj.name, data)
 
     def explain(self) -> str:
-        return f"Remove inheritance from '{self.parent_name}' in tag '{self.name}'"
+        return f"Remove inheritance from '{self.parent_name}' in tag '{self.obj.name}'"
 
 
 @dataclass
 class TagAddExternalRepo(Add):
-    name: str
+    obj: 'Tag'
     repo: 'ExternalRepoLink'
 
     _skippable: ClassVar[bool] = True
@@ -374,13 +374,13 @@ class TagAddExternalRepo(Add):
     def impl_apply(self, session: MultiCallSession):
         arches = ' '.join(self.repo.arches) if self.repo.arches else None
         return session.addExternalRepoToTag(
-            self.name, self.repo.name,
+            self.obj.name, self.repo.name,
             priority=self.repo.priority,
             merge_mode=self.repo.merge_mode,
             arches=arches)
 
     def explain(self) -> str:
-        return (f"Add external repo '{self.repo.name}' to tag '{self.name}"
+        return (f"Add external repo '{self.repo.name}' to tag '{self.obj.name}"
                 f", priority:{self.repo.priority}"
                 f", arches: {self.repo.arches!r}"
                 f", merge_mode: {self.repo.merge_mode!r}")
@@ -388,19 +388,19 @@ class TagAddExternalRepo(Add):
 
 @dataclass
 class TagUpdateExternalRepo(Modify):
-    name: str
+    obj: 'Tag'
     repo: 'ExternalRepoLink'
 
     def impl_apply(self, session: MultiCallSession):
         arches = ' '.join(self.repo.arches) if self.repo.arches else None
         return session.editTagExternalRepo(
-            self.name, self.repo.name,
+            self.obj.name, self.repo.name,
             priority=self.repo.priority,
             merge_mode=self.repo.merge_mode,
             arches=arches)
 
     def explain(self) -> str:
-        return (f"Update external repo '{self.repo.name}' in tag '{self.name}"
+        return (f"Update external repo '{self.repo.name}' in tag '{self.obj.name}"
                 f", priority:{self.repo.priority}"
                 f", arches: {self.repo.arches!r}"
                 f", merge_mode: {self.repo.merge_mode!r}")
@@ -408,26 +408,26 @@ class TagUpdateExternalRepo(Modify):
 
 @dataclass
 class TagRemoveExternalRepo(Remove):
-    name: str
+    obj: 'Tag'
     repo: str
 
     def impl_apply(self, session: MultiCallSession):
-        return session.removeExternalRepoFromTag(self.name, self.repo)
+        return session.removeExternalRepoFromTag(self.obj.name, self.repo)
 
     def explain(self) -> str:
-        return f"Remove external repo '{self.repo}' from tag '{self.name}'"
+        return f"Remove external repo '{self.repo}' from tag '{self.obj.name}'"
 
 
 @dataclass
 class TagPackageListAdd(Add):
-    name: str
+    obj: 'Tag'
     package: 'PackageEntry'
 
     def impl_apply(self, session: MultiCallSession):
         arches = self.package.extra_arches
         arches = ' '.join(arches) if arches else None
         return session.packageListAdd(
-            self.name,
+            self.obj.name,
             self.package.name,
             owner=self.package.owner,
             block=self.package.block,
@@ -435,70 +435,70 @@ class TagPackageListAdd(Add):
             force=True)
 
     def explain(self) -> str:
-        return f"Add package '{self.package.name}' to tag '{self.name}'"
+        return f"Add package '{self.package.name}' to tag '{self.obj.name}'"
 
 
 @dataclass
 class TagPackageListBlock(Add):
-    name: str
+    obj: 'Tag'
     package: str
 
     def impl_apply(self, session: MultiCallSession):
-        return session.packageListBlock(self.name, self.package, force=True)
+        return session.packageListBlock(self.obj.name, self.package, force=True)
 
     def explain(self) -> str:
-        return f"Block package '{self.package}' in tag '{self.name}'"
+        return f"Block package '{self.package}' in tag '{self.obj.name}'"
 
 
 @dataclass
 class TagPackageListUnblock(Remove):
-    name: str
+    obj: 'Tag'
     package: str
 
     def impl_apply(self, session: MultiCallSession):
-        return session.packageListUnblock(self.name, self.package, force=True)
+        return session.packageListUnblock(self.obj.name, self.package, force=True)
 
     def explain(self) -> str:
-        return f"Unblock package '{self.package}' in tag '{self.name}'"
+        return f"Unblock package '{self.package}' in tag '{self.obj.name}'"
 
 
 @dataclass
 class TagPackageListSetOwner(Modify):
-    name: str
+    obj: 'Tag'
     package: str
     owner: str
 
     def impl_apply(self, session: MultiCallSession):
-        return session.packageListSetOwner(self.name, self.package, self.owner, force=True)
+        return session.packageListSetOwner(self.obj.name, self.package, self.owner, force=True)
 
     def explain(self) -> str:
-        return f"Set owner for package '{self.package}' in tag '{self.name}' to '{self.owner}'"
+        return f"Set owner for package '{self.package}' in tag '{self.obj.name}' to '{self.owner}'"
 
 
 @dataclass
 class TagPackageListSetArches(Modify):
-    name: str
+    obj: 'Tag'
     package: str
     arches: List[str]
 
     def impl_apply(self, session: MultiCallSession):
         arches = ' '.join(self.arches) if self.arches else None
-        return session.packageListSetArches(self.name, self.package, arches, force=True)
+        return session.packageListSetArches(self.obj.name, self.package, arches, force=True)
 
     def explain(self) -> str:
-        return f"Set extra_arches for package '{self.package}' in tag '{self.name}' to '{self.arches}'"
+        return f"Set extra_arches for package '{self.package}' in tag '{self.obj.name}' to '{self.arches}'"
 
 
 @dataclass
 class TagPackageListRemove(Remove):
-    name: str
+    obj: 'Tag'
     package: str
 
     def impl_apply(self, session: MultiCallSession):
-        return session.packageListRemove(self.name, self.package, force=True)
+        return session.packageListRemove(self.obj.name, self.package, force=True)
 
     def explain(self) -> str:
-        return f"Remove package '{self.package}' from tag '{self.name}'"
+        return f"Remove package '{self.package}' from tag '{self.obj.name}'"
 
 
 class TagChangeReport(ChangeReport):
@@ -542,36 +542,36 @@ class TagChangeReport(ChangeReport):
                 return
 
             if self.obj.permission:
-                yield TagSetPermission(self.obj.name, self.obj.permission)
+                yield TagSetPermission(self.obj, self.obj.permission)
             if self.obj.extras:
-                yield TagSetExtras(self.obj.name, self.obj.extras)
+                yield TagSetExtras(self.obj, self.obj.extras)
             for group_name, group in self.obj.groups.items():
-                yield TagAddGroup(self.obj.name, group)
+                yield TagAddGroup(self.obj, group)
                 for package in group.packages:
-                    yield TagAddGroupPackage(self.obj.name, group_name, package)
+                    yield TagAddGroupPackage(self.obj, group_name, package)
             for parent in self.obj.inheritance:
-                yield TagAddInheritance(self.obj.name, parent)
+                yield TagAddInheritance(self.obj, parent)
             for repo in self.obj.external_repos:
-                yield TagAddExternalRepo(self.obj.name, repo)
+                yield TagAddExternalRepo(self.obj, repo)
             for package in self.obj.packages:
-                yield TagPackageListAdd(self.obj.name, package)
+                yield TagPackageListAdd(self.obj, package)
             return
 
         if self.obj.is_split():
             return
 
         if info['locked'] != self.obj.locked:
-            yield TagSetLocked(self.obj.name, self.obj.locked)
+            yield TagSetLocked(self.obj, self.obj.locked)
         if not _compare_arches(info['arches'], self.obj.arches):
-            yield TagSetArches(self.obj.name, self.obj.arches)
+            yield TagSetArches(self.obj, self.obj.arches)
         if info['maven_support'] != self.obj.maven_support or \
            info['maven_include_all'] != self.obj.maven_include_all:
-            yield TagSetMaven(self.obj.name, self.obj.maven_support, self.obj.maven_include_all)
+            yield TagSetMaven(self.obj, self.obj.maven_support, self.obj.maven_include_all)
 
         if info['perm'] != self.obj.permission:
-            yield TagSetPermission(self.obj.name, self.obj.permission)
+            yield TagSetPermission(self.obj, self.obj.permission)
         if info['extra'] != self.obj.extras:
-            yield TagSetExtras(self.obj.name, self.obj.extras)
+            yield TagSetExtras(self.obj, self.obj.extras)
 
         yield from self._compare_packages()
         yield from self._compare_groups()
@@ -583,24 +583,24 @@ class TagChangeReport(ChangeReport):
         koji_pkgs = {pkg['package_name']: pkg for pkg in self._packagelist.result}
         for package in self.obj.packages:
             if package.name not in koji_pkgs:
-                yield TagPackageListAdd(self.obj.name, package)
+                yield TagPackageListAdd(self.obj, package)
             else:
                 koji_pkg = koji_pkgs[package.name]
                 if koji_pkg['blocked'] != package.block:
                     if package.block:
-                        yield TagPackageListBlock(self.obj.name, package.name)
+                        yield TagPackageListBlock(self.obj, package.name)
                     else:
-                        yield TagPackageListUnblock(self.obj.name, package.name)
+                        yield TagPackageListUnblock(self.obj, package.name)
                 if koji_pkg['owner_name'] != package.owner and package.owner is not None:
-                    yield TagPackageListSetOwner(self.obj.name, package.name, package.owner)
+                    yield TagPackageListSetOwner(self.obj, package.name, package.owner)
                 if not _compare_arches(koji_pkg['extra_arches'], package.extra_arches):
-                    yield TagPackageListSetArches(self.obj.name, package.name, package.extra_arches)
+                    yield TagPackageListSetArches(self.obj, package.name, package.extra_arches)
 
         if self.obj.exact_packages:
             our_pkglist = {package.name for package in self.obj.packages}
             for package_name in koji_pkgs:
                 if package_name not in our_pkglist:
-                    yield TagPackageListRemove(self.obj.name, package_name)
+                    yield TagPackageListRemove(self.obj, package_name)
 
 
     def _compare_inheritance(self):
@@ -622,11 +622,11 @@ class TagChangeReport(ChangeReport):
 
         for name, parent in koji_inher.items():
             if name not in inher:
-                yield TagRemoveInheritance(self.obj.name, parent['parent_id'], parent['name'])
+                yield TagRemoveInheritance(self.obj, parent['parent_id'], parent['name'])
 
         for name, parent in inher.items():
             if name not in koji_inher:
-                yield TagAddInheritance(self.obj.name, parent)
+                yield TagAddInheritance(self.obj, parent)
             else:
                 koji_parent = koji_inher[name]
                 if koji_parent['priority'] != parent.priority or \
@@ -634,7 +634,7 @@ class TagChangeReport(ChangeReport):
                    koji_parent['noconfig'] != parent.noconfig or \
                    koji_parent['pkg_filter'] != parent.pkgfilter or \
                    koji_parent['intransitive'] != parent.intransitive:
-                    yield TagUpdateInheritance(self.obj.name, parent, koji_parent['parent_id'])
+                    yield TagUpdateInheritance(self.obj, parent, koji_parent['parent_id'])
 
 
     def _compare_external_repos(self):
@@ -644,17 +644,17 @@ class TagChangeReport(ChangeReport):
 
         for name, koji_repo in koji_ext_repos.items():
             if name not in ext_repos:
-                yield TagRemoveExternalRepo(self.obj.name, name)
+                yield TagRemoveExternalRepo(self.obj, name)
             else:
                 repo = ext_repos[name]
                 if koji_repo['priority'] != repo.priority or \
                    koji_repo['merge_mode'] != repo.merge_mode or \
                    not _compare_arches(koji_repo['arches'], repo.arches):
-                    yield TagUpdateExternalRepo(self.obj.name, repo)
+                    yield TagUpdateExternalRepo(self.obj, repo)
 
         for name, repo in ext_repos.items():
             if name not in koji_ext_repos:
-                yield TagAddExternalRepo(self.obj.name, repo)
+                yield TagAddExternalRepo(self.obj, repo)
 
 
     def _compare_groups(self):
@@ -666,15 +666,15 @@ class TagChangeReport(ChangeReport):
         koji_groups = {group['name']: group for group in self._groups.result}
         for group_name, group in self.obj.groups.items():
             if group_name not in koji_groups:
-                yield TagAddGroup(self.obj.name, group)
+                yield TagAddGroup(self.obj, group)
                 for package in group.packages:
-                    yield TagAddGroupPackage(self.obj.name, group_name, package)
+                    yield TagAddGroupPackage(self.obj, group_name, package)
                 continue
 
             koji_group = koji_groups[group_name]
             if group.block != koji_group['blocked'] or \
                group.description != koji_group['description']:
-                yield TagUpdateGroup(self.obj.name, group)
+                yield TagUpdateGroup(self.obj, group)
 
             to_add : List[TagGroupPackage] = []
             to_update : List[TagGroupPackage] = []
@@ -687,10 +687,10 @@ class TagChangeReport(ChangeReport):
                     to_update.append(pkg)
 
             for package in to_add:
-                yield TagAddGroupPackage(self.obj.name, group_name, package)
+                yield TagAddGroupPackage(self.obj, group_name, package)
 
             for package in to_update:
-                yield TagUpdateGroupPackage(self.obj.name, group_name, package)
+                yield TagUpdateGroupPackage(self.obj, group_name, package)
 
             if group.exact_packages:
                 to_remove : List[str] = []
@@ -699,12 +699,12 @@ class TagChangeReport(ChangeReport):
                     if pkg_name not in pkgs:
                         to_remove.append(pkg_name)
                 for pkg_name in to_remove:
-                    yield TagRemoveGroupPackage(self.obj.name, group_name, pkg_name)
+                    yield TagRemoveGroupPackage(self.obj, group_name, pkg_name)
 
         if self.obj.exact_groups:
             for group_name in koji_groups:
                 if group_name not in self.obj.groups:
-                    yield TagRemoveGroup(self.obj.name, group_name)
+                    yield TagRemoveGroup(self.obj, group_name)
 
 
 class TagGroupPackage(SubModel):

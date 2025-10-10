@@ -26,72 +26,71 @@ if TYPE_CHECKING:
 
 @dataclass
 class HostCreate(Create):
-    name: str
-    arches: List[str]
+    obj: 'Host'
 
     def impl_apply(self, session: MultiCallSession):
         return session.createHost(
-            self.name,
-            arches=' '.join(self.arches))
+            self.obj.name,
+            arches=' '.join(self.obj.arches))
 
     def explain(self) -> str:
-        arches_str = ', '.join(self.arches)
-        return f"Create host '{self.name}' with arches [{arches_str}]"
+        arches_str = ', '.join(self.obj.arches)
+        return f"Create host '{self.obj.name}' with arches [{arches_str}]"
 
 
 @dataclass
 class HostSetArches(Update):
-    name: str
+    obj: 'Host'
     arches: List[str]
 
     def impl_apply(self, session: MultiCallSession):
-        return session.editHost(self.name, arches=' '.join(self.arches))
+        return session.editHost(self.obj.name, arches=' '.join(self.arches))
 
     def explain(self) -> str:
         arches_str = ', '.join(self.arches)
-        return f"Set arches for host '{self.name}' to [{arches_str}]"
+        return f"Set arches for host '{self.obj.name}' to [{arches_str}]"
 
 
 @dataclass
 class HostSetCapacity(Update):
-    name: str
+    obj: 'Host'
     capacity: float
 
     def impl_apply(self, session: MultiCallSession):
-        return session.editHost(self.name, capacity=self.capacity)
+        return session.editHost(self.obj.name, capacity=self.capacity)
 
     def explain(self) -> str:
-        return f"Set capacity for host '{self.name}' to {self.capacity}"
+        return f"Set capacity for host '{self.obj.name}' to {self.capacity}"
 
 
 @dataclass
 class HostSetEnabled(Update):
-    name: str
+    obj: 'Host'
     enabled: bool
 
     def impl_apply(self, session: MultiCallSession):
-        return session.editHost(self.name, enabled=self.enabled)
+        return session.editHost(self.obj.name, enabled=self.enabled)
 
     def explain(self) -> str:
         action = "Enable" if self.enabled else "Disable"
-        return f"{action} host '{self.name}'"
+        return f"{action} host '{self.obj.name}'"
 
 
 @dataclass
 class HostSetDescription(Update):
-    name: str
+    obj: 'Host'
     description: str
 
     def impl_apply(self, session: MultiCallSession):
-        return session.editHost(self.name, description=self.description)
+        return session.editHost(self.obj.name, description=self.description)
 
     def explain(self) -> str:
-        return f"Set description for host '{self.name}' to '{self.description}'"
+        return f"Set description for host '{self.obj.name}' to '{self.description}'"
 
 
 @dataclass
 class HostAddChannel(Add):
-    name: str
+    obj: 'Host'
     channel: str
 
     _skippable: ClassVar[bool] = True
@@ -101,22 +100,22 @@ class HostAddChannel(Add):
         return channel.is_phantom()
 
     def impl_apply(self, session: MultiCallSession):
-        return session.addHostToChannel(self.name, self.channel)
+        return session.addHostToChannel(self.obj.name, self.channel)
 
     def explain(self) -> str:
-        return f"Add host '{self.name}' to channel '{self.channel}'"
+        return f"Add host '{self.obj.name}' to channel '{self.channel}'"
 
 
 @dataclass
 class HostRemoveChannel(Remove):
-    name: str
+    obj: 'Host'
     channel: str
 
     def impl_apply(self, session: MultiCallSession):
-        return session.removeHostFromChannel(self.name, self.channel)
+        return session.removeHostFromChannel(self.obj.name, self.channel)
 
     def explain(self) -> str:
-        return f"Remove host '{self.name}' from channel '{self.channel}'"
+        return f"Remove host '{self.obj.name}' from channel '{self.channel}'"
 
 
 class HostChangeReport(ChangeReport):
@@ -131,19 +130,19 @@ class HostChangeReport(ChangeReport):
             if not self.obj.was_split():
                 # we don't exist, and we didn't split our create to an earlier
                 # call, so create now.
-                yield HostCreate(self.obj.name, self.obj.arches)
+                yield HostCreate(self.obj)
 
             if self.obj.is_split():
                 return
 
             if self.obj.capacity is not None:
-                yield HostSetCapacity(self.obj.name, self.obj.capacity)
+                yield HostSetCapacity(self.obj, self.obj.capacity)
             if self.obj.enabled is not None and not self.obj.enabled:
-                yield HostSetEnabled(self.obj.name, self.obj.enabled)
+                yield HostSetEnabled(self.obj, self.obj.enabled)
             if self.obj.description is not None:
-                yield HostSetDescription(self.obj.name, self.obj.description)
+                yield HostSetDescription(self.obj, self.obj.description)
             for channel in self.obj.channels:
-                yield HostAddChannel(self.obj.name, channel)
+                yield HostAddChannel(self.obj, channel)
             return
 
         if self.obj.is_split():
@@ -151,23 +150,23 @@ class HostChangeReport(ChangeReport):
 
         arches = set(info['arches'].split())
         if arches != set(self.obj.arches):
-            yield HostSetArches(self.obj.name, self.obj.arches)
+            yield HostSetArches(self.obj, self.obj.arches)
         if self.obj.capacity is not None and info['capacity'] != self.obj.capacity:
-            yield HostSetCapacity(self.obj.name, self.obj.capacity)
+            yield HostSetCapacity(self.obj, self.obj.capacity)
         if info['enabled'] != self.obj.enabled:
-            yield HostSetEnabled(self.obj.name, self.obj.enabled)
+            yield HostSetEnabled(self.obj, self.obj.enabled)
         if self.obj.description is not None and info['description'] != self.obj.description:
-            yield HostSetDescription(self.obj.name, self.obj.description)
+            yield HostSetDescription(self.obj, self.obj.description)
 
         channels = info['channels']
         for channel in self.obj.channels:
             if channel not in channels:
-                yield HostAddChannel(self.obj.name, channel)
+                yield HostAddChannel(self.obj, channel)
 
         if self.obj.exact_channels:
             for channel in channels:
                 if channel not in self.obj.channels:
-                    yield HostRemoveChannel(self.obj.name, channel)
+                    yield HostRemoveChannel(self.obj, channel)
 
 
 class Host(BaseObject):

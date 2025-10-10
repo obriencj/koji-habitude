@@ -26,26 +26,25 @@ if TYPE_CHECKING:
 
 @dataclass
 class ExternalRepoCreate(Create):
-    name: str
-    url: str
+    obj: 'ExternalRepo'
 
     def impl_apply(self, session: MultiCallSession):
-        return session.createExternalRepo(self.name, self.url)
+        return session.createExternalRepo(self.obj.name, self.obj.url)
 
     def explain(self) -> str:
-        return f"Create external repo '{self.name}' with URL '{self.url}'"
+        return f"Create external repo '{self.obj.name}' with URL '{self.obj.url}'"
 
 
 @dataclass
 class ExternalRepoSetURL(Update):
-    name: str
+    obj: 'ExternalRepo'
     url: str
 
     def impl_apply(self, session: MultiCallSession):
-        return session.editExternalRepo(self.name, url=self.url)
+        return session.editExternalRepo(self.obj.name, url=self.url)
 
     def explain(self) -> str:
-        return f"Set URL for external repo '{self.name}' to '{self.url}'"
+        return f"Set URL for external repo '{self.obj.name}' to '{self.url}'"
 
 
 class ExternalRepoChangeReport(ChangeReport):
@@ -57,11 +56,11 @@ class ExternalRepoChangeReport(ChangeReport):
     def impl_compare(self):
         info = self._external_repoinfo.result
         if not info:
-            yield ExternalRepoCreate(self.obj.name, self.obj.url)
+            yield ExternalRepoCreate(self.obj)
             return
 
         if info['url'] != self.obj.url:
-            yield ExternalRepoSetURL(self.obj.name, self.obj.url)
+            yield ExternalRepoSetURL(self.obj, self.obj.url)
 
 
 class ExternalRepo(BaseObject):

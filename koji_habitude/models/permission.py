@@ -44,8 +44,7 @@ def getPermission(session: ClientSession, name: str):
 
 @dataclass
 class PermissionCreate(Create):
-    name: str
-    description: Optional[str]
+    obj: 'Permission'
 
     def impl_apply(self, session: MultiCallSession):
         currentuser = vars(session)['_currentuser']['id']
@@ -53,26 +52,26 @@ class PermissionCreate(Create):
         # and then revoke it. We record the logged in user as _currentuser when we use the
         # `koji_habituse.koji.session` call.
         res = session.grantPermission(
-            currentuser, self.name, create=True,
-            description=self.description)
-        session.revokePermission(currentuser, self.name)
+            currentuser, self.obj.name, create=True,
+            description=self.obj.description)
+        session.revokePermission(currentuser, self.obj.name)
         return res
 
     def explain(self) -> str:
-        desc_info = f" with description '{self.description}'" if self.description else ""
-        return f"Create permission '{self.name}'{desc_info}"
+        desc_info = f" with description '{self.obj.description}'" if self.obj.description else ""
+        return f"Create permission '{self.obj.name}'{desc_info}"
 
 
 @dataclass
 class PermissionSetDescription(Update):
-    name: str
+    obj: 'Permission'
     description: str
 
     def impl_apply(self, session: MultiCallSession):
-        return session.editPermission(self.name, description=self.description)
+        return session.editPermission(self.obj.name, description=self.description)
 
     def explain(self) -> str:
-        return f"Set description for permission '{self.name}' to '{self.description}'"
+        return f"Set description for permission '{self.obj.name}' to '{self.description}'"
 
 
 class PermissionChangeReport(ChangeReport):
@@ -87,11 +86,11 @@ class PermissionChangeReport(ChangeReport):
     def impl_compare(self):
         info = self._permissioninfo.result
         if not info:
-            yield PermissionCreate(self.obj.name, self.obj.description)
+            yield PermissionCreate(self.obj)
             return
 
         if info['description'] != self.obj.description:
-            yield PermissionSetDescription(self.obj.name, self.obj.description)
+            yield PermissionSetDescription(self.obj, self.obj.description)
 
 
 class Permission(BaseObject):
