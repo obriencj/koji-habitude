@@ -68,9 +68,8 @@ class TagCreate(Create):
         if self.obj.maven_support or self.obj.maven_include_all:
             mvn = 'enabled' if self.obj.maven_support else 'disabled'
             maven_info = f" with Maven support {mvn} (include_all={self.obj.maven_include_all})"
-        perm_info = f" with permission '{self.obj.permission}'" if self.obj.permission else ''
         locked_info = " (locked)" if self.obj.locked else ''
-        return f"Create tag {self.obj.name}{perm_info}{locked_info}{arches_info}{maven_info}"
+        return f"Create tag {self.obj.name}{locked_info}{arches_info}{maven_info}"
 
 
 @dataclass
