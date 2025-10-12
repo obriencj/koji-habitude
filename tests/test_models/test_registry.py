@@ -12,7 +12,7 @@ import unittest
 
 from koji_habitude.models import (
     CORE_MODELS, CORE_TYPES, BaseObject, Channel, ContentGenerator, ExternalRepo,
-    Group, Host, Permission, Tag, Target, User,
+    Group, Host, Permission, Tag, Target, User, ArchiveType, BuildType,
 )
 
 
@@ -27,6 +27,8 @@ class TestCoreModelsRegistry(unittest.TestCase):
         """
 
         expected_models = [
+            ArchiveType,
+            BuildType,
             Channel,
             ContentGenerator,
             ExternalRepo,
@@ -49,6 +51,8 @@ class TestCoreModelsRegistry(unittest.TestCase):
         """
 
         expected_typenames = {
+            ArchiveType: 'archive-type',
+            BuildType: 'build-type',
             Channel: 'channel',
             ContentGenerator: 'content-generator',
             ExternalRepo: 'external-repo',
@@ -70,6 +74,8 @@ class TestCoreModelsRegistry(unittest.TestCase):
         """
 
         minimal_data_templates = {
+            ArchiveType: {'type': 'archive-type', 'name': 'test'},
+            BuildType: {'type': 'build-type', 'name': 'test'},
             Channel: {'type': 'channel', 'name': 'test'},
             ContentGenerator: {'type': 'content-generator', 'name': 'test'},
             ExternalRepo: {'type': 'external-repo', 'name': 'test', 'url': 'https://example.com'},
@@ -93,6 +99,8 @@ class TestCoreModelsRegistry(unittest.TestCase):
         """
 
         minimal_data_templates = {
+            ArchiveType: {'type': 'archive-type', 'name': 'test'},
+            BuildType: {'type': 'build-type', 'name': 'test'},
             Channel: {'type': 'channel', 'name': 'test'},
             ContentGenerator: {'type': 'content-generator', 'name': 'test'},
             ExternalRepo: {'type': 'external-repo', 'name': 'test', 'url': 'https://example.com'},
