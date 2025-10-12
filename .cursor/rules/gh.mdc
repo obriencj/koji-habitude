@@ -1,3 +1,69 @@
+---
+description: when using gh to create a pull-request
+alwaysApply: false
+---
+# GitHub CLI Rules
+
+## PR Creation
+
+### PR Body Formatting
+When creating pull requests with `gh pr create`, use command substitution with a quoted heredoc to prevent bash interpolation issues:
+
+```bash
+gh pr create --base master --head branch-name \
+  --title "PR Title Here" \
+  --body "$(cat << 'EOF'
+Multi-line PR description here
+with `backticks`, $variables, and other special chars
+that won't be interpreted by bash.
+
+## Section Headers
+- Bullet points
+- Code references like `file.py`
+- Paths like `/path/to/file`
+
+All of these will render correctly without bash trying to
+interpret them as commands or variables.
+EOF
+)"
+```
+
+**Key Points:**
+- Use **quoted heredoc delimiter** (`'EOF'` not `EOF`) to prevent variable expansion
+- Use **command substitution** `$(...)` to capture the heredoc output
+- This is **inline** - no temporary files needed
+- Works **reliably** regardless of special characters in the content
+- The same pattern works for `gh pr edit --body` and `gh issue create --body`
+
+### Alternative: Body File
+For very long PR bodies or when reusing content, use a temporary file:
+
+```bash
+cat > /tmp/pr_body.md << 'EOF'
+PR description here
+EOF
+gh pr create --body-file /tmp/pr_body.md
+rm /tmp/pr_body.md
+```
+
+**Prefer the command substitution method** for most cases as it's cleaner and doesn't require cleanup.
+
+## PR Editing
+
+Use the same pattern for editing PR bodies:
+
+```bash
+gh pr edit PR_NUMBER --body "$(cat << 'EOF'
+Updated PR description
+EOF
+)"
+```
+
+## General Guidelines
+
+- Always use `--no-pager` flag when using git commands programmatically
+- Use `gh pr view NUMBER` to verify PR creation/updates
+- Include proper markdown formatting in PR bodies for readability
 # GitHub CLI Rules
 
 ## PR Creation
