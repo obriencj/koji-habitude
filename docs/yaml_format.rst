@@ -40,6 +40,9 @@ The following core koji object types are supported:
    yaml_format/channel
    yaml_format/external-repo
    yaml_format/permission
+   yaml_format/content-generator
+   yaml_format/build-type
+   yaml_format/archive-type
 
 Templates
 ---------
