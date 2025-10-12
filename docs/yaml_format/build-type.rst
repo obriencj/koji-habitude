@@ -83,4 +83,3 @@ Technical Reference
 
 For developers: The ``build-type`` object is implemented by the
 :class:`koji_habitude.models.build_type.BuildType` class.
-

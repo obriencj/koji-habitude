@@ -166,4 +166,3 @@ Technical Reference
 
 For developers: The ``archive-type`` object is implemented by the
 :class:`koji_habitude.models.archive_type.ArchiveType` class.
-

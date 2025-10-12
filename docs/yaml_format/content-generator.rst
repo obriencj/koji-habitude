@@ -90,4 +90,3 @@ Technical Reference
 
 For developers: The ``content-generator`` object is implemented by the
 :class:`koji_habitude.models.content_generator.ContentGenerator` class.
-

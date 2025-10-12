@@ -20,11 +20,12 @@ declarative approach to managing koji objects through YAML templates and
 data files, with intelligent dependency resolution and tiered execution.
 
 **Key Features:** - Define koji objects (tags, external repos, users,
-targets, hosts, groups) in YAML - Use Jinja2 templates for dynamic
-configuration generation - Automatically resolve dependencies between
-objects (tag inheritance) - Preview template expansion results with the
-``expand`` command - Apply changes in the correct order through tiered
-execution - Validate configurations offline before deployment
+targets, hosts, groups, channels, permissions, build types, archive
+types) in YAML - Use Jinja2 templates for dynamic configuration
+generation - Automatically resolve dependencies between objects (tag
+inheritance) - Preview template expansion results with the ``expand``
+command - Apply changes in the correct order through tiered execution -
+Validate configurations offline before deployment
 
 This project is an offshoot of
 `koji-box <https://github.com/obriencj/koji-box>`__, fulfilling the need
@@ -38,10 +39,10 @@ Current Status
 
 **Implemented:** - Complete CLI framework with all core commands
 (``apply``, ``compare``, ``expand``, ``list-templates``) - All Koji
-object types (8 CORE_MODELS) with Pydantic validation - Dependency
+object types (11 CORE_MODELS) with Pydantic validation - Dependency
 resolution architecture (Resolver and Solver modules) - Processor module
 with state machine and multicall integration - Comprehensive unit
-testing (360 tests, 74% coverage) - Template expansion and change
+testing (360+ tests, 74%+ coverage) - Template expansion and change
 tracking system
 
 **Next Steps:** - CLI testing coverage improvements - Integration
@@ -156,7 +157,8 @@ YAML Format & Templates
 
 YAML files can be single or multi-document, processed in-order. Each
 document has a ‘type’ key indicating the document type. Default types
-are ‘template’, ‘tag’, ‘target’, ‘user’, ‘group’, ‘host’, and
+are ‘template’, ‘tag’, ‘target’, ‘user’, ‘group’, ‘host’, ‘channel’,
+‘permission’, ‘content-generator’, ‘build-type’, ‘archive-type’, and
 ‘external-repo’. Templates define new types based on their name.
 
 Template System
@@ -226,6 +228,10 @@ Pydantic models:
 - **``group``**: Package groups and their memberships
 - **``channel``**: Build channels with host assignments
 - **``permission``**: User permission definitions
+- **``content-generator``**: Content generators with user access control
+- **``build-type``**: Build type definitions (rpm, maven, image, etc.)
+- **``archive-type``**: Archive type definitions with file extensions
+  and compression
 
 Dependency Resolution
 ~~~~~~~~~~~~~~~~~~~~~
