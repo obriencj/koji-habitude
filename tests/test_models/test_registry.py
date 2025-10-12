@@ -11,8 +11,8 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 import unittest
 
 from koji_habitude.models import (
-    CORE_MODELS, CORE_TYPES, BaseObject, Channel, ExternalRepo,
-    Group, Host, Permission, Tag, Target, User,
+    CORE_MODELS, CORE_TYPES, BaseObject, Channel, ContentGenerator, ExternalRepo,
+    Group, Host, Permission, Tag, Target, User, ArchiveType, BuildType,
 )
 
 
@@ -27,7 +27,10 @@ class TestCoreModelsRegistry(unittest.TestCase):
         """
 
         expected_models = [
+            ArchiveType,
+            BuildType,
             Channel,
+            ContentGenerator,
             ExternalRepo,
             Group,
             Host,
@@ -48,7 +51,10 @@ class TestCoreModelsRegistry(unittest.TestCase):
         """
 
         expected_typenames = {
+            ArchiveType: 'archive-type',
+            BuildType: 'build-type',
             Channel: 'channel',
+            ContentGenerator: 'content-generator',
             ExternalRepo: 'external-repo',
             Group: 'group',
             Host: 'host',
@@ -68,7 +74,10 @@ class TestCoreModelsRegistry(unittest.TestCase):
         """
 
         minimal_data_templates = {
+            ArchiveType: {'type': 'archive-type', 'name': 'test'},
+            BuildType: {'type': 'build-type', 'name': 'test'},
             Channel: {'type': 'channel', 'name': 'test'},
+            ContentGenerator: {'type': 'content-generator', 'name': 'test'},
             ExternalRepo: {'type': 'external-repo', 'name': 'test', 'url': 'https://example.com'},
             Group: {'type': 'group', 'name': 'test'},
             Host: {'type': 'host', 'name': 'test'},
@@ -90,7 +99,10 @@ class TestCoreModelsRegistry(unittest.TestCase):
         """
 
         minimal_data_templates = {
+            ArchiveType: {'type': 'archive-type', 'name': 'test'},
+            BuildType: {'type': 'build-type', 'name': 'test'},
             Channel: {'type': 'channel', 'name': 'test'},
+            ContentGenerator: {'type': 'content-generator', 'name': 'test'},
             ExternalRepo: {'type': 'external-repo', 'name': 'test', 'url': 'https://example.com'},
             Group: {'type': 'group', 'name': 'test'},
             Host: {'type': 'host', 'name': 'test'},
