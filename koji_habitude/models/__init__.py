@@ -18,6 +18,7 @@ from types import MappingProxyType
 from .base import Base, BaseObject, BaseKey, BaseStatus
 from .change import ChangeReport, Change, Create, Update, Add, Remove, Modify
 from .channel import Channel
+from .content_generator import ContentGenerator
 from .external_repo import ExternalRepo
 from .group import Group
 from .host import Host
@@ -45,6 +46,7 @@ __all__ = (
     'Modify',
 
     'Channel',
+    'ContentGenerator',
     'ExternalRepo',
     'Group',
     'Host',
@@ -57,6 +59,7 @@ __all__ = (
 
 CORE_TYPES: Tuple[Type[BaseObject], ...] = (
     Channel,
+    ContentGenerator,
     ExternalRepo,
     Group,
     Host,
@@ -66,7 +69,8 @@ CORE_TYPES: Tuple[Type[BaseObject], ...] = (
     User,
 )
 
-CORE_MODELS: MappingProxyType[str, Type[BaseObject]] = MappingProxyType({tp.typename: tp for tp in CORE_TYPES})
+CORE_MODELS: MappingProxyType[str, Type[BaseObject]] = \
+     MappingProxyType({tp.typename: tp for tp in CORE_TYPES})
 
 
 # The end.
