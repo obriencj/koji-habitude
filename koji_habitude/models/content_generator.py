@@ -32,7 +32,7 @@ def getContentGenerator(session: ClientSession, name: str):
         dat = cglist.get(name)
         if dat is not None:
             dat['name'] = name
-        return None
+        return dat
 
     return call_processor(filter_for_cg, session.listCGs)
 
