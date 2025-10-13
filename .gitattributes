@@ -1,0 +1,11 @@
+# Git attributes for koji-habitude
+#
+# Author: Christopher O'Brien <obriencj@gmail.com>
+# License: GNU General Public License v3
+# AI-Assistant: Claude 4.5 Sonnet via Cursor
+
+# Exclude these files and directories from git archive exports
+# (used when creating release tarballs)
+.github export-ignore
+.cursor export-ignore
+.gitignore export-ignore
