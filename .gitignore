@@ -71,3 +71,4 @@ Thumbs.db
 # Local configuration files
 *.local
 local.cfg
+*.tar.gz
