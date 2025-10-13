@@ -2,7 +2,7 @@
 #
 # Author: Christopher O'Brien <obriencj@gmail.com>
 # License: GNU General Public License v3
-# AI-Assistant: Claude 3.5 Sonnet via Cursor
+# AI-Assistant: Claude 4.5 Sonnet via Cursor
 # for hosting local docs preview
 
 
@@ -19,12 +19,13 @@ define checkfor
 endef
 
 
-.PHONY: build flake8 mypy twine test clean help tidy purge quicktest docs overview clean-docs preview-docs coverage docs-gen
+.PHONY: build flake8 mypy twine test clean help tidy purge quicktest docs overview clean-docs preview-docs coverage docs-gen archive
 
 # Default target
 help:
 	@echo "Available targets:"
 	@echo "  build   - Create wheel distribution using bdist_wheel"
+	@echo "  archive - Create source tarball for RPM building"
 	@echo "  flake8  - Run flake8 linting"
 	@echo "  mypy    - Run mypy type checking"
 	@echo "  twine   - Check package with twine"
@@ -44,6 +45,19 @@ help:
 # Build wheel distribution
 build:
 	$(TOX) -qe build
+
+# Create source archive for RPM building
+archive:
+	@VERSION=$$($(PYTHON) setup.py --version 2>/dev/null) ; \
+	if [ -z "$$VERSION" ]; then \
+		echo "Error: Could not determine version from setup.py" >&2 ; \
+		exit 1 ; \
+	fi ; \
+	ARCHIVE="koji-habitude-$$VERSION.tar.gz" ; \
+	echo "Creating archive: $$ARCHIVE" ; \
+	git archive --format=tar.gz --prefix="koji-habitude-$$VERSION/" \
+		-o "$$ARCHIVE" HEAD ; \
+	echo "Archive created successfully: $$ARCHIVE"
 
 # Run flake8 linting
 flake8:
