@@ -27,7 +27,7 @@ from jinja2.exceptions import (
     UndefinedError,
 )
 from jinja2.meta import find_undeclared_variables
-from pydantic import Field
+from pydantic import Field, field_validator
 import yaml
 
 from .exceptions import (
@@ -36,13 +36,13 @@ from .exceptions import (
     TemplateRenderError,
     TemplateSyntaxError,
 )
-from .models import Base, BaseKey, BaseObject
+from .models import BaseObject
 
 
 logger = logging.getLogger("koji_habitude.templates")
 
 
-class TemplateCall(Base):
+class TemplateCall(BaseObject):
 
     """
     Represents a YAML doc that needs to be expanded into zero or more
@@ -51,49 +51,11 @@ class TemplateCall(Base):
 
     # this value is overridden in instances
     typename: ClassVar[str] = "template-call"
-
-
-    def __init__(self, data: Dict[str, Any]):
-        self.typename: str = data['type']  # type: ignore
-        if self.typename is None:
-            raise TemplateError(
-                original_error=ValueError("template call must have a type"),
-                data=data,
-            )
-
-        self.name: str = data.get('name', self.typename)
-        self.data: Dict[str, Any] = data
-
-    def key(self) -> BaseKey:
-        return ('template-call', self.name)
+    name: Optional[str] = Field(alias='name', default=None)
 
     @property
-    def filename(self) -> Optional[str]:
-        return self.data.get('__file__')
-
-    @property
-    def lineno(self) -> Optional[int]:
-        return self.data.get('__line__')
-
-    @property
-    def trace(self) -> Optional[List[Dict[str, Any]]]:
-        return self.data.get('__trace__')
-
-    def filepos(self) -> Tuple[Optional[str], Optional[int]]:
-        return (self.filename, self.lineno)
-
-    def can_split(self) -> bool:
-        return False
-
-    def split(self) -> 'TemplateCall':
-        raise TypeError("Cannot split template call")
-
-    def dependency_keys(self) -> Sequence[BaseKey]:
-        return ()
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'TemplateCall':
-        return cls(data)
+    def template_name(self) -> str:
+        return self.yaml_type
 
 
 class Template(BaseObject):

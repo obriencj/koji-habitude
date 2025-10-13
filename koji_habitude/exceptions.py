@@ -427,8 +427,8 @@ class ExpansionError(HabitudeError):
             trace = None
         else:
             # TemplateCall object
-            self.template_name = call.typename
-            message = f"Could not resolve template: {call.typename}"
+            self.template_name = call.template_name
+            message = f"Could not resolve template: {call.template_name}"
             if available_templates:
                 message += f"\n  Available templates: {', '.join(sorted(available_templates))}"
             filename = call.filename

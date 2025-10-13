@@ -451,7 +451,7 @@ class Namespace:
 
             elif isinstance(obj, TemplateCall):
 
-                templ = self._templates.get(obj.typename)
+                templ = self._templates.get(obj.template_name)
                 if not templ:
                     # template not defined (yet?) defer for another pass
                     deferals.append(obj)

@@ -70,7 +70,7 @@ class TestTemplateCall(unittest.TestCase):
         }
         call = TemplateCall.from_dict(data)
 
-        self.assertEqual(call.typename, 'my-template', "Should extract typename from data")
+        self.assertEqual(call.template_name, 'my-template', "Should extract typename from data")
         self.assertEqual(call.data, data, "Should store original data")
 
     def test_template_call_with_metadata(self):
@@ -86,7 +86,7 @@ class TestTemplateCall(unittest.TestCase):
         }
         call = TemplateCall.from_dict(data)
 
-        self.assertEqual(call.typename, 'complex-template')
+        self.assertEqual(call.template_name, 'complex-template')
         self.assertEqual(call.data['__file__'], '/path/to/file.yaml')
         self.assertEqual(call.data['__line__'], 42)
 
@@ -137,12 +137,13 @@ class TestTemplate(unittest.TestCase):
         # Test None name
         with self.assertRaises(ValidationError) as context:
             Template(type='template', name=None, content='test content')
-        self.assertIn("Input should be a valid string", str(context.exception))
+        self.assertIn("name is required for template", str(context.exception))
 
         # Test whitespace-only name (should not be accepted by pydantic)
         with self.assertRaises(ValueError) as context:
             Template(type='template', name='   ', content='test content')
         self.assertIn("name is required for template", str(context.exception))
+
 
     def test_template_content_validation(self):
         """
@@ -168,6 +169,7 @@ class TestTemplate(unittest.TestCase):
                     __file__='/fake/path'
                 )
             self.assertIn("Template content is not allowed when template file is specified", str(context.exception))
+
 
     def test_template_file_path_validation(self):
         """

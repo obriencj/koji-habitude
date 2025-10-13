@@ -883,17 +883,17 @@ class Tag(BaseObject):
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
 
-        seen = {}
+        seen: Dict[int, Any] = {}
         for parent in self.inheritance:
             if parent.priority in seen:
                 raise ValueError(f"Duplicate tag priority {parent.priority} for {parent.name}")
             seen[parent.priority] = parent
 
         seen = {}
-        for parent in self.external_repos:
-            if parent.priority in seen:
-                raise ValueError(f"Duplicate external repo priority {parent.priority} for {parent.name}")
-            seen[parent.priority] = parent
+        for repo in self.external_repos:
+            if repo.priority in seen:
+                raise ValueError(f"Duplicate external repo priority {repo.priority} for {repo.name}")
+            seen[repo.priority] = repo
 
 
     @field_validator('groups', mode='before')

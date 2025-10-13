@@ -60,6 +60,8 @@ class ReferenceChangeReport(ChangeReport):
     A change report for a Reference object.
     """
 
+    obj: 'Reference'
+
     # we're hijacking the Processor's read and compare steps in order
     # to perform the existence checks, and feed the boolean back onto
     # the ReferenceObject itself.
@@ -86,6 +88,9 @@ class Reference(Base):
         self.yaml_type, self.name = key
         self._key = key
         self._exists: Optional[VirtualCall] = None  # None means not checked yet
+        self.filename = None
+        self.lineno = None
+        self.trace = None
         logger.debug(f"Reference created: {self.key()}")
 
 
@@ -108,7 +113,16 @@ class Reference(Base):
     def filepos(self) -> Tuple[Optional[str], Optional[int]]:
         return None, None
 
+    def filepos_str(self) -> str:
+        return ""
+
     def can_split(self) -> bool:
+        return False
+
+    def was_split(self) -> bool:
+        return False
+
+    def is_split(self) -> bool:
         return False
 
     def split(self) -> Base:

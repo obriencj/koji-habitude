@@ -119,7 +119,7 @@ def pretty_yaml(doc: Dict[str, Any], out=sys.stdout, **opts):
         'explicit_start': False,
     }
     params.update(opts)
-    return yaml.dump(doc, Dumper=PrettyYAML, stream=out, **params)
+    return yaml.dump(doc, Dumper=PrettyYAML, stream=out, **params)  # type: ignore
 
 
 class MagicSafeLoader(yaml.SafeLoader):

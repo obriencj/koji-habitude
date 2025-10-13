@@ -26,7 +26,7 @@ from typing import (
     TypeAlias,
 )
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from koji import MultiCallNotReady, MultiCallSession, VirtualCall
 
@@ -191,13 +191,13 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
     model_config = ConfigDict(validate_by_alias=True, validate_by_name=True)
 
 
-    def model_post_init(self, __context: Any):
-        name = self.name and self.name.strip()
-        if not name:
-            raise ValueError(f"name is required for {self.typename}")
-        self.name = name
-
-        self._exists = None
+    @field_validator('name', mode='before')
+    @classmethod
+    def validate_name(cls, value: str):
+        value = value and value.strip()
+        if not value:
+            raise ValueError(f"name is required for {cls.typename}")
+        return value
 
 
     @property

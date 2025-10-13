@@ -463,7 +463,7 @@ class TestNamespaceToObjectMethods(unittest.TestCase):
         obj = self.ns.to_object(unknown_data)
 
         self.assertIsInstance(obj, TemplateCall)
-        self.assertEqual(obj.typename, 'custom-template')
+        self.assertEqual(obj.template_name, 'custom-template')
         self.assertEqual(obj.data, unknown_data)
 
     def test_to_object_missing_type_raises_error(self):
