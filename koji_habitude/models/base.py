@@ -11,7 +11,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: AI Generated with Human Rework
 
 
-from enum import StrEnum
+from enum import Enum
 from typing import (
     Any,
     ClassVar,
@@ -23,10 +23,10 @@ from typing import (
     TYPE_CHECKING,
     Tuple,
     Type,
-    TypeAlias,
 )
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from typing_extensions import TypeAlias
 
 from koji import MultiCallNotReady, MultiCallSession, VirtualCall
 
@@ -50,7 +50,7 @@ A tuple of (typename, name), used as the key for objects across this package
 """
 
 
-class BaseStatus(StrEnum):
+class BaseStatus(Enum):
     """
     Indicates the status of an object
     """
