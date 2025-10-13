@@ -84,7 +84,7 @@ class TestProcessorArchiveTypeBehavior(MulticallMocking, TestCase):
             name='jar',
             description='',
             extensions='jar',
-            compression=None
+            compression_type=None
         )
 
     def test_archive_type_creation_with_description(self):
@@ -122,7 +122,7 @@ class TestProcessorArchiveTypeBehavior(MulticallMocking, TestCase):
             name='war',
             description='Web Application Archive',
             extensions='war',
-            compression=None
+            compression_type=None
         )
 
     def test_archive_type_creation_with_compression(self):
@@ -161,7 +161,7 @@ class TestProcessorArchiveTypeBehavior(MulticallMocking, TestCase):
             name='tar',
             description='TAR archive',
             extensions='tar',
-            compression='tar'
+            compression_type='tar'
         )
 
     def test_archive_type_creation_multiple_extensions(self):
@@ -296,11 +296,11 @@ class TestProcessorArchiveTypeBehavior(MulticallMocking, TestCase):
         get_types2_mock.assert_called_once_with()
         get_types3_mock.assert_called_once_with()
         add_jar_mock.assert_called_once_with(
-            name='jar', description='', extensions='jar', compression=None)
+            name='jar', description='', extensions='jar', compression_type=None)
         add_war_mock.assert_called_once_with(
-            name='war', description='Web Archive', extensions='war', compression=None)
+            name='war', description='Web Archive', extensions='war', compression_type=None)
         add_tar_mock.assert_called_once_with(
-            name='tar', description='', extensions='tar', compression='tar')
+            name='tar', description='', extensions='tar', compression_type='tar')
 
     def test_archive_type_mixed_new_and_existing(self):
         """Test processing a mix of new and existing archive types."""
@@ -351,7 +351,7 @@ class TestProcessorArchiveTypeBehavior(MulticallMocking, TestCase):
         # Verify custom was created
         get_custom_mock.assert_called_once_with()
         add_custom_mock.assert_called_once_with(
-            name='custom', description='Custom type', extensions='custom', compression=None)
+            name='custom', description='Custom type', extensions='custom', compression_type=None)
 
 
 # The end.
