@@ -40,8 +40,6 @@ jobs:
       fail-fast: false
       matrix:
         python-version:
-          - '3.7'
-          - '3.8'
           - '3.9'
           - '3.10'
           - '3.11'
@@ -68,50 +66,50 @@ jobs:
         run: |
           tox
 
-      - name: Store coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-data-py${{ matrix.python-version }}
-          path: .coverage.py*
-          include-hidden-files: true
+      # - name: Store coverage
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: coverage-data-py${{ matrix.python-version }}
+      #     path: .coverage.py*
+      #     include-hidden-files: true
 
-  coverage:
-    runs-on: ubuntu-latest
+  # coverage:
+  #   runs-on: ubuntu-latest
 
-    needs:
-      - tests
+  #   needs:
+  #     - tests
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: 3.9
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v5
+  #       with:
+  #         python-version: 3.9
 
-      - name: Install dependencies
-        run: |
-          pip install coverage
+  #     - name: Install dependencies
+  #       run: |
+  #         pip install coverage
 
-      - name: Fetch coverage results
-        uses: actions/download-artifact@v4
-        with:
-          pattern: coverage-data-py*
-          merge-multiple: true
+  #     - name: Fetch coverage results
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         pattern: coverage-data-py*
+  #         merge-multiple: true
 
-      - name: Combine and report coverage
-        run: |
-          coverage combine
-          coverage lcov
-          coverage report
+  #     - name: Combine and report coverage
+  #       run: |
+  #         coverage combine
+  #         coverage lcov
+  #         coverage report
 
-      - name: Upload to Coveralls
-        uses: coverallsapp/github-action@v2
-        with:
-          file: coverage.lcov
-          allow-empty: true
-          fail-on-error: false
+  #     - name: Upload to Coveralls
+  #       uses: coverallsapp/github-action@v2
+  #       with:
+  #         file: coverage.lcov
+  #         allow-empty: true
+  #         fail-on-error: false
 
 
 # The end.

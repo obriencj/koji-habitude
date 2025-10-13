@@ -11,7 +11,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: AI Generated with Human Rework
 
 
-from typing import Tuple, Type
+from typing import Mapping, Tuple, Type
 from types import MappingProxyType
 
 
@@ -75,7 +75,7 @@ CORE_TYPES: Tuple[Type[BaseObject], ...] = (
     User,
 )
 
-CORE_MODELS: MappingProxyType[str, Type[BaseObject]] = \
+CORE_MODELS: Mapping[str, Type[BaseObject]] = \
      MappingProxyType({tp.typename: tp for tp in CORE_TYPES})
 
 
