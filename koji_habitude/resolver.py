@@ -20,11 +20,21 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 from dataclasses import dataclass
 import logging
 from typing import (
-    TYPE_CHECKING, Any, ClassVar, Dict, Iterator, Optional, Sequence,
-    Tuple, Type,
+    Any,
+    ClassVar,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    TYPE_CHECKING,
+    Tuple,
+    Type,
+    Union,
+    cast,
 )
 
-from koji import ClientSession, MultiCallSession, VirtualCall, MultiCallNotReady
+from koji import ClientSession, MultiCallNotReady, MultiCallSession, VirtualCall
 
 from .koji import multicall
 from .models import Base, BaseKey, BaseStatus, ChangeReport
@@ -75,7 +85,7 @@ class Reference(Base):
         self.tp = tp
         self.yaml_type, self.name = key
         self._key = key
-        self._exists = None  # None means not checked yet
+        self._exists: Optional[VirtualCall] = None  # None means not checked yet
         logger.debug(f"Reference created: {self.key()}")
 
 
@@ -111,17 +121,17 @@ class Reference(Base):
         logger.debug(f"Reference change_report: {self.key()}")
         return ReferenceChangeReport(self, resolver)
 
-    def query_exists(self, session: ClientSession) -> VirtualCall:
+    def query_exists(self, session: MultiCallSession) -> VirtualCall:
         res = self.tp.check_exists(session, self.key())
         if isinstance(res, VirtualCall):
             self._exists = res
         else:
             self._exists = VirtualCall(None, None, None)
-            self._exists._result = res
+            self._exists._result = res  # type: ignore
         return self._exists
 
     @classmethod
-    def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
+    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
         msg = ("Reference.check_exists shouldn't be called,"
                " use query_exists instead")
         raise NotImplementedError(msg)
@@ -163,7 +173,7 @@ class Resolver:
         self._references: Dict[BaseKey, Base] = {}
 
 
-    def namespace_keys(self) -> Iterator[BaseKey]:
+    def namespace_keys(self) -> Iterable[BaseKey]:
         """
         Iterator over the keys of the objects in the namespace.
         """
@@ -173,7 +183,7 @@ class Resolver:
 
     def reference_keys(
             self,
-            exists: Optional[bool] = None) -> Sequence[BaseKey]:
+            exists: Optional[bool] = None) -> List[BaseKey]:
         """
         Snapshot of the keys of objects not defined in the
         namespace, but which have been requested via the `resolve`
@@ -200,7 +210,7 @@ class Resolver:
                     if not obj.exists()]
 
 
-    def phantom_keys(self) -> Sequence[BaseKey]:
+    def phantom_keys(self) -> List[BaseKey]:
         """
         Iterator of reference keys that are currently phantom (ie. have not yet been
         found to exist in a Koji instance).
@@ -271,7 +281,7 @@ class Resolver:
         return self.resolve(key).split()
 
 
-    def query_exists_key(self, session: ClientSession, key: BaseKey) -> VirtualCall:
+    def query_exists_key(self, session: MultiCallSession, key: BaseKey) -> VirtualCall:
         """
         Convenience shortcut for `resolve(key).check_exists(session)`
         """
@@ -279,7 +289,7 @@ class Resolver:
         return self.resolve(key).query_exists(session)
 
 
-    def query_exists_references(self, session: ClientSession) -> None:
+    def query_exists_references(self, session: Union[ClientSession, MultiCallSession]) -> None:
         """
         creates a multicall for session, and queries for the existence of all
         current reference objects.
@@ -288,9 +298,14 @@ class Resolver:
         if not self._references:
             return
 
-        with multicall(session) as mc:
+        if isinstance(session, MultiCallSession):
+            mc = cast(MultiCallSession, session)
             for key in self._references.keys():
                 self.query_exists_key(mc, key)
+        else:
+            with multicall(session) as mc:
+                for key in self._references.keys():
+                    self.query_exists_key(mc, key)
 
 
     def report(self) -> ResolverReport:

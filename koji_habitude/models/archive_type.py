@@ -12,21 +12,21 @@ AI-Assistant: Claude 4.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import ClassVar, Optional, Any, TYPE_CHECKING, Literal
+from typing import Any, ClassVar, Literal, Optional, TYPE_CHECKING
 
 from pydantic import Field, field_validator
 
-from koji import MultiCallSession, ClientSession, VirtualCall
+from koji import MultiCallSession, VirtualCall
 
-from .base import BaseObject, BaseKey
-from .change import ChangeReport, Create
 from ..koji import call_processor
+from .base import BaseKey, BaseObject
+from .change import ChangeReport, Create
 
 if TYPE_CHECKING:
     from ..resolver import Resolver
 
 
-def getArchiveType(session: ClientSession, name: str):
+def getArchiveType(session: MultiCallSession, name: str):
     def filter_for_atype(atlist):
         for at in atlist:
             if at['name'] == name:
@@ -45,7 +45,7 @@ class ArchiveTypeCreate(Create):
             name=self.obj.name,
             description=self.obj.description,
             extensions=" ".join(self.obj.extensions),
-            compression=self.obj.compression)
+            compression_type=self.obj.compression)
 
     def summary(self) -> str:
         return f"Create archive type {self.obj.name}"
@@ -99,7 +99,7 @@ class ArchiveType(BaseObject):
 
 
     @classmethod
-    def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
+    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
         return getArchiveType(session, key[1])
 
 

@@ -177,7 +177,7 @@ class TemplateError(HabitudeError):
 
     def __init__(
         self,
-        original_error: Jinja2TemplateError,
+        original_error: Exception,
         template: Any = None,  # Template object
         data: Optional[Dict[str, Any]] = None,  # Call data
         template_file: Optional[str] = None,
@@ -235,7 +235,7 @@ class TemplateSyntaxError(TemplateError):
 
     def __init__(
         self,
-        original_error: Jinja2TemplateSyntaxError,
+        original_error: Exception,
         template: Any,  # Template object
         template_file: Optional[str] = None,
     ):

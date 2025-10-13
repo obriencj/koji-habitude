@@ -11,11 +11,12 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 from dataclasses import dataclass
 from typing import Any, ClassVar, Optional, Sequence, TYPE_CHECKING
 
-from koji import ClientSession, MultiCallSession, VirtualCall
 from pydantic import Field
 
+from koji import MultiCallSession, VirtualCall
+
 from .base import BaseKey, BaseObject
-from .change import Change, ChangeReport, Create, Update
+from .change import ChangeReport, Create, Update
 
 if TYPE_CHECKING:
     from ..resolver import Resolver
@@ -32,15 +33,17 @@ class TargetCreate(Create):
         if build_tag.is_phantom():
             return True
 
-        dest_tag = self.obj.dest_tag or self.obj.name
-        dest_tag = resolver.resolve(('tag', dest_tag))
+        dest_tag_name = self.obj.dest_tag or self.obj.name
+        dest_tag = resolver.resolve(('tag', dest_tag_name))
         if dest_tag.is_phantom():
             return True
 
         return False
 
     def impl_apply(self, session: MultiCallSession) -> VirtualCall:
-        return session.createBuildTarget(self.obj.name, self.obj.build_tag, self.obj.dest_tag or self.obj.name)
+        return session.createBuildTarget(
+            self.obj.name, self.obj.build_tag,
+            self.obj.dest_tag or self.obj.name)
 
     def summary(self) -> str:
         dest_tag = self.obj.dest_tag or self.obj.name
@@ -58,8 +61,8 @@ class TargetEdit(Update):
         if build_tag.is_phantom():
             return True
 
-        dest_tag = self.obj.dest_tag or self.obj.name
-        dest_tag = resolver.resolve(('tag', dest_tag))
+        dest_tag_name = self.obj.dest_tag or self.obj.name
+        dest_tag = resolver.resolve(('tag', dest_tag_name))
         if dest_tag.is_phantom():
             return True
 
@@ -67,7 +70,9 @@ class TargetEdit(Update):
 
     def impl_apply(self, session: MultiCallSession) -> VirtualCall:
         # thank you, koji-typing
-        return session.editBuildTarget(self.obj.name, self.obj.name, self.obj.build_tag, self.obj.dest_tag or self.obj.name)
+        return session.editBuildTarget(
+            self.obj.name, self.obj.name,
+            self.obj.build_tag, self.obj.dest_tag or self.obj.name)
 
     def summary(self) -> str:
         dest_tag = self.obj.dest_tag or self.obj.name
@@ -124,7 +129,7 @@ class Target(BaseObject):
 
 
     @classmethod
-    def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
+    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
         return session.getBuildTarget(key[1], strict=False)
 
 

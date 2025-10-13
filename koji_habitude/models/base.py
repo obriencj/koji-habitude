@@ -13,13 +13,22 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 from enum import StrEnum
 from typing import (
+    Any,
+    ClassVar,
+    Dict,
+    List,
+    Optional,
+    Protocol,
+    Sequence,
     TYPE_CHECKING,
-    Any, ClassVar, Dict, List, Optional, Protocol,
-    Sequence, Tuple, Type, TypeAlias,
+    Tuple,
+    Type,
+    TypeAlias,
 )
 
-from pydantic import BaseModel, Field, ConfigDict
-from koji import ClientSession, VirtualCall, MultiCallNotReady
+from pydantic import BaseModel, ConfigDict, Field
+
+from koji import MultiCallNotReady, MultiCallSession, VirtualCall
 
 if TYPE_CHECKING:
     from .change import ChangeReport
@@ -87,6 +96,12 @@ class Base(Protocol):
     def filepos(self) -> Tuple[Optional[str], Optional[int]]:
         ...
 
+    def filepos_str(self) -> str:
+        ...
+
+    def is_phantom(self) -> bool:
+        ...
+
     def can_split(self) -> bool:
         ...
 
@@ -115,14 +130,14 @@ class Base(Protocol):
         """
         ...
 
-    def query_exists(self, session: ClientSession) -> VirtualCall:
+    def query_exists(self, session: MultiCallSession) -> VirtualCall:
         """
         Resolve the existence of this object on the Koji instance
         """
         ...
 
     @classmethod
-    def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
+    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> Any:
         """
         Check the existence of a key of the given type and name on the Koji instance
         """
@@ -206,7 +221,7 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
             return None
 
 
-    def query_exists(self, session: ClientSession) -> VirtualCall:
+    def query_exists(self, session: MultiCallSession) -> VirtualCall:
         # the default implementation defers to `check_exists` so that subclasses
         # only need to implement that classmethod to provide the existence
         # check.
@@ -220,7 +235,7 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
 
 
     @classmethod
-    def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
+    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
         raise NotImplementedError("Subclasses of BaseObject must implement check_exists")
 
 
@@ -245,7 +260,7 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
 
 
     @property
-    def data(self) -> Dict[str, Any] | None:
+    def data(self) -> Optional[Dict[str, Any]]:
         """
         Access the raw data that was used if this object was created via `from_dict`
         """

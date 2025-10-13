@@ -12,13 +12,14 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import ClassVar, List, Optional, Any, TYPE_CHECKING
+from typing import Any, ClassVar, List, Optional, TYPE_CHECKING
 
-from koji import MultiCallSession, VirtualCall, ClientSession
 from pydantic import Field
 
+from koji import MultiCallSession, VirtualCall
+
 from .base import BaseKey, BaseObject
-from .change import Change, ChangeReport, Create, Update, Add, Remove
+from .change import Add, ChangeReport, Create, Remove, Update
 
 if TYPE_CHECKING:
     from ..resolver import Resolver
@@ -228,7 +229,7 @@ class User(BaseObject):
 
 
     @classmethod
-    def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
+    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
         return session.getUser(key[1], strict=False, groups=True)
 
 

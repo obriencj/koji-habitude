@@ -15,10 +15,10 @@ from typing import Any, ClassVar, Dict, List, Literal, Optional, Sequence, TYPE_
 
 from pydantic import Field, field_validator, model_validator
 
-from koji import ClientSession, MultiCallNotReady, MultiCallSession, VirtualCall
+from koji import MultiCallSession, VirtualCall
 
 from .base import BaseKey, BaseObject, SubModel
-from .change import Change, ChangeReport, Create, Update, Add, Remove, Modify
+from .change import Add, ChangeReport, Create, Modify, Remove, Update
 
 if TYPE_CHECKING:
     from ..resolver import Resolver
@@ -431,8 +431,8 @@ class TagPackageListAdd(Add):
     package: 'PackageEntry'
 
     def impl_apply(self, session: MultiCallSession):
-        arches = self.package.extra_arches
-        arches = ' '.join(arches) if arches else None
+        arches_list = self.package.extra_arches
+        arches = ' '.join(arches_list) if arches_list else None
         return session.packageListAdd(
             self.obj.name,
             self.package.name,
@@ -1038,7 +1038,7 @@ class Tag(BaseObject):
 
 
     @classmethod
-    def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
+    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
         logger.debug(f"Checking if tag '{key[1]}' exists")
         return session.getTag(key[1], strict=False)
 

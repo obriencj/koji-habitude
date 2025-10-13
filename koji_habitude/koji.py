@@ -117,7 +117,7 @@ class ReportingMulticall(MultiCallSession):
 
 
     def _callMethod(self, name: str, *args, **kwargs):
-        result = super()._callMethod(name, *args, **kwargs)
+        result = super()._callMethod(name, *args, **kwargs)  # type: ignore
         self._call_log.append(result)
         return result
 

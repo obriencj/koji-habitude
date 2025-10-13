@@ -12,13 +12,14 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import ClassVar, List, Tuple, Any, TYPE_CHECKING
+from typing import Any, ClassVar, List, TYPE_CHECKING
 
-from koji import ClientSession, MultiCallSession, VirtualCall
 from pydantic import Field
 
-from .base import BaseObject, BaseKey
-from .change import Change, ChangeReport, Create, Update, Add, Remove
+from koji import MultiCallSession, VirtualCall
+
+from .base import BaseKey, BaseObject
+from .change import Add, ChangeReport, Create, Remove, Update
 
 if TYPE_CHECKING:
     from ..resolver import Resolver
@@ -129,8 +130,8 @@ class GroupChangeReport(ChangeReport):
     def impl_read_defer(self, session: MultiCallSession):
         if self._groupinfo.result is None:
             return
-        self._members: VirtualCall = session.getGroupMembers(self.obj.name)
-        self._permissions: VirtualCall = session.getUserPerms(self.obj.name)
+        self._members = session.getGroupMembers(self.obj.name)
+        self._permissions = session.getUserPerms(self.obj.name)
 
 
     def impl_compare(self):
@@ -222,7 +223,7 @@ class Group(BaseObject):
 
 
     @classmethod
-    def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
+    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
         return session.getUser(key[1], strict=False)
 
 

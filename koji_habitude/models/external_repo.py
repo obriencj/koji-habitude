@@ -12,13 +12,13 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import ClassVar, Any, TYPE_CHECKING
+from typing import Any, ClassVar, TYPE_CHECKING
 
-from koji import ClientSession, MultiCallSession, VirtualCall
+from koji import MultiCallSession, VirtualCall
 from pydantic import Field
 
-from .base import BaseObject, BaseKey
-from .change import ChangeReport, Change, Create, Update
+from .base import BaseKey, BaseObject
+from .change import ChangeReport, Create, Update
 
 if TYPE_CHECKING:
     from ..resolver import Resolver
@@ -78,7 +78,7 @@ class ExternalRepo(BaseObject):
 
 
     @classmethod
-    def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
+    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
         return session.getExternalRepo(key[1], strict=False)
 
 

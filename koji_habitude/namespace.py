@@ -18,11 +18,10 @@ import logging
 from typing import (
     Any,
     Dict,
-    Iterator,
+    Iterable,
     List,
     Mapping,
     Optional,
-    Sequence,
     Set,
     Tuple,
     Type,
@@ -157,7 +156,7 @@ class Namespace:
 
     def __init__(
             self,
-            coretypes: Union[Dict[str, Type[Base]], Sequence[Type[Base]]] = CORE_MODELS,
+            coretypes: Union[Mapping[str, Type[Base]], Iterable[Type[Base]]] = CORE_MODELS,
             enable_templates: bool = True,
             redefine: Redefine = Redefine.ERROR,
             logger: Optional[logging.Logger] = None):
@@ -194,7 +193,7 @@ class Namespace:
         self.max_depth: int = 100
 
 
-    def keys(self) -> Iterator[BaseKey]:
+    def keys(self) -> Iterable[BaseKey]:
         """
         Return an iterator over the keys in the namespace.
         """
@@ -202,7 +201,7 @@ class Namespace:
         return self._ns.keys()
 
 
-    def items(self) -> Iterator[Tuple[BaseKey, Base]]:
+    def items(self) -> Iterable[Tuple[BaseKey, Base]]:
         """
         Return an iterator over the items in the namespace.
         """
@@ -210,7 +209,7 @@ class Namespace:
         return self._ns.items()
 
 
-    def values(self) -> Iterator[Base]:
+    def values(self) -> Iterable[Base]:
         """
         Return an iterator over the values in the namespace.
         """
@@ -226,7 +225,7 @@ class Namespace:
         return self._ns.get(key, default)
 
 
-    def templates(self) -> Iterator[Template]:
+    def templates(self) -> Iterable[Template]:
         """
         Return an iterator over the templates in the namespace.
         """
@@ -301,7 +300,7 @@ class Namespace:
             ) from e
 
 
-    def to_objects(self, objseq: Sequence[Dict[str, Any]]) -> Iterator[Base]:
+    def to_objects(self, objseq: Iterable[Dict[str, Any]]) -> Iterable[Base]:
         """
         Convert a sequence of dictionaries into a sequence of Base object
         instances, via the `to_object` method.
@@ -352,7 +351,7 @@ class Namespace:
         return self.feed(self.to_object(data))
 
 
-    def feedall_raw(self, datasequence: Sequence[Dict[str, Any]]) -> None:
+    def feedall_raw(self, datasequence: Iterable[Dict[str, Any]]) -> None:
         """
         Add a sequence of raw data to the queue of objects to be added to this
         namespace. The data will be converted to an object via the `to_object`
@@ -402,7 +401,7 @@ class Namespace:
 
         work = self._feedline
         while work:
-            deferals = []
+            deferals: List[Base] = []
             if self._expand(work, deferals):
                 work = self._feedline = deferals
 
@@ -501,7 +500,7 @@ class TemplateNamespace(Namespace):
 
     def __init__(
             self,
-            coretypes: Union[Dict[str, Type[Base]], Sequence[Type[Base]]] = CORE_MODELS,
+            coretypes: Union[Mapping[str, Type[Base]], Iterable[Type[Base]]] = CORE_MODELS,
             redefine: Redefine = Redefine.ERROR,
             logger: Optional[logging.Logger] = None):
 
@@ -520,7 +519,7 @@ class TemplateNamespace(Namespace):
         self.ignored_types: Set[str] = ignores
 
 
-    def to_objects(self, dataseq: Sequence[Dict[str, Any]]) -> Iterator[Base]:
+    def to_objects(self, dataseq: Iterable[Dict[str, Any]]) -> Iterable[Base]:
         # updated to chop out the None values that our to_object will
         # return for ignored_types
         return filter(None, map(self.to_object, dataseq))
@@ -549,7 +548,7 @@ class ExpanderNamespace(Namespace):
 
     def __init__(
             self,
-            coretypes: Union[Dict[str, Type[Base]], Sequence[Type[Base]]] = CORE_MODELS,
+            coretypes: Union[Mapping[str, Type[Base]], Iterable[Type[Base]]] = CORE_MODELS,
             redefine: Redefine = Redefine.ERROR,
             logger: Optional[logging.Logger] = None):
 

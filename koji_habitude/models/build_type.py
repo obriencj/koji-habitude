@@ -12,19 +12,19 @@ AI-Assistant: Claude 4.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import ClassVar, Any, TYPE_CHECKING
+from typing import Any, ClassVar, TYPE_CHECKING
 
-from koji import MultiCallSession, ClientSession, VirtualCall
+from koji import MultiCallSession, VirtualCall
 
 from ..koji import call_processor
-from .base import BaseObject, BaseKey
+from .base import BaseKey, BaseObject
 from .change import ChangeReport, Create
 
 if TYPE_CHECKING:
     from ..resolver import Resolver
 
 
-def getBuildType(session: ClientSession, name: str):
+def getBuildType(session: MultiCallSession, name: str):
     def filter_for_btype(btlist):
         return btlist[0] if btlist else None
 
@@ -70,7 +70,7 @@ class BuildType(BaseObject):
 
 
     @classmethod
-    def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
+    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
         return getBuildType(session, key[1])
 
 

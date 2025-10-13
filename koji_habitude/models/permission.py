@@ -13,14 +13,15 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 from dataclasses import dataclass
 import logging
-from typing import ClassVar, Optional, Any, TYPE_CHECKING
+from typing import Any, ClassVar, Optional, TYPE_CHECKING
 
-from koji import MultiCallSession, VirtualCall, ClientSession
 from pydantic import Field
 
-from .base import BaseObject, BaseKey
-from .change import ChangeReport, Create, Update
+from koji import MultiCallSession, VirtualCall
+
 from ..koji import call_processor
+from .base import BaseKey, BaseObject
+from .change import ChangeReport, Create, Update
 
 if TYPE_CHECKING:
     from ..resolver import Resolver
@@ -29,7 +30,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def getPermission(session: ClientSession, name: str):
+def getPermission(session: MultiCallSession, name: str):
 
     def filter_for_perm(perms):
         for perm in perms:
@@ -109,7 +110,7 @@ class Permission(BaseObject):
 
 
     @classmethod
-    def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
+    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
         return getPermission(session, key[1])
 
 

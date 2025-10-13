@@ -113,7 +113,7 @@ class Processor:
         self.write_logs: Dict[BaseKey, List[VirtualCall]] = {}
 
 
-    def step(self, chunk_size: Optional[int] = None) -> bool:
+    def step(self, chunk_size: Optional[int] = None) -> int:
         """
         Execute one complete cycle: read -> compare -> apply.
 
@@ -135,13 +135,13 @@ class Processor:
             self.current_chunk = list(islice(self.dataseries, chunk_size))
             if not self.current_chunk:
                 self.state = ProcessorState.EXHAUSTED
-                return False
+                return 0
 
             self.state = ProcessorState.READY_READ
 
         elif self.state == ProcessorState.EXHAUSTED:
             logger.debug("step called on an exhausted processor")
-            return False
+            return 0
 
         elif self.state == ProcessorState.BROKEN:
             raise ProcessorStateError(f"Processor is in the BROKEN state: {self.state}")

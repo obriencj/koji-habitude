@@ -16,17 +16,17 @@ from typing import Any, ClassVar, List, Sequence, TYPE_CHECKING
 
 from pydantic import Field
 
-from koji import MultiCallSession, VirtualCall, ClientSession
+from koji import MultiCallSession, VirtualCall
 
-from .base import BaseKey, BaseObject
-from .change import ChangeReport, Create, Add, Remove
 from ..koji import call_processor
+from .base import BaseKey, BaseObject
+from .change import Add, ChangeReport, Create, Remove
 
 if TYPE_CHECKING:
     from ..resolver import Resolver
 
 
-def getContentGenerator(session: ClientSession, name: str):
+def getContentGenerator(session: MultiCallSession, name: str):
 
     def filter_for_cg(cglist):
         dat = cglist.get(name)
@@ -126,7 +126,7 @@ class ContentGenerator(BaseObject):
 
 
     @classmethod
-    def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
+    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
         return getContentGenerator(session, key[1])
 
 
