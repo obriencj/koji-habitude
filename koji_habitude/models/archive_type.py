@@ -12,7 +12,7 @@ AI-Assistant: Claude 4.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import Any, ClassVar, Literal, Optional, TYPE_CHECKING
+from typing import ClassVar, Literal, List, Optional, TYPE_CHECKING
 
 from pydantic import Field, field_validator
 
@@ -82,7 +82,7 @@ class ArchiveType(BaseObject):
     typename: ClassVar[str] = "archive-type"
 
     description: str = Field(alias='description', default='')
-    extensions: list[str] = Field(alias='extensions', default=[], min_length=1)
+    extensions: List[str] = Field(alias='extensions', default=[], min_length=1)
     compression: Optional[Literal['tar', 'zip']] = Field(alias='compression-type', default=None)
 
 
