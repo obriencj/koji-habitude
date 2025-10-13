@@ -84,12 +84,12 @@ class Processor:
     """
 
     def __init__(
-        self,
-        koji_session: ClientSession,
-        dataseries: Iterable[Base],
-        resolver: Resolver,
-        chunk_size: int = 100,
-        skip_phantoms: bool = False):
+            self,
+            koji_session: ClientSession,
+            dataseries: Iterable[Base],
+            resolver: Resolver,
+            chunk_size: int = 100,
+            skip_phantoms: bool = False):
         """
         Initialize the processor.
 

@@ -27,8 +27,8 @@ from .util import catchall, display_resolver_report, display_summary
 
 
 def call_from_args(
-    template_name: str,
-    variables: List[str]) -> Dict[str, Any]:
+        template_name: str,
+        variables: List[str]) -> Dict[str, Any]:
 
     data = {
         '__file__': "<user-input>",

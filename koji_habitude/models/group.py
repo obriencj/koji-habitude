@@ -159,7 +159,7 @@ class GroupChangeReport(ChangeReport):
             else:
                 yield GroupDisable(self.obj)
 
-        members = { m['name']: m for m in self._members.result }
+        members = {m['name']: m for m in self._members.result}
         for member in self.obj.members:
             if member not in members:
                 yield GroupAddMember(self.obj, member)

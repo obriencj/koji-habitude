@@ -80,7 +80,7 @@ class SplitTagCheckup(Update):
         return self.obj.query_exists(session)
 
     def summary(self) -> str:
-        return f"Post-split checkup"
+        return "Post-split checkup"
 
 
 @dataclass
@@ -313,7 +313,7 @@ class TagAddInheritance(Add):
         tinfo = tag.exists()
         if tinfo is None:
             assert not tag.is_phantom()
-            logger.debug(f"MultiCallNotReady, breaking out of multicall")
+            logger.debug("MultiCallNotReady, breaking out of multicall")
             return True
 
         logger.debug(f"Parent tag '{self.parent.name}' exists, ID: {tinfo['id']}")

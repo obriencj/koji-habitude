@@ -12,34 +12,31 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 import logging
-
-from pydantic import Field, PrivateAttr
 from pathlib import Path
-from typing import (
-    Any, ClassVar, Dict, Iterator, Optional, Set, Sequence,
-    Tuple, List,
-)
+from typing import Any, ClassVar, Dict, Iterator, List, Optional, Sequence, Set, Tuple
 
 from jinja2 import (
-    Environment, FileSystemLoader, StrictUndefined,
+    Environment,
+    FileSystemLoader,
+    StrictUndefined,
     Template as Jinja2Template,
 )
 from jinja2.exceptions import (
-    UndefinedError,
-    TemplateNotFound,
-    TemplateSyntaxError as Jinja2TemplateSyntaxError,
     TemplateError as Jinja2TemplateError,
+    TemplateSyntaxError as Jinja2TemplateSyntaxError,
+    UndefinedError,
 )
 from jinja2.meta import find_undeclared_variables
+from pydantic import Field
 import yaml
 
-from .models import Base, BaseObject, BaseKey
 from .exceptions import (
-    TemplateSyntaxError,
-    TemplateRenderError,
-    TemplateOutputError,
     TemplateError,
+    TemplateOutputError,
+    TemplateRenderError,
+    TemplateSyntaxError,
 )
+from .models import Base, BaseKey, BaseObject
 
 
 logger = logging.getLogger("koji_habitude.templates")

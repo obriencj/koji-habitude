@@ -48,7 +48,7 @@ class ChannelSetDescription(Update):
         if self.description:
             return f"Set description to {self.description!r}"
         else:
-            return f"Clear description"
+            return "Clear description"
 
 
 @dataclass

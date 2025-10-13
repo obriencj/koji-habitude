@@ -97,12 +97,12 @@ class ReportingMulticall(MultiCallSession):
     """
 
     def __init__(
-        self,
-        session: ClientSession,
-        strict: bool = False,
-        batch: bool | None = None,
-        associations: Optional[Dict['BaseKey', List[VirtualCall]]] = None,
-        call_log: Optional[List[VirtualCall]] = None):
+            self,
+            session: ClientSession,
+            strict: bool = False,
+            batch: bool | None = None,
+            associations: Optional[Dict['BaseKey', List[VirtualCall]]] = None,
+            call_log: Optional[List[VirtualCall]] = None):
 
         super().__init__(session, strict=strict, batch=batch)
 
@@ -128,8 +128,8 @@ class ReportingMulticall(MultiCallSession):
 
 
 def multicall(
-    session: ClientSession,
-    associations: Optional[Dict['BaseKey', List[VirtualCall]]] = None) -> ReportingMulticall:
+        session: ClientSession,
+        associations: Optional[Dict['BaseKey', List[VirtualCall]]] = None) -> ReportingMulticall:
 
     """
     Create a multicall session that will record the calls made to it

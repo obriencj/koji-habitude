@@ -31,13 +31,9 @@ from typing import (
 
 from pydantic import ValidationError as PydanticValidationError
 
+from .exceptions import ExpansionError, RedefineError, ValidationError
 from .models import Base, BaseKey, BaseObject, CORE_MODELS
 from .templates import Template, TemplateCall
-from .exceptions import (
-    ValidationError,
-    ExpansionError,
-    RedefineError,
-)
 
 
 __all__ = (
@@ -246,9 +242,9 @@ class Namespace:
 
 
     def merge_templates(
-        self,
-        other: 'Namespace',
-        redefine: Optional[Redefine] = None) -> None:
+            self,
+            other: 'Namespace',
+            redefine: Optional[Redefine] = None) -> None:
         """
         Merge the templates from another namespace into this one, following the
         redefine semantics of this namespace. If redefine is provided, use those
@@ -328,7 +324,7 @@ class Namespace:
                             " directly added to a Namespace")
 
         return add_into(self._ns, obj.key(), obj,
-                         self.redefine, self.logger)
+                        self.redefine, self.logger)
 
 
     def add_template(self, template: Template):
@@ -343,7 +339,7 @@ class Namespace:
             raise TypeError("add_template requires a Template instance")
 
         return add_into(self._templates, template.name, template,
-                         self.redefine, self.logger)
+                        self.redefine, self.logger)
 
 
     def feed_raw(self, data: Dict[str, Any]) -> None:
@@ -552,10 +548,10 @@ class ExpanderNamespace(Namespace):
     """
 
     def __init__(
-        self,
-        coretypes: Union[Dict[str, Type[Base]], Sequence[Type[Base]]]= CORE_MODELS,
-        redefine: Redefine = Redefine.ERROR,
-        logger: Optional[logging.Logger] = None):
+            self,
+            coretypes: Union[Dict[str, Type[Base]], Sequence[Type[Base]]] = CORE_MODELS,
+            redefine: Redefine = Redefine.ERROR,
+            logger: Optional[logging.Logger] = None):
 
         if isinstance(coretypes, Mapping):
             faketypes = {tn: BaseObject for tn in coretypes}

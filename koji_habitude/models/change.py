@@ -17,12 +17,12 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 from dataclasses import dataclass, field
 from enum import Enum
 from logging import getLogger
-from typing import Any, Callable, ClassVar,Iterable, List, Optional, TYPE_CHECKING
+from typing import Any, Callable, ClassVar, Iterable, List, Optional, TYPE_CHECKING
 
 from koji import GenericError, MultiCallSession, VirtualCall
 
-from .base import Base, BaseKey
 from ..exceptions import ChangeApplyError, ChangeReadError
+from .base import Base, BaseKey
 
 if TYPE_CHECKING:
     from ..resolver import Resolver
@@ -546,7 +546,7 @@ class ChangeReport:
             raise ChangeReportError(f"Change report is not pending: {self.state}")
 
         self.state = ChangeReportState.LOADING
-        defer  = self.impl_read(session)
+        defer = self.impl_read(session)
 
         if defer and callable(defer):
             def read_defer(session: MultiCallSession) -> None:

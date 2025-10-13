@@ -221,7 +221,7 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
 
     @classmethod
     def check_exists(cls, session: ClientSession, key: BaseKey) -> Any:
-        raise NotImplementedError(f"Subclasses of BaseObject must implement check_exists")
+        raise NotImplementedError("Subclasses of BaseObject must implement check_exists")
 
 
     @classmethod
@@ -326,7 +326,7 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
 
 
     def change_report(self, resolver: 'Resolver') -> 'ChangeReport':
-        raise NotImplementedError(f"Subclasses of BaseObject must implement change_report")
+        raise NotImplementedError("Subclasses of BaseObject must implement change_report")
 
 
     def __repr__(self) -> str:
