@@ -11,15 +11,25 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: Pure Human
 
 
-import sys
-import yaml
-
 from itertools import chain
 from pathlib import Path
-from typing import Any, Dict, Iterable, Iterator, List, Protocol, Sequence, Type
+import sys
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Protocol,
+    Sequence,
+    Type,
+    Union,
+)
+
+import yaml
 
 from .exceptions import YAMLError
-
 
 __all__ = (
     'MultiLoader',
@@ -32,7 +42,7 @@ __all__ = (
 )
 
 
-def load_yaml_files(paths: List[str | Path]) -> List[Dict[str, Any]]:
+def load_yaml_files(paths: List[Union[str, Path]]) -> List[Dict[str, Any]]:
     """
     Load YAML file content from the given paths, in order, and return the
     resulting documents as a list.
@@ -153,7 +163,7 @@ class MagicSafeLoader(yaml.SafeLoader):
 class LoaderProtocol(Protocol):
     extensions: Sequence[str]
 
-    def __init__(self, filename: str | Path):
+    def __init__(self, filename: Union[str, Path]):
         ...
 
     def load(self) -> Iterator[Dict[str, Any]]:
@@ -175,7 +185,7 @@ class YAMLLoader(LoaderProtocol):
     extensions = (".yml", ".yaml")
 
 
-    def __init__(self, filename: str | Path):
+    def __init__(self, filename: Union[str, Path]):
 
         filename = filename and Path(filename)
         if not (filename and filename.is_file()):
@@ -218,7 +228,7 @@ class MultiLoader:
 
     def lookup_loader_type(
             self,
-            filename: str | Path) -> Type[LoaderProtocol] | None:
+            filename: Union[str, Path]) -> Optional[Type[LoaderProtocol]]:
 
         filename = filename and Path(filename)
         if not filename:
@@ -226,7 +236,7 @@ class MultiLoader:
         return self.extmap.get(filename.suffix)
 
 
-    def loader(self, filename: str | Path) -> LoaderProtocol:
+    def loader(self, filename: Union[str, Path]) -> LoaderProtocol:
         """
         Lookup the loader type for the given filename and create an instance of it
 
@@ -246,7 +256,7 @@ class MultiLoader:
         return cls(filename)
 
 
-    def load(self, paths: List[str | Path]) -> Iterator[Dict[str, Any]]:
+    def load(self, paths: List[Union[str, Path]]) -> Iterator[Dict[str, Any]]:
 
         # the extmap is just going to be used to loop over, and to
         # check whether a file suffix is 'in' it, both behaviours are
@@ -256,7 +266,7 @@ class MultiLoader:
 
 
 def find_files(
-        pathname: str | Path,
+        pathname: Union[str, Path],
         extensions: Iterable[str] = (".yml", ".yaml"),
         strict: bool = True) -> List[Path]:
 
@@ -279,7 +289,7 @@ def find_files(
 
 
 def combine_find_files(
-        pathlist: Iterable[str | Path],
+        pathlist: Iterable[Union[str, Path]],
         extensions: Iterable[str] = (".yml", ".yaml"),
         strict: bool = True) -> List[Path]:
 

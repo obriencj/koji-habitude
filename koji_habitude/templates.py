@@ -75,7 +75,7 @@ class Template(BaseObject):
 
     _undeclared: Set[str]
     _jinja2_template: Jinja2Template
-    _base_path: Path | None = None
+    _base_path: Optional[Path] = None
 
 
     @property

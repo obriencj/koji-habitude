@@ -100,7 +100,7 @@ class ReportingMulticall(MultiCallSession):
             self,
             session: ClientSession,
             strict: bool = False,
-            batch: bool | None = None,
+            batch: Optional[bool] = None,
             associations: Optional[Dict['BaseKey', List[VirtualCall]]] = None,
             call_log: Optional[List[VirtualCall]] = None):
 

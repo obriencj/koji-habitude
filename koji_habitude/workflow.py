@@ -83,8 +83,8 @@ class WorkflowPhantomsError(Exception):
 @dataclass
 class Workflow:
 
-    paths: List[str | Path] = None
-    template_paths: List[str | Path] = None
+    paths: List[Union[str, Path]] = None
+    template_paths: List[Union[str, Path]] = None
     profile: str = 'koji'
     chunk_size: int = 100
     skip_phantoms: bool = False
@@ -111,12 +111,12 @@ class Workflow:
     _iter_workflow: Iterator[bool] = field(init=False, default=None)
 
 
-    def load_yaml(self, paths: List[str | Path]) -> Iterator[Dict[str, Any]]:
+    def load_yaml(self, paths: List[Union[str, Path]]) -> Iterator[Dict[str, Any]]:
         ml = self.cls_multiloader([self.cls_yamlloader])
         return ml.load(paths)
 
 
-    def load_templates(self, paths: List[str | Path]) -> TemplateNamespace:
+    def load_templates(self, paths: List[Union[str, Path]]) -> TemplateNamespace:
         template_ns = self.cls_template_namespace()
         template_ns.feedall_raw(self.load_yaml(paths))
         template_ns.expand()
@@ -346,8 +346,8 @@ class Workflow:
 class ApplyWorkflow(Workflow):
     def __init__(
             self,
-            paths: List[str | Path],
-            template_paths: List[str | Path] = None,
+            paths: List[Union[str, Path]],
+            template_paths: List[Union[str, Path]] = None,
             profile: str = 'koji',
             chunk_size: int = 100,
             skip_phantoms: bool = False):
@@ -364,8 +364,8 @@ class CompareWorkflow(Workflow):
 
     def __init__(
             self,
-            paths: List[str | Path],
-            template_paths: List[str | Path] = None,
+            paths: List[Union[str, Path]],
+            template_paths: List[Union[str, Path]] = None,
             profile: str = 'koji',
             chunk_size: int = 100,
             skip_phantoms: bool = False):
@@ -416,7 +416,7 @@ class ApplyDictWorkflow(DictWorkflow):
     def __init__(
             self,
             objects: List[Dict[str, Any]],
-            template_paths: List[str | Path] = None,
+            template_paths: List[Union[str, Path]] = None,
             profile: str = 'koji',
             chunk_size: int = 100,
             skip_phantoms: bool = False):
@@ -432,7 +432,7 @@ class CompareDictWorkflow(DictWorkflow):
     def __init__(
             self,
             objects: List[Dict[str, Any]],
-            template_paths: List[str | Path] = None,
+            template_paths: List[Union[str, Path]] = None,
             profile: str = 'koji',
             chunk_size: int = 100,
             skip_phantoms: bool = False):
