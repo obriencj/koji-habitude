@@ -88,7 +88,7 @@ else:
 
                 return _validator(*all_fields, pre=False, always=True, allow_reuse=True)(wrapper)
 
-        return classmethod(decorator)
+        return decorator
 
 
     def model_validator(*, mode: str) -> Callable:

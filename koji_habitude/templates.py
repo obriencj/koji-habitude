@@ -59,6 +59,12 @@ class TemplateCall(BaseObject):
         return self.yaml_type
 
 
+    @field_validator('name', mode='before')
+    @classmethod
+    def validate_name(cls, value: str):
+        pass
+
+
 class Template(BaseObject):
     """
     A Template allows for the expansion of some YAML data into zero or
