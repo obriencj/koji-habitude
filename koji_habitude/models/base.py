@@ -163,7 +163,7 @@ class SubModel(BaseModel):
     if PYDANTIC_V2:
         model_config = ConfigDict(validate_by_alias=True, validate_by_name=True)
     else:
-        Config = ConfigDict(validate_by_alias=True, validate_by_name=True)
+        Config = ConfigDict(validate_by_alias=True, validate_by_name=True)  # type: ignore
 
 
 # we need this to enable our inheritance of both the BaseModel from pydantic and
@@ -197,7 +197,7 @@ class BaseObject(BaseModel):  # , metaclass=MetaModelProtocol): # type: ignore
         model_config = ConfigDict(validate_by_alias=True, validate_by_name=True)
 
     else:
-        Config = ConfigDict(validate_by_alias=True, validate_by_name=True)
+        Config = ConfigDict(validate_by_alias=True, validate_by_name=True)  # type: ignore
 
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)

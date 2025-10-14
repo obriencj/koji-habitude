@@ -47,7 +47,7 @@ else:
     from pydantic import root_validator as _root_validator
     from functools import wraps
 
-    def field_validator(
+    def field_validator(  # type: ignore
         field: str,
         *fields: str,
         mode: str = 'after',
@@ -91,7 +91,7 @@ else:
         return decorator
 
 
-    def model_validator(*, mode: str) -> Callable:
+    def model_validator(*, mode: str) -> Callable:  # type: ignore
         """
         Compatibility wrapper for pydantic v1 root_validator.
 
@@ -104,12 +104,14 @@ else:
 
         def decorator(func: Callable) -> Callable:
             # root_validator signature is the same in v1
-            return _root_validator(pre=pre, allow_reuse=True)(func)
+            return _root_validator(pre=pre, allow_reuse=True)(func)  # type: ignore
 
         return decorator
 
 
-    def ConfigDict(validate_by_alias: bool = False, validate_by_name: bool = False):
+    def ConfigDict(  # type: ignore
+            validate_by_alias: bool = False,
+            validate_by_name: bool = False):
         config = {
             'validate_assignment_by_alias': validate_by_alias,
             'validate_assignment_by_name': validate_by_name,
