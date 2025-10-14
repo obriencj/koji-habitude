@@ -15,13 +15,14 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from pydantic import ValidationError as PydanticValidationError
 from jinja2.exceptions import (
     TemplateSyntaxError as Jinja2TemplateSyntaxError,
     TemplateError as Jinja2TemplateError,
     UndefinedError as Jinja2UndefinedError,
 )
 import yaml
+
+from .pydantic import ValidationError as PydanticValidationError
 
 
 __all__ = (

@@ -15,7 +15,8 @@ from dataclasses import dataclass
 from typing import Any, ClassVar, TYPE_CHECKING
 
 from koji import MultiCallSession, VirtualCall
-from pydantic import Field
+
+from ..pydantic import Field
 
 from .base import BaseKey, BaseObject
 from .change import ChangeReport, Create, Update

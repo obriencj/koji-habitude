@@ -13,9 +13,9 @@ from dataclasses import dataclass
 import logging
 from typing import Any, ClassVar, Dict, List, Literal, Optional, Sequence, TYPE_CHECKING
 
-from pydantic import Field, field_validator, model_validator
-
 from koji import MultiCallSession, VirtualCall
+
+from ..pydantic import Field, field_validator, model_validator
 
 from .base import BaseKey, BaseObject, SubModel
 from .change import Add, ChangeReport, Create, Modify, Remove, Update
