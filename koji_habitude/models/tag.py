@@ -15,7 +15,7 @@ from typing import Any, ClassVar, Dict, List, Literal, Optional, Sequence, TYPE_
 
 from koji import MultiCallSession, VirtualCall
 
-from ..pydantic import Field, field_validator, model_validator
+from ..pydantic import Field, field_validator
 
 from .base import BaseKey, BaseObject, SubModel
 from .change import Add, ChangeReport, Create, Modify, Remove, Update
@@ -728,8 +728,15 @@ class TagGroupPackage(SubModel):
     block: bool = Field(alias='blocked', default=False)
 
 
-    @model_validator(mode='before')
-    @classmethod
+class TagGroup(SubModel):
+
+    name: str = Field(alias='name')
+    description: Optional[str] = Field(alias='description', default=None)
+    block: bool = Field(alias='blocked', default=False)
+    packages: List[TagGroupPackage] = Field(alias='packages', default_factory=list)
+    exact_packages: bool = Field(alias='exact-packages', default=False)
+
+    @field_validator("packages", mode='before')
     def convert_from_simplified(cls, data: Any) -> Any:
         """
         Each package in a tag group can be specified as a simple string or as a full
@@ -739,28 +746,24 @@ class TagGroupPackage(SubModel):
         and optionally a 'type' and 'block' key.
         """
 
-        if isinstance(data, str):
-            if data.startswith('@'):
-                # data = data[1:]
-                # we don't use the @ prefix anymore, but we keep it for backwards compatibility
-                tp = 'group'
-            else:
-                tp = 'package'
-            data = {
-                'name': data,
-                'type': tp,
-                'block': False,
-            }
-        return data
+        fixed: List[Dict[str, Any]] = []
 
+        for item in data:
+            if isinstance(item, str):
+                if item.startswith('@'):
+                    # data = data[1:]
+                    # we don't use the @ prefix anymore, but we keep it for backwards compatibility
+                    tp = 'group'
+                else:
+                    tp = 'package'
+                item = {
+                    'name': item,
+                    'type': tp,
+                    'block': False,
+                }
+            fixed.append(item)
 
-class TagGroup(SubModel):
-
-    name: str = Field(alias='name')
-    description: Optional[str] = Field(alias='description', default=None)
-    block: bool = Field(alias='blocked', default=False)
-    packages: List[TagGroupPackage] = Field(alias='packages', default_factory=list)
-    exact_packages: bool = Field(alias='exact-packages', default=False)
+        return fixed
 
 
 class PackageEntry(SubModel):
@@ -784,7 +787,6 @@ class InheritanceLink(SubModel):
 
 
     @field_validator('pkgfilter', mode='before')
-    @classmethod
     def convert_pkgfilter_from_simplified(cls, data: Any) -> Any:
         if isinstance(data, list):
             return f"^({'|'.join(data)})$"
@@ -897,7 +899,6 @@ class Tag(BaseObject):
 
 
     @field_validator('groups', mode='before')
-    @classmethod
     def convert_groups_from_simplified(cls, data: Any) -> Any:
         fixed: Dict[str, Dict[str, Any]] = {}
 
@@ -913,7 +914,7 @@ class Tag(BaseObject):
                         item['packages'] = []
 
                 if item['name'] in fixed:
-                    raise TypeError(f"Duplicate group {item['name']}")
+                    raise ValueError(f"Duplicate group: {item['name']}")
 
                 fixed[item['name']] = item
 
@@ -928,7 +929,7 @@ class Tag(BaseObject):
                 elif isinstance(item, dict):
                     oldname = item.setdefault('name', name)
                     if oldname != name:
-                        raise TypeError(f"Group name mismatch: {oldname} != {name}")
+                        raise ValueError(f"Group name mismatch: {oldname} != {name}")
 
                 fixed[name] = item
 
@@ -939,19 +940,16 @@ class Tag(BaseObject):
 
 
     @field_validator('inheritance', mode='before')
-    @classmethod
     def convert_inheritance_from_simplified(cls, data: Any) -> Any:
         return _simplified_link(data)
 
 
     @field_validator('external_repos', mode='before')
-    @classmethod
     def convert_external_repos_from_simplified(cls, data: Any) -> Any:
         return _simplified_link(data)
 
 
     @field_validator('packages', mode='before')
-    @classmethod
     def convert_packages_from_simplified(cls, data: Any) -> Any:
         """
         we allow the packages field to be specified in a simplified manner, as a
@@ -974,7 +972,6 @@ class Tag(BaseObject):
 
 
     @field_validator('packages', mode='after')
-    @classmethod
     def merge_packages(cls, data: Any) -> Any:
         seen = {}
         for package in data:

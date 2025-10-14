@@ -82,8 +82,8 @@ class ArchiveType(BaseObject):
     typename: ClassVar[str] = "archive-type"
 
     description: str = Field(alias='description', default='')
-    extensions: List[str] = Field(alias='extensions', default=[], min_length=1)
-    compression: Optional[Literal['tar', 'zip']] = Field(alias='compression-type', default=None)
+    extensions: List[str] = Field(alias='extensions', default=[])
+    compression: Literal['tar', 'zip', None] = Field(alias='compression-type', default=None)
 
 
     @field_validator('extensions', mode='after')
@@ -91,7 +91,10 @@ class ArchiveType(BaseObject):
         for i, ext in enumerate(v):
             if ext.startswith('.'):
                 v[i] = ext.lstrip('.')
-        return list(set(v))
+        result = list(set(v))
+        if not result:
+            raise ValueError("extensions must be a non-empty list")
+        return result
 
 
     def change_report(self, resolver: 'Resolver') -> ArchiveTypeChangeReport:

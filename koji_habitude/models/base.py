@@ -163,7 +163,9 @@ class SubModel(BaseModel):
     if PYDANTIC_V2:
         model_config = ConfigDict(validate_by_alias=True, validate_by_name=True)
     else:
-        Config = ConfigDict(validate_by_alias=True, validate_by_name=True)  # type: ignore
+        class Config:
+            allow_population_by_field_name = True
+            underscore_attrs_are_private = True
 
 
 # we need this to enable our inheritance of both the BaseModel from pydantic and
@@ -197,7 +199,9 @@ class BaseObject(BaseModel):  # , metaclass=MetaModelProtocol): # type: ignore
         model_config = ConfigDict(validate_by_alias=True, validate_by_name=True)
 
     else:
-        Config = ConfigDict(validate_by_alias=True, validate_by_name=True)  # type: ignore
+        class Config:
+            allow_population_by_field_name = True
+            underscore_attrs_are_private = True
 
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
@@ -208,7 +212,6 @@ class BaseObject(BaseModel):  # , metaclass=MetaModelProtocol): # type: ignore
 
 
     @field_validator('name', mode='before')
-    @classmethod
     def validate_name(cls, value: str):
         value = value and value.strip()
         if not value:

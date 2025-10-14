@@ -61,7 +61,6 @@ class TemplateCall(BaseObject):
 
 
     @field_validator('name', mode='before')
-    @classmethod
     def validate_name(cls, value: str):
         pass
 
