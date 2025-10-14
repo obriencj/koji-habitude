@@ -30,7 +30,9 @@ help:
 	@echo "  mypy    - Run mypy type checking"
 	@echo "  twine   - Check package with twine"
 	@echo "  test    - Run tests with pytest"
+	@echo "  compat  - Run tests with pydantic v1.10"
 	@echo "  quicktest - Run tests with system Python (faster)"
+	@echo "  prepush - Run all tests and checks before pushing"
 	@echo "  coverage - Run tests with coverage and generate HTML report"
 	@echo "  tidy    - Tidy up stray python cache files"
 	@echo "  clean   - Tidy up, then clean build artifacts"
@@ -77,6 +79,12 @@ test:
 
 quicktest:
 	$(TOX) -qe quicktest
+
+compat:
+	$(TOX) -qe compat
+
+prepush:
+	$(TOX) -qe flake8,mypy,quicktest,compat
 
 # Run tests with coverage and generate HTML report
 coverage:

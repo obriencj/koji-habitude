@@ -12,10 +12,12 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import Any, ClassVar, TYPE_CHECKING
+from typing import ClassVar, TYPE_CHECKING
+from re import match
 
 from koji import MultiCallSession, VirtualCall
-from pydantic import Field
+
+from ..pydantic import Field, field_validator
 
 from .base import BaseKey, BaseObject
 from .change import ChangeReport, Create, Update
@@ -70,7 +72,14 @@ class ExternalRepo(BaseObject):
 
     typename: ClassVar[str] = "external-repo"
 
-    url: str = Field(alias='url', pattern=r'^https?://')
+    url: str = Field(alias='url')
+
+
+    @field_validator('url', mode='before')
+    def validate_url(cls, v):
+        if not match(r'^https?://', v):
+            raise ValueError("url must start with http or https")
+        return v
 
 
     def change_report(self, resolver: 'Resolver') -> ExternalRepoChangeReport:

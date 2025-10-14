@@ -14,9 +14,9 @@ AI-Assistant: Claude 4.5 Sonnet via Cursor
 from dataclasses import dataclass
 from typing import ClassVar, Literal, List, Optional, TYPE_CHECKING
 
-from pydantic import Field, field_validator
-
 from koji import MultiCallSession, VirtualCall
+
+from ..pydantic import Field, field_validator
 
 from ..koji import call_processor
 from .base import BaseKey, BaseObject
@@ -82,8 +82,8 @@ class ArchiveType(BaseObject):
     typename: ClassVar[str] = "archive-type"
 
     description: str = Field(alias='description', default='')
-    extensions: List[str] = Field(alias='extensions', default=[], min_length=1)
-    compression: Optional[Literal['tar', 'zip']] = Field(alias='compression-type', default=None)
+    extensions: List[str] = Field(alias='extensions', default=[])
+    compression: Literal['tar', 'zip', None] = Field(alias='compression-type', default=None)
 
 
     @field_validator('extensions', mode='after')

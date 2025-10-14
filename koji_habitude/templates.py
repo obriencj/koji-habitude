@@ -27,8 +27,9 @@ from jinja2.exceptions import (
     UndefinedError,
 )
 from jinja2.meta import find_undeclared_variables
-from pydantic import Field, field_validator
 import yaml
+
+from .pydantic import Field, field_validator
 
 from .exceptions import (
     TemplateError,
@@ -53,9 +54,15 @@ class TemplateCall(BaseObject):
     typename: ClassVar[str] = "template-call"
     name: Optional[str] = Field(alias='name', default=None)
 
+
     @property
     def template_name(self) -> str:
         return self.yaml_type
+
+
+    @field_validator('name', mode='before')
+    def validate_name(cls, value: str):
+        pass
 
 
 class Template(BaseObject):
@@ -73,8 +80,8 @@ class Template(BaseObject):
                                                       default=None)
     description: Optional[str] = Field(alias='description', default=None)
 
-    _undeclared: Set[str]
-    _jinja2_template: Jinja2Template
+    _undeclared: Set[str] = None
+    _jinja2_template: Jinja2Template = None
     _base_path: Optional[Path] = None
 
 

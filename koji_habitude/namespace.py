@@ -28,9 +28,8 @@ from typing import (
     Union,
 )
 
-from pydantic import ValidationError as PydanticValidationError
-
 from .exceptions import ExpansionError, RedefineError, ValidationError
+from .pydantic import ValidationError as PydanticValidationError
 from .models import Base, BaseKey, BaseObject, CORE_MODELS
 from .templates import Template, TemplateCall
 

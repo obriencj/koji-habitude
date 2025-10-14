@@ -11,9 +11,9 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 from dataclasses import dataclass
 from typing import Any, ClassVar, Optional, Sequence, TYPE_CHECKING
 
-from pydantic import Field
-
 from koji import MultiCallSession, VirtualCall
+
+from ..pydantic import Field
 
 from .base import BaseKey, BaseObject
 from .change import ChangeReport, Create, Update

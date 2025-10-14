@@ -132,7 +132,7 @@ class TestTemplate(unittest.TestCase):
         # Test empty name
         with self.assertRaises(ValidationError) as context:
             Template(type='template', content='test content')
-        self.assertIn("Field required", str(context.exception))
+        self.assertIn("field required", str(context.exception).lower())
 
         # Test None name
         with self.assertRaises(ValidationError) as context:

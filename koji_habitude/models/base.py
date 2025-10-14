@@ -25,8 +25,9 @@ from typing import (
     Type,
 )
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
 from typing_extensions import TypeAlias
+
+from ..pydantic import BaseModel, ConfigDict, Field, field_validator, PYDANTIC_V2
 
 from koji import MultiCallNotReady, MultiCallSession, VirtualCall
 
@@ -159,7 +160,12 @@ class SubModel(BaseModel):
     A base model for submodels that need to be validated by alias and name.
     """
 
-    model_config = ConfigDict(validate_by_alias=True, validate_by_name=True)
+    if PYDANTIC_V2:
+        model_config = ConfigDict(validate_by_alias=True, validate_by_name=True)
+    else:
+        class Config:
+            allow_population_by_field_name = True
+            underscore_attrs_are_private = True
 
 
 # we need this to enable our inheritance of both the BaseModel from pydantic and
@@ -167,7 +173,7 @@ class SubModel(BaseModel):
 MetaModelProtocol: Type[type] = type("MetaModelProtocol", (type(BaseModel), type(Protocol)), {})
 
 
-class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
+class BaseObject(BaseModel):  # , metaclass=MetaModelProtocol): # type: ignore
     """
     Adapter between the Base protocol and Pydantic models.
     """
@@ -188,11 +194,24 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
     _is_split: bool = False    # True if this is the minimal copy of a split
     _was_split: bool = False   # True if this object has been split
 
-    model_config = ConfigDict(validate_by_alias=True, validate_by_name=True)
+
+    if PYDANTIC_V2:
+        model_config = ConfigDict(validate_by_alias=True, validate_by_name=True)
+
+    else:
+        class Config:
+            allow_population_by_field_name = True
+            underscore_attrs_are_private = True
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.model_post_init(None)
+
+        def model_post_init(self, __context: Any):
+            pass
 
 
     @field_validator('name', mode='before')
-    @classmethod
     def validate_name(cls, value: str):
         value = value and value.strip()
         if not value:
@@ -239,24 +258,46 @@ class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
         raise NotImplementedError("Subclasses of BaseObject must implement check_exists")
 
 
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'BaseObject':
-        """
-        Create an instance directly from a dictionary. Records the original data
-        dict for later review via the `data` property.
-        """
-        obj = cls.model_validate(data)
-        obj._data = data
-        return obj
+    if PYDANTIC_V2:
+        # Pydantic v2 is preferred
+        @classmethod
+        def from_dict(cls, data: Dict[str, Any]) -> 'BaseObject':
+            """
+            Create an instance directly from a dictionary. Records the original data
+            dict for later review via the `data` property.
+            """
+            obj = cls.model_validate(data)
+            obj._data = data
+            return obj
 
 
-    def to_dict(self) -> Dict[str, Any]:
-        """
-        Return a dictionary representation of this object. This is distinct from
-        the original data that was used to create the object, and may include
-        fields with default values and validated forms.
-        """
-        return self.model_dump(by_alias=True)
+        def to_dict(self) -> Dict[str, Any]:
+            """
+            Return a dictionary representation of this object. This is distinct from
+            the original data that was used to create the object, and may include
+            fields with default values and validated forms.
+            """
+            return self.model_dump(by_alias=True)
+
+    else:
+        # Pydantic v1 compatibility
+        @classmethod
+        def from_dict(cls, data: Dict[str, Any]) -> 'BaseObject':
+            """
+            Create an instance directly from a dictionary. Records the original data
+            dict for later review via the `data` property.
+            """
+            obj = cls.parse_obj(data)
+            obj._data = data
+            return obj
+
+        def to_dict(self) -> Dict[str, Any]:
+            """
+            Return a dictionary representation of this object. This is distinct from
+            the original data that was used to create the object, and may include
+            fields with default values and validated forms.
+            """
+            return self.dict(by_alias=True)
 
 
     @property
