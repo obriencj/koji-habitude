@@ -54,6 +54,7 @@ class TemplateCall(BaseObject):
     typename: ClassVar[str] = "template-call"
     name: Optional[str] = Field(alias='name', default=None)
 
+
     @property
     def template_name(self) -> str:
         return self.yaml_type
