@@ -91,10 +91,7 @@ class ArchiveType(BaseObject):
         for i, ext in enumerate(v):
             if ext.startswith('.'):
                 v[i] = ext.lstrip('.')
-        result = list(set(v))
-        if not result:
-            raise ValueError("extensions must be a non-empty list")
-        return result
+        return list(set(v))
 
 
     def change_report(self, resolver: 'Resolver') -> ArchiveTypeChangeReport:

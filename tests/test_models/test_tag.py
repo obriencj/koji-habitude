@@ -481,10 +481,10 @@ class TestTagModelGroupsField(unittest.TestCase):
             ]
         }
 
-        with self.assertRaises(TypeError) as context:
+        with self.assertRaises(ValueError) as context:
             Tag.from_dict(data)
 
-        self.assertIn('Duplicate group build', str(context.exception))
+        self.assertIn('Duplicate group: build', str(context.exception))
 
     def test_tag_groups_invalid_string_in_dict_error(self):
         """

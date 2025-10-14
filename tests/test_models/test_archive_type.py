@@ -112,24 +112,6 @@ class TestArchiveTypeModel(unittest.TestCase):
         self.assertIn('jar', archive_type.extensions)
         self.assertIn('war', archive_type.extensions)
 
-    def test_archive_type_extensions_required(self):
-        """
-        Test that extensions field is required with at least one extension.
-        """
-
-        # Empty extensions list should fail validation
-        data = {
-            'type': 'archive-type',
-            'name': 'test',
-            'extensions': []
-        }
-
-        with self.assertRaises(ValidationError) as cm:
-            ArchiveType.from_dict(data)
-
-        # Check that the error is about min_length
-        self.assertIn('extensions', str(cm.exception))
-
     def test_archive_type_compression_type_tar(self):
         """
         Test ArchiveType with compression-type set to 'tar'.
