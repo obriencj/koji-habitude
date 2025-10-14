@@ -40,6 +40,7 @@ except ImportError:
 
     # Pydantic v1.10 compatibility shims
     from pydantic import validator as _validator
+
     def field_validator(  # type: ignore
         field: str,
         *fields: str,
