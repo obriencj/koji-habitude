@@ -11,13 +11,13 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 import logging
 from dataclasses import dataclass
-from typing import (TYPE_CHECKING, Any, ClassVar, Dict, List, Literal,
-                    Optional, Sequence)
+from typing import (TYPE_CHECKING, Any, ClassVar, Dict, Iterable, List,
+                    Literal, Optional, Sequence)
 
 from koji import MultiCallSession, VirtualCall
 
 from .base import BaseKey, BaseObject, SubModel
-from .change import Add, ChangeReport, Create, Modify, Remove, Update
+from .change import Add, Change, ChangeReport, Create, Modify, Remove, Update
 from .compat import Field, field_validator
 
 if TYPE_CHECKING:
@@ -517,6 +517,9 @@ class TagPackageListRemove(Remove):
 
 class TagChangeReport(ChangeReport):
 
+    obj: 'Tag'
+
+
     def impl_read(self, session: MultiCallSession):
         self._taginfo: VirtualCall = self.obj.query_exists(session)
         self._packagelist: VirtualCall = None
@@ -537,7 +540,7 @@ class TagChangeReport(ChangeReport):
         self._external_repos = session.getTagExternalRepos(tag_info=self.obj.name)
 
 
-    def impl_compare(self):
+    def impl_compare(self) -> Iterable[Change]:
         info = self._taginfo.result
         if info is None:
             if self.obj.was_split():
@@ -561,8 +564,8 @@ class TagChangeReport(ChangeReport):
                 yield TagSetExtras(self.obj, self.obj.extras)
             for group_name, group in self.obj.groups.items():
                 yield TagAddGroup(self.obj, group)
-                for package in group.packages:
-                    yield TagAddGroupPackage(self.obj, group_name, package)
+                for grp_package in group.packages:
+                    yield TagAddGroupPackage(self.obj, group_name, grp_package)
             for parent in self.obj.inheritance:
                 yield TagAddInheritance(self.obj, parent)
             for repo in self.obj.external_repos:
@@ -593,7 +596,7 @@ class TagChangeReport(ChangeReport):
         yield from self._compare_external_repos()
 
 
-    def _compare_packages(self):
+    def _compare_packages(self) -> Iterable[Change]:
         koji_pkgs = {pkg['package_name']: pkg for pkg in self._packagelist.result}
         for package in self.obj.packages:
             if package.name not in koji_pkgs:
@@ -617,7 +620,7 @@ class TagChangeReport(ChangeReport):
                     yield TagPackageListRemove(self.obj, package_name)
 
 
-    def _compare_inheritance(self):
+    def _compare_inheritance(self) -> Iterable[Change]:
         # Tag Inheritance
 
         # tag inheritance links are by ID, not name, so we need to ensure we
@@ -651,7 +654,7 @@ class TagChangeReport(ChangeReport):
                     yield TagUpdateInheritance(self.obj, parent, koji_parent['parent_id'])
 
 
-    def _compare_external_repos(self):
+    def _compare_external_repos(self) -> Iterable[Change]:
         # External Repos
         koji_ext_repos = {repo['external_repo_name']: repo for repo in self._external_repos.result}
         ext_repos = {repo.name: repo for repo in self.obj.external_repos}
@@ -671,7 +674,7 @@ class TagChangeReport(ChangeReport):
                 yield TagAddExternalRepo(self.obj, repo)
 
 
-    def _compare_groups(self):
+    def _compare_groups(self) -> Iterable[Change]:
         # Helper function to compare groups and their package content
 
         # TODO: we'll need to actually invoke addGroupReq vs. Package for these.

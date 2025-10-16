@@ -68,11 +68,10 @@ except ImportError:
             return self.dict(by_alias=by_alias)
 
     def field_validator(  # type: ignore
-        field: str,
-        *fields: str,
-        mode: str = 'after',
-        check_fields: Optional[bool] = None,
-    ) -> Callable:
+            field: str,
+            *fields: str,
+            mode: str = 'after',
+            check_fields: Optional[bool] = None) -> Callable:
         """
         Compatibility wrapper for pydantic v1 validator.
 
