@@ -12,8 +12,8 @@ AI-Assistant: Claude 4.5 Sonnet via Cursor
 """
 
 
-from typing import Callable,  Optional
-from pydantic import VERSION, BaseModel, Field, ValidationError
+from typing import Any, Callable, Dict, Optional, Type, TypeVar
+from pydantic import VERSION, BaseModel as _BaseModel, Field, ValidationError
 
 
 __all__ = (
@@ -22,7 +22,6 @@ __all__ = (
     'Field',
     'ValidationError',
     'field_validator',
-    'ConfigDict',
 )
 
 
@@ -35,11 +34,44 @@ try:
     from pydantic import ConfigDict
     from pydantic import field_validator
 
-except ImportError:
-    ConfigDict = None  # type: ignore
+    class BaseModel(_BaseModel):
+        model_config = ConfigDict(validate_by_alias=True, validate_by_name=True)
 
-    # Pydantic v1.10 compatibility shims
+except ImportError:
+    # Pydantic v1.10 compatibility
     from pydantic import validator as _validator
+
+    T = TypeVar('T', bound='BaseModel')
+
+    class BaseModel(_BaseModel):  # type: ignore
+        # This is a compatability shim for pydantic v1.10 to look more like v2
+
+        class Config:
+            allow_population_by_field_name = True
+            underscore_attrs_are_private = True
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.model_post_init(None)
+
+        def model_post_init(self, __context: Any):
+            pass
+
+        @classmethod
+        def model_validate(cls: Type[T], data: Dict[str, Any]) -> T:  # type: ignore
+            """
+            Create an instance directly from a dictionary. Records the original data
+            dict for later review via the `data` property.
+            """
+            return cls.parse_obj(data)
+
+        def model_dump(self, by_alias: bool = True) -> Dict[str, Any]:  # type: ignore
+            """
+            Return a dictionary representation of this object. This is distinct from
+            the original data that was used to create the object, and may include
+            fields with default values and validated forms.
+            """
+            return self.dict(by_alias=by_alias)
 
     def field_validator(  # type: ignore
         field: str,
