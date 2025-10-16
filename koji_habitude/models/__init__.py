@@ -11,15 +11,15 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: AI Generated with Human Rework
 
 
-from typing import Mapping, Tuple, Type
 from types import MappingProxyType
+from typing import Mapping, Tuple, Type
 
-
-from .base import Base, BaseObject, BaseKey, BaseStatus
-from .change import ChangeReport, Change, Create, Update, Add, Remove, Modify
 from .archive_type import ArchiveType
+from .base import Base, BaseKey, BaseObject, BaseStatus
 from .build_type import BuildType
+from .change import Add, Change, ChangeReport, Create, Modify, Remove, Update
 from .channel import Channel
+from .compat import Field, field_validator
 from .content_generator import ContentGenerator
 from .external_repo import ExternalRepo
 from .group import Group
@@ -29,7 +29,6 @@ from .tag import Tag
 from .target import Target
 from .user import User
 
-
 __all__ = (
     'CORE_TYPES',
     'CORE_MODELS',
@@ -38,6 +37,9 @@ __all__ = (
     'BaseObject',
     'BaseKey',
     'BaseStatus',
+
+    'Field',
+    'field_validator',
 
     'Change',
     'ChangeReport',

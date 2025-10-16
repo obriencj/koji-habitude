@@ -17,28 +17,16 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: AI Assisted, Mostly Human
 
 
-from dataclasses import dataclass
 import logging
-from typing import (
-    Any,
-    ClassVar,
-    Dict,
-    Iterable,
-    List,
-    Optional,
-    Sequence,
-    TYPE_CHECKING,
-    Tuple,
-    Type,
-    Union,
-    cast,
-)
+from dataclasses import dataclass
+from typing import (TYPE_CHECKING, Any, ClassVar, Dict, Iterable, List,
+                    Optional, Sequence, Tuple, Type, Union, cast)
 
-from koji import ClientSession, MultiCallNotReady, MultiCallSession, VirtualCall
+from koji import (ClientSession, MultiCallNotReady, MultiCallSession,
+                  VirtualCall)
 
 from .koji import multicall
 from .models import Base, BaseKey, BaseStatus, ChangeReport
-
 
 if TYPE_CHECKING:
     from .namespace import Namespace

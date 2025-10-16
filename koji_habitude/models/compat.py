@@ -13,20 +13,14 @@ AI-Assistant: Claude 4.5 Sonnet via Cursor
 
 
 from typing import Any, Callable, Dict, Optional, Type, TypeVar
-from pydantic import VERSION, BaseModel as _BaseModel, Field, ValidationError
+from pydantic import BaseModel as _BaseModel, Field
 
 
 __all__ = (
-    'PYDANTIC_V2',
     'BaseModel',
     'Field',
-    'ValidationError',
     'field_validator',
 )
-
-
-# Detect pydantic version
-PYDANTIC_V2 = VERSION.startswith('2.')
 
 
 try:

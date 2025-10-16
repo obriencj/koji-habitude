@@ -13,10 +13,10 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: AI Assisted, Mostly Human
 
 
+import logging
 from dataclasses import dataclass
 from enum import Enum
 from itertools import chain, islice
-import logging
 from typing import Callable, Dict, Iterable, Iterator, List, Optional
 
 from koji import ClientSession, VirtualCall
@@ -24,7 +24,6 @@ from koji import ClientSession, VirtualCall
 from .koji import multicall
 from .models import Base, BaseKey, ChangeReport
 from .resolver import Resolver
-
 
 logger = logging.getLogger(__name__)
 

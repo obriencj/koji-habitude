@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING, Dict, Iterator, List, Optional, Set, Tuple
 from .models import Base, BaseKey
 
 if TYPE_CHECKING:
-    from .resolver import ResolverReport, Resolver
+    from .resolver import Resolver, ResolverReport
 
 
 class Node:

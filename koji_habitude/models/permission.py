@@ -11,17 +11,16 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: AI Generated with Human Rework
 
 
-from dataclasses import dataclass
 import logging
-from typing import Any, ClassVar, Optional, TYPE_CHECKING
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, ClassVar, Optional
 
 from koji import MultiCallSession, VirtualCall
-
-from ..pydantic import Field
 
 from ..koji import call_processor
 from .base import BaseKey, BaseObject
 from .change import ChangeReport, Create, Update
+from .compat import Field
 
 if TYPE_CHECKING:
     from ..resolver import Resolver

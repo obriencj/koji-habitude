@@ -11,21 +11,11 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: Pure Human
 
 
+import sys
 from itertools import chain
 from pathlib import Path
-import sys
-from typing import (
-    Any,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
-    Optional,
-    Protocol,
-    Sequence,
-    Type,
-    Union,
-)
+from typing import (Any, Dict, Iterable, Iterator, List, Optional, Protocol,
+                    Sequence, Type, Union)
 
 import yaml
 

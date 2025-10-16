@@ -9,16 +9,16 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
 
-from dataclasses import dataclass
 import logging
-from typing import Any, ClassVar, Dict, List, Literal, Optional, Sequence, TYPE_CHECKING
+from dataclasses import dataclass
+from typing import (TYPE_CHECKING, Any, ClassVar, Dict, List, Literal,
+                    Optional, Sequence)
 
 from koji import MultiCallSession, VirtualCall
 
-from ..pydantic import Field, field_validator
-
 from .base import BaseKey, BaseObject, SubModel
 from .change import Add, ChangeReport, Create, Modify, Remove, Update
+from .compat import Field, field_validator
 
 if TYPE_CHECKING:
     from ..resolver import Resolver

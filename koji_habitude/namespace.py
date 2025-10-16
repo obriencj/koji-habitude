@@ -13,26 +13,16 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # Vibe-Coding State: AI Assisted, Mostly Human
 
 
-from enum import Enum, auto
 import logging
-from typing import (
-    Any,
-    Dict,
-    Iterable,
-    List,
-    Mapping,
-    Optional,
-    Set,
-    Tuple,
-    Type,
-    Union,
-)
+from enum import Enum, auto
+from typing import (Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple,
+                    Type, Union)
+
+from pydantic import ValidationError as PydanticValidationError
 
 from .exceptions import ExpansionError, RedefineError, ValidationError
-from .pydantic import ValidationError as PydanticValidationError
-from .models import Base, BaseKey, BaseObject, CORE_MODELS
+from .models import CORE_MODELS, Base, BaseKey, BaseObject
 from .templates import Template, TemplateCall
-
 
 __all__ = (
     'Namespace',

@@ -17,7 +17,8 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 from dataclasses import dataclass, field
 from enum import Enum
 from logging import getLogger
-from typing import Any, Callable, ClassVar, Iterable, List, Optional, TYPE_CHECKING
+from typing import (TYPE_CHECKING, Any, Callable, ClassVar, Iterable, List,
+                    Optional)
 
 from koji import GenericError, MultiCallSession, VirtualCall
 

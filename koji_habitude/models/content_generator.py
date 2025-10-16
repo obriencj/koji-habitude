@@ -12,15 +12,14 @@ AI-Assistant: Claude 4.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import Any, ClassVar, List, Sequence, TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar, List, Sequence
 
 from koji import MultiCallSession, VirtualCall
-
-from ..pydantic import Field
 
 from ..koji import call_processor
 from .base import BaseKey, BaseObject
 from .change import Add, ChangeReport, Create, Remove
+from .compat import Field
 
 if TYPE_CHECKING:
     from ..resolver import Resolver

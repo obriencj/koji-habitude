@@ -12,15 +12,10 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 import logging
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Dict, List, Optional
 
-from koji import (
-    ClientSession,
-    MultiCallSession,
-    VirtualCall,
-    VirtualMethod,
-    read_config,
-)
+from koji import (ClientSession, MultiCallSession, VirtualCall, VirtualMethod,
+                  read_config)
 from koji_cli.lib import activate_session
 
 if TYPE_CHECKING:

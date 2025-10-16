@@ -12,7 +12,7 @@ AI-Assistant: Claude 4.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import Any, ClassVar, TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from koji import MultiCallSession, VirtualCall
 

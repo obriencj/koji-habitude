@@ -12,29 +12,17 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from enum import Enum
-from typing import (
-    Any,
-    ClassVar,
-    Dict,
-    List,
-    Optional,
-    Protocol,
-    Sequence,
-    TYPE_CHECKING,
-    Tuple,
-    Type,
-    TypeVar,
-)
-
-from typing_extensions import TypeAlias
-
-from ..pydantic import BaseModel, Field, field_validator
+from typing import (TYPE_CHECKING, Any, ClassVar, Dict, List, Optional,
+                    Protocol, Sequence, Tuple, Type, TypeVar)
 
 from koji import MultiCallNotReady, MultiCallSession, VirtualCall
+from typing_extensions import TypeAlias
+
+from .compat import BaseModel, Field, field_validator
 
 if TYPE_CHECKING:
-    from .change import ChangeReport
     from ..resolver import Resolver
+    from .change import ChangeReport
 
 
 __all__ = (
@@ -169,6 +157,7 @@ MetaModelProtocol: Type[type] = type("MetaModelProtocol", (type(BaseModel), type
 
 
 T = TypeVar('T', bound='BaseObject')
+
 
 class BaseObject(BaseModel, Base, metaclass=MetaModelProtocol):  # type: ignore
     """
