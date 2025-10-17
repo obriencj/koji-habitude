@@ -26,27 +26,75 @@ url: "https://iad.mirror.rackspace.com/fedora/releases/42/Everything/x86_64/os/"
 ---
 type: tag
 name: almalinux-9-build-base
+groups:
+  srpm-build: &srpm-build-group
+  - almalinux-release
+  - bash
+  - glibc-minimal-langpack
+  - gnupg2
+  - make
+  - redhat-rpm-config
+  - rpm-build
+  - shadow-utils
+
+  build: &build-group
+  - almalinux-release
+  - bash
+  - bzip2
+  - coreutils
+  - diffutils
+  - findutils
+  - gawk
+  - grep
+  - gzip
+  - make
+  - patch
+  - sed
+  - shadow-utils
+  - tar
+  - unzip
+  - util-linux
+  - which
+  - xz
+
 external-repos:
   - name: almalinux-9-baseos
     priority: 10
+  - name: almalinux-9-appstream
+    priority: 15
 
 ---
 type: external-repo
 name: almalinux-9-baseos
 url: "https://iad.mirror.rackspace.com/almalinux/9/BaseOS/x86_64/os/"
 
+---
+type: external-repo
+name: almalinux-9-appstream
+url: "https://iad.mirror.rackspace.com/almalinux/9/AppStream/x86_64/os/"
 
 ---
 type: tag
 name: almalinux-10-build-base
+groups:
+  srpm-build: *srpm-build-group
+  build: *build-group
+
 external-repos:
   - name: almalinux-10-baseos
     priority: 10
+  - name: almalinux-10-appstream
+    priority: 15
 
 ---
 type: external-repo
 name: almalinux-10-baseos
 url: "https://iad.mirror.rackspace.com/almalinux/10/BaseOS/x86_64/os/"
+
+---
+type: external-repo
+name: almalinux-10-appstream
+url: "https://iad.mirror.rackspace.com/almalinux/10/AppStream/x86_64/os/"
 
 
 # The end.
