@@ -62,6 +62,8 @@ external-repos:
     priority: 10
   - name: almalinux-9-appstream
     priority: 15
+  - name: almalinux-9-crb
+    priority: 20
 
 ---
 type: external-repo
@@ -72,6 +74,11 @@ url: "https://iad.mirror.rackspace.com/almalinux/9/BaseOS/x86_64/os/"
 type: external-repo
 name: almalinux-9-appstream
 url: "https://iad.mirror.rackspace.com/almalinux/9/AppStream/x86_64/os/"
+
+---
+type: external-repo
+name: almalinux-9-crb
+url: "https://iad.mirror.rackspace.com/almalinux/9/CRB/x86_64/os/"
 
 ---
 type: tag
@@ -85,6 +92,8 @@ external-repos:
     priority: 10
   - name: almalinux-10-appstream
     priority: 15
+  - name: almalinux-10-crb
+    priority: 20
 
 ---
 type: external-repo
@@ -96,5 +105,9 @@ type: external-repo
 name: almalinux-10-appstream
 url: "https://iad.mirror.rackspace.com/almalinux/10/AppStream/x86_64/os/"
 
+---
+type: external-repo
+name: almalinux-10-crb
+url: "https://iad.mirror.rackspace.com/almalinux/10/CRB/x86_64/os/"
 
 # The end.
