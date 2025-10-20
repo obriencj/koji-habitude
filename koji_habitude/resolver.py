@@ -26,7 +26,8 @@ from koji import (ClientSession, MultiCallNotReady, MultiCallSession,
                   VirtualCall)
 
 from .koji import multicall
-from .models import Base, BaseKey, BaseStatus, ChangeReport
+from .models.base import BaseKey, BaseStatus, Resolvable
+from .models.change import ChangeReport
 
 if TYPE_CHECKING:
     from .namespace import Namespace
@@ -63,19 +64,19 @@ class ReferenceChangeReport(ChangeReport):
         return ()
 
 
-class Reference(Base):
+class Reference(Resolvable):
     """
     A placeholder for a dependency that is not defined in the Namespace
     """
 
     typename: ClassVar[str] = 'reference'
 
-
-    def __init__(self, tp: Type[Base], key: BaseKey):
+    def __init__(self, tp: Type[Resolvable], key: BaseKey):
         self.tp = tp
         self.yaml_type, self.name = key
         self._key = key
         self._exists: Optional[VirtualCall] = None  # None means not checked yet
+        self._remote: Optional[Any] = None  # Cached remote object
         self.filename = None
         self.lineno = None
         self.trace = None
@@ -113,7 +114,7 @@ class Reference(Base):
     def is_split(self) -> bool:
         return False
 
-    def split(self) -> Base:
+    def split(self) -> Resolvable:
         raise TypeError("Cannot split a Reference")
 
     def dependency_keys(self) -> Sequence[BaseKey]:
@@ -131,6 +132,18 @@ class Reference(Base):
             self._exists = VirtualCall(None, None, None)
             self._exists._result = res  # type: ignore
         return self._exists
+
+    def load_remote(self, session: MultiCallSession) -> Optional[Any]:
+        """Load the full remote object for this reference"""
+        if self._remote is None and self.exists():
+            # Use tp.query_remote to fetch full remote object
+            if hasattr(self.tp, 'query_remote'):
+                vc = self.tp.query_remote(session, self._key)
+                try:
+                    self._remote = vc.result if hasattr(vc, 'result') else None
+                except MultiCallNotReady:
+                    pass
+        return self._remote
 
     @classmethod
     def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
@@ -157,8 +170,8 @@ class ResolverReport:
     references that *have* been found to exist in a Koji instance.
     """
 
-    discovered: Dict[BaseKey, Base]
-    phantoms: Dict[BaseKey, Base]
+    discovered: Dict[BaseKey, Resolvable]
+    phantoms: Dict[BaseKey, Resolvable]
 
 
 class Resolver:
@@ -172,7 +185,7 @@ class Resolver:
             raise ValueError("namespace is required")
 
         self.namespace: 'Namespace' = namespace
-        self._references: Dict[BaseKey, Base] = {}
+        self._references: Dict[BaseKey, Resolvable] = {}
 
 
     def namespace_keys(self) -> Iterable[BaseKey]:
@@ -223,7 +236,7 @@ class Resolver:
         return self.reference_keys(exists=False)
 
 
-    def resolve(self, key: BaseKey) -> Base:
+    def resolve(self, key: BaseKey) -> Resolvable:
         """
         Resolve a key into either an object from the Namespace, or a
         ReferenceObject placeholder.
@@ -236,7 +249,7 @@ class Resolver:
         return obj
 
 
-    def chain_resolve(self, key, into=None) -> Dict[BaseKey, Base]:
+    def chain_resolve(self, key, into=None) -> Dict[BaseKey, Resolvable]:
         """
         Resolve a key into either an object from the Namespace, or
         a Reference placeholder. If that object has dependencies,
@@ -275,7 +288,7 @@ class Resolver:
         return self.resolve(key).can_split()
 
 
-    def split_key(self, key: BaseKey) -> Base:
+    def split_key(self, key: BaseKey) -> Resolvable:
         """
         Convenience shortcut for `resolve(key).split()`
         """

@@ -12,11 +12,12 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar, List, Optional
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Optional
 
 from koji import MultiCallSession, VirtualCall
 
-from .base import BaseKey, BaseObject
+from ..koji import call_processor, VirtualPromise
+from .base import BaseKey, CoreModel, CoreObject, RemoteObject
 from .change import Add, ChangeReport, Create, Remove, Update
 from .compat import Field
 
@@ -180,20 +181,22 @@ class UserChangeReport(ChangeReport):
                     yield UserRevokePermission(self.obj, perm)
 
 
-class User(BaseObject):
-    """
-    Koji user object model.
-    """
+class UserModel(CoreModel):
+    """Field definitions for User objects"""
 
     typename: ClassVar[str] = "user"
 
     groups: List[str] = Field(alias='groups', default_factory=list)
     exact_groups: bool = Field(validation_alias='exact-groups', default=False)
-
     permissions: List[str] = Field(alias='permissions', default_factory=list)
     exact_permissions: bool = Field(alias='exact-permissions', default=False)
-
     enabled: Optional[bool] = Field(alias='enabled', default=None)
+
+
+class User(UserModel, CoreObject):
+    """
+    Local user object from YAML.
+    """
 
     _auto_split: ClassVar[bool] = True
 
@@ -228,8 +231,30 @@ class User(BaseObject):
 
 
     @classmethod
-    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        return session.getUser(key[1], strict=False, groups=True)
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
+        return call_processor(RemoteUser.from_koji, session.getUser, key[1], strict=False, groups=True)
+
+
+class RemoteUser(UserModel, RemoteObject):
+    """Remote user object from Koji API"""
+
+    @classmethod
+    def from_koji(cls, data: Optional[Dict[str, Any]]):
+        if data is None:
+            return None
+
+        return cls(
+            name=data['name'],
+            groups=data['groups'],
+            enabled=(data['status'] == 0))
+
+
+    def set_koji_perms(self, perms: VirtualPromise):
+        self.permissions = perms.result
+
+
+    def load_additional_data(self, session: MultiCallSession):
+        session.getUserPerms(self.name).into(self.set_koji_perms)
 
 
 # The end.

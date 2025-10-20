@@ -13,11 +13,12 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 from dataclasses import dataclass
 from re import match
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional
 
 from koji import MultiCallSession, VirtualCall
 
-from .base import BaseKey, BaseObject
+from ..koji import call_processor
+from .base import BaseKey, CoreModel, CoreObject, RemoteObject
 from .change import ChangeReport, Create, Update
 from .compat import Field, field_validator
 
@@ -64,15 +65,18 @@ class ExternalRepoChangeReport(ChangeReport):
             yield ExternalRepoSetURL(self.obj, self.obj.url)
 
 
-class ExternalRepo(BaseObject):
-    """
-    Koji external repository object model.
-    """
+class ExternalRepoModel(CoreModel):
+    """Field definitions for ExternalRepo objects"""
 
     typename: ClassVar[str] = "external-repo"
 
     url: str = Field(alias='url')
 
+
+class ExternalRepo(ExternalRepoModel, CoreObject):
+    """
+    Local external repository object from YAML.
+    """
 
     @field_validator('url', mode='before')
     def validate_url(cls, v):
@@ -80,14 +84,36 @@ class ExternalRepo(BaseObject):
             raise ValueError("url must start with http or https")
         return v
 
-
     def change_report(self, resolver: 'Resolver') -> ExternalRepoChangeReport:
         return ExternalRepoChangeReport(self, resolver)
 
+    @classmethod
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
+        return call_processor(
+            RemoteExternalRepo.from_koji,
+            session.getExternalRepo, key[1], strict=False)
 
     @classmethod
     def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
         return session.getExternalRepo(key[1], strict=False)
+
+
+class RemoteExternalRepo(ExternalRepoModel, RemoteObject):
+    """Remote external repository object from Koji API"""
+
+    @classmethod
+    def from_koji(cls, data: Optional[Dict[str, Any]]):
+        if data is None:
+            return None
+
+        return cls(
+            name=data['name'],
+            url=data['url']
+        )
+
+    def load_additional_data(self, session: MultiCallSession):
+        # Load additional data if needed
+        pass
 
 
 # The end.

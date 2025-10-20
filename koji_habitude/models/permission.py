@@ -13,12 +13,12 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 import logging
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar, Optional
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional
 
 from koji import MultiCallSession, VirtualCall
 
 from ..koji import call_processor
-from .base import BaseKey, BaseObject
+from .base import BaseKey, CoreModel, CoreObject, RemoteObject
 from .change import ChangeReport, Create, Update
 from .compat import Field
 
@@ -94,23 +94,47 @@ class PermissionChangeReport(ChangeReport):
             yield PermissionSetDescription(self.obj, self.obj.description)
 
 
-class Permission(BaseObject):
-    """
-    Koji permission object model.
-    """
+class PermissionModel(CoreModel):
+    """Field definitions for Permission objects"""
 
     typename: ClassVar[str] = "permission"
 
     description: Optional[str] = Field(alias='description', default=None)
 
 
+class Permission(PermissionModel, CoreObject):
+    """
+    Local permission object from YAML.
+    """
+
     def change_report(self, resolver: 'Resolver') -> PermissionChangeReport:
         return PermissionChangeReport(self, resolver)
 
+    @classmethod
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
+        return call_processor(RemotePermission.from_koji, session.getPermission, key[1], strict=False)
 
     @classmethod
     def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
         return getPermission(session, key[1])
+
+
+class RemotePermission(PermissionModel, RemoteObject):
+    """Remote permission object from Koji API"""
+
+    @classmethod
+    def from_koji(cls, data: Optional[Dict[str, Any]]):
+        if data is None:
+            return None
+
+        return cls(
+            name=data['name'],
+            description=data.get('description')
+        )
+
+    def load_additional_data(self, session: MultiCallSession):
+        # Load additional data if needed
+        pass
 
 
 # The end.

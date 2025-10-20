@@ -12,11 +12,12 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar, List
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Optional
 
 from koji import MultiCallSession, VirtualCall
 
-from .base import BaseKey, BaseObject
+from ..koji import call_processor
+from .base import BaseKey, CoreModel, CoreObject, RemoteObject
 from .change import Add, ChangeReport, Create, Remove, Update
 from .compat import Field
 
@@ -180,50 +181,71 @@ class GroupChangeReport(ChangeReport):
                     yield GroupRemovePermission(self.obj, permission)
 
 
-class Group(BaseObject):
-    """
-    Koji group object model.
-    """
+class GroupModel(CoreModel):
+    """Field definitions for Group objects"""
 
     typename: ClassVar[str] = "group"
 
     enabled: bool = Field(alias='enabled', default=True)
     members: List[str] = Field(alias='members', default_factory=list)
     permissions: List[str] = Field(alias='permissions', default_factory=list)
-
     exact_members: bool = Field(alias='exact-members', default=False)
     exact_permissions: bool = Field(alias='exact-permissions', default=False)
+
+
+class Group(GroupModel, CoreObject):
+    """
+    Local group object from YAML.
+    """
 
     _auto_split: ClassVar[bool] = True
 
 
     def dependency_keys(self) -> List[BaseKey]:
-        """
-        Return dependencies for this group.
-
-        Groups may depend on:
-        - Users
-        - Permissions
-        """
-
         deps: List[BaseKey] = []
-
-        for member in self.members:
-            deps.append(('user', member))
-
-        for permission in self.permissions:
-            deps.append(('permission', permission))
-
+        deps.extend([('user', member) for member in self.members])
+        deps.extend([('permission', permission) for permission in self.permissions])
         return deps
-
 
     def change_report(self, resolver: 'Resolver') -> GroupChangeReport:
         return GroupChangeReport(self, resolver)
 
+    @classmethod
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
+        return call_processor(RemoteGroup.from_koji, session.getGroup, key[1], strict=False)
 
     @classmethod
     def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
         return session.getUser(key[1], strict=False)
+
+
+class RemoteGroup(GroupModel, RemoteObject):
+    """Remote group object from Koji API"""
+
+    @classmethod
+    def from_koji(cls, data: Optional[Dict[str, Any]]):
+        if data is None:
+            return None
+
+        return cls(
+            name=data['name'],
+            enabled=(data.get('status', 0) == 0),
+            members=[],
+            permissions=[],
+            exact_members=False,  # Default for remote objects
+            exact_permissions=False  # Default for remote objects
+        )
+
+
+    def load_additional_data(self, session: MultiCallSession):
+        def set_members(members):
+            self.members = [m['name'] for m in members]
+
+        def set_permissions(permissions):
+            self.permissions = list(permissions)
+
+        session.getGroupMembers(self.obj.name).into(set_members)
+        session.getUserPerms(self.obj.name).into(set_permissions)
 
 
 # The end.

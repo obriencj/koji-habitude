@@ -12,13 +12,14 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar, List, Optional, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Optional, Sequence
 
 from koji import MultiCallSession, VirtualCall
 
-from .base import BaseKey, BaseObject
+from ..koji import call_processor
+from .base import BaseKey, BaseObject, RemoteObject
 from .change import Add, ChangeReport, Create, Remove, Update
-from .compat import Field
+from .compat import BaseModel, Field
 
 if TYPE_CHECKING:
     from ..resolver import Resolver
@@ -169,10 +170,8 @@ class HostChangeReport(ChangeReport):
                     yield HostRemoveChannel(self.obj, channel)
 
 
-class Host(BaseObject):
-    """
-    Koji build host object model.
-    """
+class HostBase(BaseModel):
+    """Field definitions for Host objects"""
 
     typename: ClassVar[str] = "host"
 
@@ -182,6 +181,12 @@ class Host(BaseObject):
     description: Optional[str] = Field(alias='description', default=None)
     channels: List[str] = Field(alias='channels', default_factory=list)
     exact_channels: bool = Field(alias='exact-channels', default=False)
+
+
+class Host(HostBase, BaseObject):
+    """
+    Local host object from YAML.
+    """
 
     _auto_split: ClassVar[bool] = True
 
@@ -208,10 +213,36 @@ class Host(BaseObject):
     def change_report(self, resolver: 'Resolver') -> HostChangeReport:
         return HostChangeReport(self, resolver)
 
+    @classmethod
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
+        return call_processor(RemoteHost.from_koji, session.getHost, key[1], strict=False)
 
     @classmethod
     def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
         return session.getHost(key[1], strict=False)
+
+
+class RemoteHost(HostBase, RemoteObject):
+    """Remote host object from Koji API"""
+
+    @classmethod
+    def from_koji(cls, data: Optional[Dict[str, Any]]):
+        if data is None:
+            return None
+
+        return cls(
+            name=data['name'],
+            arches=data.get('arches', []),
+            capacity=data.get('capacity'),
+            enabled=data.get('enabled', True),
+            description=data.get('comment'),
+            channels=data.get('channels', []),
+            exact_channels=False  # Default for remote objects
+        )
+
+    def load_additional_data(self, session: MultiCallSession):
+        # Load additional data if needed
+        pass
 
 
 # The end.

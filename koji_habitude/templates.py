@@ -25,35 +25,31 @@ from jinja2.meta import find_undeclared_variables
 
 from .exceptions import (TemplateError, TemplateOutputError,
                          TemplateRenderError, TemplateSyntaxError)
-from .models import BaseObject, Field, field_validator
+from .models.base import LocalObject, IdentifiableObject
+from .models.compat import Field, field_validator
 
 
 logger = logging.getLogger("koji_habitude.templates")
 
 
-class TemplateCall(BaseObject):
-
+class TemplateCall(LocalObject):
     """
     Represents a YAML doc that needs to be expanded into zero or more
     new docs via a Template.
     """
 
-    # this value is overridden in instances
-    typename: ClassVar[str] = "template-call"
-    name: Optional[str] = Field(alias='name', default=None)
+    typename: ClassVar[str] = "template"
+
+    yaml_type: str = Field(alias='type')
 
 
     @property
     def template_name(self) -> str:
+        # For template calls, the template name is stored in the typename
         return self.yaml_type
 
 
-    @field_validator('name', mode='before')
-    def validate_name(cls, value: str):
-        pass
-
-
-class Template(BaseObject):
+class Template(IdentifiableObject, LocalObject):
     """
     A Template allows for the expansion of some YAML data into zero or
     more YAML docs, via Jinja2
@@ -121,11 +117,13 @@ class Template(BaseObject):
 
             try:
                 ast = jinja_env.parse(self.template_content)
+
             except Jinja2TemplateSyntaxError as e:
                 raise TemplateSyntaxError(
                     original_error=e,
                     template=self,
                 ) from e
+
             except Jinja2TemplateError as e:
                 raise TemplateError(
                     original_error=e,
@@ -165,12 +163,14 @@ class Template(BaseObject):
             try:
                 src = loader.get_source(jinja_env, self.template_file)[0]
                 ast = jinja_env.parse(src)
+
             except Jinja2TemplateSyntaxError as e:
                 raise TemplateSyntaxError(
                     original_error=e,
                     template=self,
                     template_file=self.template_file,
                 ) from e
+
             except Jinja2TemplateError as e:
                 raise TemplateError(
                     original_error=e,
@@ -235,7 +235,6 @@ class Template(BaseObject):
     def render_and_load(
             self,
             data: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
-
         """
         Render the template with the given data and yield the resulting
         YAML documents
@@ -280,6 +279,7 @@ class Template(BaseObject):
                     )
                 obj.update(merge)
                 yield obj
+
         except yaml.YAMLError as e:
             raise TemplateOutputError(
                 message=f"Template rendered invalid YAML: {e}",

@@ -12,12 +12,12 @@ AI-Assistant: Claude 4.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar, List, Literal
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Literal, Optional
 
 from koji import MultiCallSession, VirtualCall
 
 from ..koji import call_processor
-from .base import BaseKey, BaseObject
+from .base import BaseKey, CoreModel, CoreObject, RemoteObject
 from .change import ChangeReport, Create
 from .compat import Field, field_validator
 
@@ -73,17 +73,21 @@ class ArchiveTypeChangeReport(ChangeReport):
         return
 
 
-class ArchiveType(BaseObject):
-    """
-    Koji archive type object model.
-    """
+class ArchiveTypeModel(CoreModel):
+    """Field definitions for ArchiveType objects"""
 
     typename: ClassVar[str] = "archive-type"
 
+    name: str = Field(alias='name')
     description: str = Field(alias='description', default='')
     extensions: List[str] = Field(alias='extensions', default=[])
     compression: Literal['tar', 'zip', None] = Field(alias='compression-type', default=None)
 
+
+class ArchiveType(ArchiveTypeModel, CoreObject):
+    """
+    Local archive type object from YAML.
+    """
 
     @field_validator('extensions', mode='after')
     def validate_extensions(cls, v):
@@ -96,10 +100,33 @@ class ArchiveType(BaseObject):
     def change_report(self, resolver: 'Resolver') -> ArchiveTypeChangeReport:
         return ArchiveTypeChangeReport(self, resolver)
 
+    @classmethod
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
+        return call_processor(RemoteArchiveType.from_koji, session.getArchiveType, key[1], strict=False)
 
     @classmethod
     def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
         return getArchiveType(session, key[1])
+
+
+class RemoteArchiveType(ArchiveTypeModel, RemoteObject):
+    """Remote archive type object from Koji API"""
+
+    @classmethod
+    def from_koji(cls, data: Optional[Dict[str, Any]]):
+        if data is None:
+            return None
+
+        return cls(
+            name=data['name'],
+            description=data.get('description', ''),
+            extensions=data.get('extensions', []),
+            compression=data.get('compression_type')
+        )
+
+    def load_additional_data(self, session: MultiCallSession):
+        # Load additional data if needed
+        pass
 
 
 # The end.

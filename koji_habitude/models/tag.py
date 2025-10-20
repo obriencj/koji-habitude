@@ -16,7 +16,8 @@ from typing import (TYPE_CHECKING, Any, ClassVar, Dict, Iterable, List,
 
 from koji import MultiCallSession, VirtualCall
 
-from .base import BaseKey, BaseObject, SubModel
+from ..koji import call_processor, VirtualPromise
+from .base import BaseKey, CoreModel, CoreObject, RemoteObject, SubModel
 from .change import Add, Change, ChangeReport, Create, Modify, Remove, Update
 from .compat import Field, field_validator
 
@@ -27,13 +28,20 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def _compare_arches(koji_arches: Optional[str], arches: Optional[List[str]]) -> bool:
+def compare_arches(koji_arches: Optional[str], arches: Optional[List[str]]) -> bool:
     if koji_arches is None:
         return arches is None
     elif arches is None:
         return False
     else:
         return set(koji_arches.split()) == set(arches)
+
+
+def split_arches(arches: Optional[str]) -> Optional[List[str]]:
+    if arches is None:
+        return []
+    else:
+        return arches.split()
 
 
 @dataclass
@@ -579,7 +587,7 @@ class TagChangeReport(ChangeReport):
 
         if info['locked'] != self.obj.locked:
             yield TagSetLocked(self.obj, self.obj.locked)
-        if not _compare_arches(info['arches'], self.obj.arches):
+        if not compare_arches(info['arches'], self.obj.arches):
             yield TagSetArches(self.obj, self.obj.arches)
         if info['maven_support'] != self.obj.maven_support or \
            info['maven_include_all'] != self.obj.maven_include_all:
@@ -610,7 +618,7 @@ class TagChangeReport(ChangeReport):
                         yield TagPackageListUnblock(self.obj, package.name)
                 if koji_pkg['owner_name'] != package.owner and package.owner is not None:
                     yield TagPackageListSetOwner(self.obj, package.name, package.owner)
-                if not _compare_arches(koji_pkg['extra_arches'], package.extra_arches):
+                if not compare_arches(koji_pkg['extra_arches'], package.extra_arches):
                     yield TagPackageListSetArches(self.obj, package.name, package.extra_arches)
 
         if self.obj.exact_packages:
@@ -666,7 +674,7 @@ class TagChangeReport(ChangeReport):
                 repo = ext_repos[name]
                 if koji_repo['priority'] != repo.priority or \
                    koji_repo['merge_mode'] != repo.merge_mode or \
-                   not _compare_arches(koji_repo['arches'], repo.arches):
+                   not compare_arches(koji_repo['arches'], repo.arches):
                     yield TagUpdateExternalRepo(self.obj, repo)
 
         for name, repo in ext_repos.items():
@@ -786,7 +794,7 @@ class InheritanceLink(SubModel):
     pkgfilter: str = Field(alias='pkg-filter', default='')
     intransitive: bool = Field(alias='intransitive', default=False)
 
-    _parent_tag_id: Optional[int] = None
+    parent_id: Optional[int] = None
 
 
     @field_validator('pkgfilter', mode='before')
@@ -857,13 +865,10 @@ def _simplified_link(data: Any) -> Any:
     return data
 
 
-class Tag(BaseObject):
-    """
-    Koji tag object model.
-    """
+class TagModel(CoreModel):
+    """Field definitions for Tag objects"""
 
     typename: ClassVar[str] = "tag"
-    _can_split: ClassVar[bool] = True
 
     locked: bool = Field(alias='lock', default=False)
     permission: Optional[str] = Field(alias='permission', default=None)
@@ -873,16 +878,10 @@ class Tag(BaseObject):
     extras: Dict[str, Any] = Field(alias='extras', default_factory=dict)
     groups: Dict[str, TagGroup] = Field(alias='groups', default_factory=dict)
     exact_groups: bool = Field(alias='exact-groups', default=False)
-
     inheritance: List[InheritanceLink] = Field(alias='inheritance', default_factory=list)
     external_repos: List[ExternalRepoLink] = Field(alias='external-repos', default_factory=list)
-
     packages: List[PackageEntry] = Field(alias='packages', default_factory=list)
     exact_packages: bool = Field(alias='exact-packages', default=False)
-
-    _auto_split: ClassVar[bool] = True
-
-    _original: Optional['Tag'] = None
 
 
     def model_post_init(self, __context: Any) -> None:
@@ -984,6 +983,34 @@ class Tag(BaseObject):
         return list(seen.values())
 
 
+    def dependency_keys(self) -> Sequence[BaseKey]:
+        deps: List[BaseKey] = []
+
+        if self.permission:
+            deps.append(('permission', self.permission))
+        deps.extend(parent.key() for parent in self.inheritance)
+        deps.extend(ext_repo.key() for ext_repo in self.external_repos)
+
+        owners = set()
+        for package in self.packages:
+            if package.owner:
+                owners.add(('user', package.owner))
+
+        deps.extend(owners)
+        return deps
+
+
+class Tag(TagModel, CoreObject):
+    """
+    Local tag object from YAML.
+    """
+
+    _can_split: ClassVar[bool] = True
+    _auto_split: ClassVar[bool] = True
+
+    _original: Optional['Tag'] = None
+
+
     def split(self) -> 'Tag':
         # normally a split only creates the object by name, and we worry about doing
         # full configuration in a separate step. For tag we'll do a full creation in
@@ -1003,44 +1030,101 @@ class Tag(BaseObject):
         return child
 
 
-    def dependency_keys(self) -> Sequence[BaseKey]:
-        """
-        Return dependencies for this tag.
-
-        Tags depend on:
-        - Permission
-        - Inheritance
-        - External repositories
-        """
-
-        deps: List[BaseKey] = []
-
-        if self.permission:
-            deps.append(('permission', self.permission))
-
-        # Check for inheritance dependencies
-        for parent in self.inheritance:
-            deps.append(parent.key())
-
-        # Check for external repository dependencies
-        for ext_repo in self.external_repos:
-            deps.append(ext_repo.key())
-
-        for package in self.packages:
-            if package.owner:
-                deps.append(('user', package.owner))
-
-        return deps
-
-
     def change_report(self, resolver: 'Resolver') -> TagChangeReport:
         return TagChangeReport(self, resolver)
+
+
+    @classmethod
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
+        return call_processor(RemoteTag.from_koji, session.getTag, key[1], strict=False)
 
 
     @classmethod
     def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
         logger.debug(f"Checking if tag '{key[1]}' exists")
         return session.getTag(key[1], strict=False)
+
+
+class RemoteTag(TagModel, RemoteObject):
+    """
+    Remote tag object from Koji API
+    """
+
+    @classmethod
+    def from_koji(cls, data: Optional[Dict[str, Any]]):
+        if data is None:
+            return None
+
+        # Convert Koji data to Tag fields
+        return cls(
+            name=data['name'],
+            locked=data.get('locked', False),
+            permission=data.get('perm_name'),
+            arches=data.get('arches', '').split() if data.get('arches') else [],
+            maven_support=data.get('maven_support', False),
+            maven_include_all=data.get('maven_include_all', False),
+            extras=data.get('extra', {}),
+            # Note: groups, inheritance, external_repos, packages would need
+            # additional API calls to populate fully
+            groups={},
+            exact_groups=False,
+            inheritance=[],
+            external_repos=[],
+            packages=[],
+            exact_packages=False
+        )
+
+
+    def set_koji_packages(self, result: VirtualPromise):
+        self.packages = [
+            PackageEntry(
+                name=package['package_name'],
+                block=package['blocked'],
+                owner=package['owner_name'],
+                extra_arches=split_arches(package['extra_arches']))
+            for package in result.result]
+
+
+    def set_koji_groups(self, result: VirtualPromise):
+        self.groups = {
+            group['name']: TagGroup(
+                name=group['name'],
+                description=group['description'],
+                block=group['block'])
+            for group in result.result}
+
+
+    def set_koji_inheritance(self, result: VirtualPromise):
+        self.inheritance = [
+            InheritanceLink(
+                name=inheritance['name'],
+                parent_id=inheritance['parent_id'],
+                priority=inheritance['priority'],
+                maxdepth=inheritance['maxdepth'],
+                noconfig=inheritance['noconfig'],
+                pkgfilter=inheritance['pkg_filter'],
+                intransitive=inheritance['intransitive'])
+            for inheritance in result.result]
+
+
+    def set_koji_external_repos(self, result: VirtualPromise):
+        self.external_repos = [
+            ExternalRepoLink(
+                name=repo['external_repo_name'],
+                priority=repo['priority'],
+                arches=split_arches(repo['arches']),
+                merge_mode=repo['merge_mode'])
+            for repo in result.result]
+
+
+    def load_additional_data(self, session: MultiCallSession):
+        # Load additional data like inheritance, external repos, packages, etc.
+        # This would require multiple API calls
+
+        session.listPackages(tagID=self.name).into(self.set_koji_packages)
+        session.getTagGroups(self.name, inherit=False, incl_blocked=True).into(self.set_koji_groups)
+        session.getInheritanceData(self.name).into(self.set_koji_inheritance)
+        session.getTagExternalRepos(tag_info=self.name).into(self.set_koji_external_repos)
 
 
 # The end.

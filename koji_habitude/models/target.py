@@ -9,11 +9,12 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar, Optional, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional, Sequence
 
 from koji import MultiCallSession, VirtualCall
 
-from .base import BaseKey, BaseObject
+from ..koji import call_processor
+from .base import BaseKey, CoreModel, CoreObject, RemoteObject
 from .change import ChangeReport, Create, Update
 from .compat import Field
 
@@ -97,9 +98,9 @@ class TargetChangeReport(ChangeReport):
             yield TargetEdit(self.obj)
 
 
-class Target(BaseObject):
+class TargetModel(CoreModel):
     """
-    Koji build target object model.
+    Field definitions for Target objects
     """
 
     typename: ClassVar[str] = "target"
@@ -109,27 +110,40 @@ class Target(BaseObject):
 
 
     def dependency_keys(self) -> Sequence[BaseKey]:
-        """
-        Return dependencies for this target.
-
-        Targets depend on:
-        - Build tag
-        - Destination tag
-        """
-
         return [
             ('tag', self.build_tag),
             ('tag', self.dest_tag or self.name),
         ]
 
 
+class Target(TargetModel, CoreObject):
+    """
+    Local target object from YAML.
+    """
+
     def change_report(self, resolver: 'Resolver') -> TargetChangeReport:
         return TargetChangeReport(self, resolver)
 
 
     @classmethod
-    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        return session.getBuildTarget(key[1], strict=False)
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
+        return call_processor(RemoteTarget.from_koji, session.getBuildTarget, key[1], strict=False)
+
+
+class RemoteTarget(TargetModel, RemoteObject):
+    """
+    Remote target object from Koji API
+    """
+
+    @classmethod
+    def from_koji(cls, data: Optional[Dict[str, Any]]):
+        if data is None:
+            return None
+
+        return cls(
+            name=data['name'],
+            build_tag=data['build_tag_name'],
+            dest_tag=data['dest_tag_name'])
 
 
 # The end.

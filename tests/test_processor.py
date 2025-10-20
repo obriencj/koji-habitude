@@ -16,7 +16,7 @@ from typing import List, Any, Dict
 
 from koji_habitude.processor import Processor, CompareOnlyProcessor, ProcessorState, ProcessorSummary
 from koji_habitude.solver import Solver
-from koji_habitude.models import Base, BaseKey
+from koji_habitude.models import BaseObject, BaseKey
 from koji_habitude.koji import session
 
 
@@ -47,12 +47,12 @@ def create_empty_solver() -> Solver:
     return mock_solver
 
 
-def create_solver_with_objects(objects: List[Base]) -> Solver:
+def create_solver_with_objects(objects: List[BaseObject]) -> Solver:
     """
     Create a Solver with specific objects for testing.
 
     Args:
-        objects: List of Base objects to yield from the solver
+        objects: List of BaseObject objects to yield from the solver
 
     Returns:
         Solver that yields the provided objects

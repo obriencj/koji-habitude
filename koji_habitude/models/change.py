@@ -23,7 +23,7 @@ from typing import (TYPE_CHECKING, Any, Callable, ClassVar, Iterable, List,
 from koji import GenericError, MultiCallSession, VirtualCall
 
 from ..exceptions import ChangeApplyError, ChangeReadError
-from .base import Base, BaseKey
+from .base import BaseObject, BaseKey
 
 if TYPE_CHECKING:
     from ..resolver import Resolver
@@ -74,7 +74,7 @@ class Change:
     Represents an atomic change in Koji, applicable to a single Base object.
     """
 
-    obj: Base
+    obj: BaseObject
 
     _skippable: ClassVar[bool] = False
 
@@ -518,8 +518,8 @@ class ChangeReport:
     * state is CHECKED
     """
 
-    def __init__(self, obj: Base, resolver: 'Resolver'):
-        self.obj: Base = obj
+    def __init__(self, obj: BaseObject, resolver: 'Resolver'):
+        self.obj: BaseObject = obj
         self.key: BaseKey = obj.key()
         self.state: ChangeReportState = ChangeReportState.PENDING
         self.changes: List[Change] = []

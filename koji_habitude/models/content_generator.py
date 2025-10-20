@@ -12,12 +12,12 @@ AI-Assistant: Claude 4.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar, List, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Optional, Sequence
 
 from koji import MultiCallSession, VirtualCall
 
 from ..koji import call_processor
-from .base import BaseKey, BaseObject
+from .base import BaseKey, CoreModel, CoreObject, RemoteObject
 from .change import Add, ChangeReport, Create, Remove
 from .compat import Field
 
@@ -105,10 +105,8 @@ class ContentGeneratorChangeReport(ChangeReport):
                     yield ContentGeneratorRemoveUser(self.obj, user)
 
 
-class ContentGenerator(BaseObject):
-    """
-    Koji content generator object model.
-    """
+class ContentGeneratorModel(CoreModel):
+    """Field definitions for ContentGenerator objects"""
 
     typename: ClassVar[str] = "content-generator"
 
@@ -116,17 +114,45 @@ class ContentGenerator(BaseObject):
     exact_users: bool = Field(alias='exact-users', default=False)
 
 
+class ContentGenerator(ContentGeneratorModel, CoreObject):
+    """
+    Local content generator object from YAML.
+    """
+
     def dependency_keys(self) -> Sequence[BaseKey]:
         return [('user', user) for user in self.users]
-
 
     def change_report(self, resolver: 'Resolver') -> ContentGeneratorChangeReport:
         return ContentGeneratorChangeReport(self, resolver)
 
+    @classmethod
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
+        return call_processor(
+            RemoteContentGenerator.from_koji,
+            session.getContentGenerator, key[1], strict=False)
 
     @classmethod
     def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
         return getContentGenerator(session, key[1])
+
+
+class RemoteContentGenerator(ContentGeneratorModel, RemoteObject):
+    """Remote content generator object from Koji API"""
+
+    @classmethod
+    def from_koji(cls, data: Optional[Dict[str, Any]]):
+        if data is None:
+            return None
+
+        return cls(
+            name=data['name'],
+            users=data.get('users', []),
+            exact_users=False  # Default for remote objects
+        )
+
+    def load_additional_data(self, session: MultiCallSession):
+        # Load additional data if needed
+        pass
 
 
 # The end.

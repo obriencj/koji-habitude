@@ -22,7 +22,8 @@ from typing import Callable, Dict, Iterable, Iterator, List, Optional
 from koji import ClientSession, VirtualCall
 
 from .koji import multicall
-from .models import Base, BaseKey, ChangeReport
+from .models.base import BaseKey, BaseObject
+from .models.change import ChangeReport
 from .resolver import Resolver
 
 logger = logging.getLogger(__name__)
@@ -85,7 +86,7 @@ class Processor:
     def __init__(
             self,
             koji_session: ClientSession,
-            dataseries: Iterable[Base],
+            dataseries: Iterable[BaseObject],
             resolver: Resolver,
             chunk_size: int = 100,
             skip_phantoms: bool = False):
@@ -99,12 +100,12 @@ class Processor:
         """
 
         self.koji_session: ClientSession = koji_session
-        self.dataseries: Iterator[Base] = iter(dataseries)
+        self.dataseries: Iterator[BaseObject] = iter(dataseries)
         self.resolver: Resolver = resolver
         self.chunk_size: int = chunk_size
         self.skip_phantoms: bool = skip_phantoms
 
-        self.current_chunk: List[Base] = []
+        self.current_chunk: List[BaseObject] = []
         self.state: ProcessorState = ProcessorState.READY_CHUNK
 
         self.change_reports: Dict[BaseKey, ChangeReport] = {}

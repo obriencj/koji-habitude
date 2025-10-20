@@ -15,7 +15,10 @@ from types import MappingProxyType
 from typing import Mapping, Tuple, Type
 
 from .archive_type import ArchiveType
-from .base import Base, BaseKey, BaseObject, BaseStatus
+from .base import (
+    BaseKey, BaseObject, BaseStatus, CoreObject, Identifiable, IdentifiableObject,
+    DependencyAware, DependencyAwareObject,
+    Resolvable, ResolvableObject)
 from .build_type import BuildType
 from .change import Add, Change, ChangeReport, Create, Modify, Remove, Update
 from .channel import Channel
@@ -29,18 +32,34 @@ from .tag import Tag
 from .target import Target
 from .user import User
 
+
 __all__ = (
     'CORE_TYPES',
     'CORE_MODELS',
 
-    'Base',
+    # Base protocols and classes
     'BaseObject',
     'BaseKey',
     'BaseStatus',
+    'CoreObject',
 
+    # Granular protocols
+    'Identifiable',
+    'DependencyAware',
+    'Changeable',
+    'Resolvable',
+
+    # Pydantic mixins
+    'IdentifiableObject',
+    'DependencyAwareObject',
+    'LocalObject',
+    'ResolvableObject',
+
+    # Compat
     'Field',
     'field_validator',
 
+    # Change classes
     'Change',
     'ChangeReport',
     'Create',
@@ -49,6 +68,7 @@ __all__ = (
     'Remove',
     'Modify',
 
+    # Core models
     'ArchiveType',
     'BuildType',
     'Channel',
@@ -63,7 +83,7 @@ __all__ = (
 )
 
 
-CORE_TYPES: Tuple[Type[BaseObject], ...] = (
+CORE_TYPES: Tuple[Type[CoreObject], ...] = (
     ArchiveType,
     BuildType,
     Channel,
@@ -77,7 +97,7 @@ CORE_TYPES: Tuple[Type[BaseObject], ...] = (
     User,
 )
 
-CORE_MODELS: Mapping[str, Type[BaseObject]] = \
+CORE_MODELS: Mapping[str, Type[CoreObject]] = \
      MappingProxyType({tp.typename: tp for tp in CORE_TYPES})
 
 

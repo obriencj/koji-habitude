@@ -111,7 +111,7 @@ class TestBaseModels(unittest.TestCase):
         obj = BaseObject.from_dict(data)
 
         repr_str = repr(obj)
-        self.assertEqual(repr_str, '<BaseObject(test-name)>')
+        self.assertEqual(repr_str, '<CoreObject(test-name)>')
 
     def test_raw_object_alias(self):
         """

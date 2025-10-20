@@ -12,11 +12,12 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar, List, Optional
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Optional
 
 from koji import MultiCallSession, VirtualCall
 
-from .base import BaseKey, BaseObject
+from ..koji import call_processor
+from .base import BaseKey, CoreModel, CoreObject, RemoteObject
 from .change import Add, ChangeReport, Create, Remove, Update
 from .compat import Field
 
@@ -123,16 +124,20 @@ class ChannelChangeReport(ChangeReport):
                     yield ChannelRemoveHost(self.obj, host)
 
 
-class Channel(BaseObject):
-    """
-    Koji channel object model.
-    """
+class ChannelModel(CoreModel):
+    """Field definitions for Channel objects"""
 
     typename: ClassVar[str] = "channel"
 
     description: Optional[str] = Field(alias='description', default=None)
     hosts: List[str] = Field(alias='hosts', default_factory=list)
     exact_hosts: bool = Field(alias='exact-hosts', default=False)
+
+
+class Channel(ChannelModel, CoreObject):
+    """
+    Local channel object from YAML.
+    """
 
     _auto_split: ClassVar[bool] = True
 
@@ -151,8 +156,34 @@ class Channel(BaseObject):
 
 
     @classmethod
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
+        return call_processor(RemoteChannel.from_koji, session.getChannel, key[1], strict=False)
+
+
+    @classmethod
     def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
         return session.getChannel(key[1], strict=False)
+
+
+class RemoteChannel(ChannelModel, RemoteObject):
+    """Remote channel object from Koji API"""
+
+    @classmethod
+    def from_koji(cls, data: Optional[Dict[str, Any]]):
+        if data is None:
+            return None
+
+        return cls(
+            name=data['name'],
+            description=data.get('description'),
+            hosts=data.get('hosts', []),
+            exact_hosts=False  # Default for remote objects
+        )
+
+
+    def load_additional_data(self, session: MultiCallSession):
+        # Load additional data if needed
+        pass
 
 
 # The end.

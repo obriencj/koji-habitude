@@ -12,12 +12,12 @@ AI-Assistant: Claude 4.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional
 
 from koji import MultiCallSession, VirtualCall
 
 from ..koji import call_processor
-from .base import BaseKey, BaseObject
+from .base import BaseKey, CoreModel, CoreObject, RemoteObject
 from .change import ChangeReport, Create
 
 if TYPE_CHECKING:
@@ -57,21 +57,44 @@ class BuildTypeChangeReport(ChangeReport):
             yield BuildTypeCreate(self.obj)
 
 
-class BuildType(BaseObject):
-    """
-    Koji build type object model.
-    """
+class BuildTypeModel(CoreModel):
+    """Field definitions for BuildType objects"""
 
     typename: ClassVar[str] = "build-type"
 
 
+class BuildType(BuildTypeModel, CoreObject):
+    """
+    Local build type object from YAML.
+    """
+
     def change_report(self, resolver: 'Resolver') -> BuildTypeChangeReport:
         return BuildTypeChangeReport(self, resolver)
 
+    @classmethod
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
+        return call_processor(RemoteBuildType.from_koji, session.getBuildType, key[1], strict=False)
 
     @classmethod
     def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
         return getBuildType(session, key[1])
+
+
+class RemoteBuildType(BuildTypeModel, RemoteObject):
+    """Remote build type object from Koji API"""
+
+    @classmethod
+    def from_koji(cls, data: Optional[Dict[str, Any]]):
+        if data is None:
+            return None
+
+        return cls(
+            name=data['name']
+        )
+
+    def load_additional_data(self, session: MultiCallSession):
+        # Load additional data if needed
+        pass
 
 
 # The end.
