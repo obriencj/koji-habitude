@@ -145,6 +145,7 @@ class RemoteContentGenerator(ContentGeneratorModel, RemoteObject):
             return None
 
         return cls(
+            koji_id=data['id'],
             name=data['name'],
             users=data.get('users', []),
             exact_users=False  # Default for remote objects

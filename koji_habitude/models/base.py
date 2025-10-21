@@ -282,10 +282,9 @@ class SubModel(BaseModel):
     pass
 
 
-class CoreModel(
-        IdentifiableObject, DependencyAwareObject):
+class CoreModel(IdentifiableObject, DependencyAwareObject):
     """
-    Base model for all core object models.
+    A base model shared by a core and remote object
     """
 
     pass
@@ -296,7 +295,7 @@ CoreT = TypeVar('CoreT', bound='CoreObject')
 
 class CoreObject(CoreModel, LocalObject, ResolvableObject):
     """
-    Base models that load from YAML and have full functionality through
+    Core models that load from YAML and have full functionality through
     the Resolver, Processor, and Solver.
     """
 
@@ -359,6 +358,9 @@ class RemoteObject(CoreModel):
     Base models that load from the Koji API, and are used for comparison by a
     CoreObject
     """
+
+    koji_id: int = Field(alias='id')
+
 
     @classmethod
     def from_koji(cls: Type[RemoteT], data: Optional[Dict[str, Any]]) -> RemoteT:

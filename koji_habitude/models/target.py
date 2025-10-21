@@ -141,6 +141,7 @@ class RemoteTarget(TargetModel, RemoteObject):
             return None
 
         return cls(
+            koji_id=data['id'],
             name=data['name'],
             build_tag=data['build_tag_name'],
             dest_tag=data['dest_tag_name'])

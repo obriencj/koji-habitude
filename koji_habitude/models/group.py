@@ -189,14 +189,15 @@ class GroupModel(CoreModel):
     enabled: bool = Field(alias='enabled', default=True)
     members: List[str] = Field(alias='members', default_factory=list)
     permissions: List[str] = Field(alias='permissions', default_factory=list)
-    exact_members: bool = Field(alias='exact-members', default=False)
-    exact_permissions: bool = Field(alias='exact-permissions', default=False)
 
 
 class Group(GroupModel, CoreObject):
     """
     Local group object from YAML.
     """
+
+    exact_members: bool = Field(alias='exact-members', default=False)
+    exact_permissions: bool = Field(alias='exact-permissions', default=False)
 
     _auto_split: ClassVar[bool] = True
 
@@ -220,7 +221,9 @@ class Group(GroupModel, CoreObject):
 
 
 class RemoteGroup(GroupModel, RemoteObject):
-    """Remote group object from Koji API"""
+    """
+    Remote group object from Koji API
+    """
 
     @classmethod
     def from_koji(cls, data: Optional[Dict[str, Any]]):
@@ -228,24 +231,23 @@ class RemoteGroup(GroupModel, RemoteObject):
             return None
 
         return cls(
+            koji_id=data['id'],
             name=data['name'],
             enabled=(data.get('status', 0) == 0),
-            members=[],
-            permissions=[],
-            exact_members=False,  # Default for remote objects
-            exact_permissions=False  # Default for remote objects
         )
 
 
+    def set_koji_members(self, result):
+        self.members = [m['name'] for m in result.result]
+
+
+    def set_koji_permissions(self, result):
+        self.permissions = list(result.result)
+
+
     def load_additional_data(self, session: MultiCallSession):
-        def set_members(members):
-            self.members = [m['name'] for m in members]
-
-        def set_permissions(permissions):
-            self.permissions = list(permissions)
-
-        session.getGroupMembers(self.obj.name).into(set_members)
-        session.getUserPerms(self.obj.name).into(set_permissions)
+        session.getGroupMembers(self.name).into(self.set_koji_members)
+        session.getUserPerms(self.name).into(self.set_koji_permissions)
 
 
 # The end.

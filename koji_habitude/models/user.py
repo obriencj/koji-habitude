@@ -186,26 +186,9 @@ class UserModel(CoreModel):
 
     typename: ClassVar[str] = "user"
 
-    groups: List[str] = Field(alias='groups', default_factory=list)
-    exact_groups: bool = Field(validation_alias='exact-groups', default=False)
-    permissions: List[str] = Field(alias='permissions', default_factory=list)
-    exact_permissions: bool = Field(alias='exact-permissions', default=False)
     enabled: Optional[bool] = Field(alias='enabled', default=None)
-
-
-class User(UserModel, CoreObject):
-    """
-    Local user object from YAML.
-    """
-
-    _auto_split: ClassVar[bool] = True
-
-
-    def split(self) -> 'User':
-        child = User(name=self.name, enabled=self.enabled)
-        child._is_split = True
-        self._was_split = True
-        return child
+    groups: List[str] = Field(alias='groups', default_factory=list)
+    permissions: List[str] = Field(alias='permissions', default_factory=list)
 
 
     def dependency_keys(self) -> List[BaseKey]:
@@ -216,14 +199,27 @@ class User(UserModel, CoreObject):
         """
 
         deps: List[BaseKey] = []
-
-        for group in self.groups:
-            deps.append(('group', group))
-
-        for permission in self.permissions:
-            deps.append(('permission', permission))
-
+        deps.extend(('group', group) for group in self.groups)
+        deps.extend(('permission', permission) for permission in self.permissions)
         return deps
+
+
+class User(UserModel, CoreObject):
+    """
+    Local user object from YAML.
+    """
+
+    exact_groups: bool = Field(validation_alias='exact-groups', default=False)
+    exact_permissions: bool = Field(alias='exact-permissions', default=False)
+
+    _auto_split: ClassVar[bool] = True
+
+
+    def split(self) -> 'User':
+        child = User(name=self.name, enabled=self.enabled)
+        child._is_split = True
+        self._was_split = True
+        return child
 
 
     def change_report(self, resolver: 'Resolver') -> UserChangeReport:
@@ -236,7 +232,9 @@ class User(UserModel, CoreObject):
 
 
 class RemoteUser(UserModel, RemoteObject):
-    """Remote user object from Koji API"""
+    """
+    Remote user object from Koji API
+    """
 
     @classmethod
     def from_koji(cls, data: Optional[Dict[str, Any]]):
@@ -244,13 +242,14 @@ class RemoteUser(UserModel, RemoteObject):
             return None
 
         return cls(
+            koji_id=data['id'],
             name=data['name'],
             groups=data['groups'],
             enabled=(data['status'] == 0))
 
 
     def set_koji_perms(self, perms: VirtualPromise):
-        self.permissions = perms.result
+        self.permissions = list(perms.result)
 
 
     def load_additional_data(self, session: MultiCallSession):

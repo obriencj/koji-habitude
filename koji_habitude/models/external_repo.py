@@ -107,6 +107,7 @@ class RemoteExternalRepo(ExternalRepoModel, RemoteObject):
             return None
 
         return cls(
+            koji_id=data['id'],
             name=data['name'],
             url=data['url']
         )

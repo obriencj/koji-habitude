@@ -17,9 +17,9 @@ from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Optional, Sequence
 from koji import MultiCallSession, VirtualCall
 
 from ..koji import call_processor
-from .base import BaseKey, BaseObject, RemoteObject
+from .base import BaseKey, CoreModel, CoreObject, RemoteObject
 from .change import Add, ChangeReport, Create, Remove, Update
-from .compat import BaseModel, Field
+from .compat import Field
 
 if TYPE_CHECKING:
     from ..resolver import Resolver
@@ -170,7 +170,7 @@ class HostChangeReport(ChangeReport):
                     yield HostRemoveChannel(self.obj, channel)
 
 
-class HostBase(BaseModel):
+class HostModel(CoreModel):
     """Field definitions for Host objects"""
 
     typename: ClassVar[str] = "host"
@@ -180,13 +180,21 @@ class HostBase(BaseModel):
     enabled: bool = Field(alias='enabled', default=True)
     description: Optional[str] = Field(alias='description', default=None)
     channels: List[str] = Field(alias='channels', default_factory=list)
-    exact_channels: bool = Field(alias='exact-channels', default=False)
 
 
-class Host(HostBase, BaseObject):
+    def dependency_keys(self) -> Sequence[BaseKey]:
+        """
+        Return dependencies for this host.
+        """
+        return [('channel', channel) for channel in self.channels]
+
+
+class Host(HostModel, CoreObject):
     """
     Local host object from YAML.
     """
+
+    exact_channels: bool = Field(alias='exact-channels', default=False)
 
     _auto_split: ClassVar[bool] = True
 
@@ -203,27 +211,24 @@ class Host(HostBase, BaseObject):
         return child
 
 
-    def dependency_keys(self) -> Sequence[BaseKey]:
-        """
-        Return dependencies for this host.
-        """
-        return [('channel', channel) for channel in self.channels]
-
-
     def change_report(self, resolver: 'Resolver') -> HostChangeReport:
         return HostChangeReport(self, resolver)
+
 
     @classmethod
     def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
         return call_processor(RemoteHost.from_koji, session.getHost, key[1], strict=False)
+
 
     @classmethod
     def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
         return session.getHost(key[1], strict=False)
 
 
-class RemoteHost(HostBase, RemoteObject):
-    """Remote host object from Koji API"""
+class RemoteHost(HostModel, RemoteObject):
+    """
+    Remote host object from Koji API
+    """
 
     @classmethod
     def from_koji(cls, data: Optional[Dict[str, Any]]):
@@ -231,6 +236,7 @@ class RemoteHost(HostBase, RemoteObject):
             return None
 
         return cls(
+            koji_id=data['id'],
             name=data['name'],
             arches=data.get('arches', []),
             capacity=data.get('capacity'),
@@ -239,6 +245,7 @@ class RemoteHost(HostBase, RemoteObject):
             channels=data.get('channels', []),
             exact_channels=False  # Default for remote objects
         )
+
 
     def load_additional_data(self, session: MultiCallSession):
         # Load additional data if needed

@@ -877,11 +877,39 @@ class TagModel(CoreModel):
     maven_include_all: bool = Field(alias='maven-include-all', default=False)
     extras: Dict[str, Any] = Field(alias='extras', default_factory=dict)
     groups: Dict[str, TagGroup] = Field(alias='groups', default_factory=dict)
-    exact_groups: bool = Field(alias='exact-groups', default=False)
     inheritance: List[InheritanceLink] = Field(alias='inheritance', default_factory=list)
     external_repos: List[ExternalRepoLink] = Field(alias='external-repos', default_factory=list)
     packages: List[PackageEntry] = Field(alias='packages', default_factory=list)
+
+
+    def dependency_keys(self) -> Sequence[BaseKey]:
+        deps: List[BaseKey] = []
+
+        if self.permission:
+            deps.append(('permission', self.permission))
+
+        deps.extend(parent.key() for parent in self.inheritance)
+        deps.extend(ext_repo.key() for ext_repo in self.external_repos)
+
+        # set doesn't preserve order, so we'll use a dict like a set
+        owners = dict.fromkeys(package.owner for package in self.packages if package.owner)
+        deps.extend(('user', owner) for owner in owners.keys())
+
+        return deps
+
+
+class Tag(TagModel, CoreObject):
+    """
+    Local tag object from YAML.
+    """
+
+    exact_groups: bool = Field(alias='exact-groups', default=False)
     exact_packages: bool = Field(alias='exact-packages', default=False)
+
+    _can_split: ClassVar[bool] = True
+    _auto_split: ClassVar[bool] = True
+
+    _original: Optional['Tag'] = None
 
 
     def model_post_init(self, __context: Any) -> None:
@@ -983,34 +1011,6 @@ class TagModel(CoreModel):
         return list(seen.values())
 
 
-    def dependency_keys(self) -> Sequence[BaseKey]:
-        deps: List[BaseKey] = []
-
-        if self.permission:
-            deps.append(('permission', self.permission))
-        deps.extend(parent.key() for parent in self.inheritance)
-        deps.extend(ext_repo.key() for ext_repo in self.external_repos)
-
-        owners = set()
-        for package in self.packages:
-            if package.owner:
-                owners.add(('user', package.owner))
-
-        deps.extend(owners)
-        return deps
-
-
-class Tag(TagModel, CoreObject):
-    """
-    Local tag object from YAML.
-    """
-
-    _can_split: ClassVar[bool] = True
-    _auto_split: ClassVar[bool] = True
-
-    _original: Optional['Tag'] = None
-
-
     def split(self) -> 'Tag':
         # normally a split only creates the object by name, and we worry about doing
         # full configuration in a separate step. For tag we'll do a full creation in
@@ -1057,21 +1057,14 @@ class RemoteTag(TagModel, RemoteObject):
 
         # Convert Koji data to Tag fields
         return cls(
+            koji_id=data['id'],
             name=data['name'],
             locked=data.get('locked', False),
-            permission=data.get('perm_name'),
-            arches=data.get('arches', '').split() if data.get('arches') else [],
+            permission=data.get('perm'),
+            arches=split_arches(data.get('arches')),
             maven_support=data.get('maven_support', False),
             maven_include_all=data.get('maven_include_all', False),
             extras=data.get('extra', {}),
-            # Note: groups, inheritance, external_repos, packages would need
-            # additional API calls to populate fully
-            groups={},
-            exact_groups=False,
-            inheritance=[],
-            external_repos=[],
-            packages=[],
-            exact_packages=False
         )
 
 

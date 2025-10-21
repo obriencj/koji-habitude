@@ -24,13 +24,6 @@ if TYPE_CHECKING:
     from ..resolver import Resolver
 
 
-def getBuildType(session: MultiCallSession, name: str):
-    def filter_for_btype(btlist):
-        return btlist[0] if btlist else None
-
-    return call_processor(filter_for_btype, session.listBTypes, query={'name': name})
-
-
 @dataclass
 class BuildTypeCreate(Create):
     obj: 'BuildType'
@@ -58,7 +51,9 @@ class BuildTypeChangeReport(ChangeReport):
 
 
 class BuildTypeModel(CoreModel):
-    """Field definitions for BuildType objects"""
+    """
+    Field definitions for BuildType objects
+    """
 
     typename: ClassVar[str] = "build-type"
 
@@ -71,17 +66,31 @@ class BuildType(BuildTypeModel, CoreObject):
     def change_report(self, resolver: 'Resolver') -> BuildTypeChangeReport:
         return BuildTypeChangeReport(self, resolver)
 
+
     @classmethod
     def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        return call_processor(RemoteBuildType.from_koji, session.getBuildType, key[1], strict=False)
+        name = key[1]
+        def filter_for_btype(btlist):
+            if btlist:
+                return RemoteBuildType.from_koji(btlist[0])
+            return None
+        return call_processor(filter_for_btype, session.listBTypes, query={'name': name})
+
 
     @classmethod
     def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        return getBuildType(session, key[1])
+        name = key[1]
+        def filter_for_btype(btlist):
+            if btlist:
+                return btlist[0]
+            return None
+        return call_processor(filter_for_btype, session.listBTypes, query={'name': name})
 
 
 class RemoteBuildType(BuildTypeModel, RemoteObject):
-    """Remote build type object from Koji API"""
+    """
+    Remote build type object from Koji API
+    """
 
     @classmethod
     def from_koji(cls, data: Optional[Dict[str, Any]]):
@@ -89,12 +98,9 @@ class RemoteBuildType(BuildTypeModel, RemoteObject):
             return None
 
         return cls(
+            koji_id=data['id'],
             name=data['name']
         )
-
-    def load_additional_data(self, session: MultiCallSession):
-        # Load additional data if needed
-        pass
 
 
 # The end.

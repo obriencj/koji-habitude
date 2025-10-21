@@ -143,11 +143,6 @@ class Channel(ChannelModel, CoreObject):
 
 
     def dependency_keys(self) -> List[BaseKey]:
-        """
-        Channels can depend on:
-        - Hosts
-        """
-
         return [('host', host) for host in self.hosts]
 
 
@@ -174,6 +169,7 @@ class RemoteChannel(ChannelModel, RemoteObject):
             return None
 
         return cls(
+            koji_id=data['id'],
             name=data['name'],
             description=data.get('description'),
             hosts=data.get('hosts', []),

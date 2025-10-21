@@ -29,17 +29,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def getPermission(session: MultiCallSession, name: str):
-
-    def filter_for_perm(perms):
-        for perm in perms:
-            if perm['name'] == name:
-                return perm
-        return None
-
-    return call_processor(filter_for_perm, session.getAllPerms)
-
-
 @dataclass
 class PermissionCreate(Create):
     obj: 'Permission'
@@ -110,13 +99,27 @@ class Permission(PermissionModel, CoreObject):
     def change_report(self, resolver: 'Resolver') -> PermissionChangeReport:
         return PermissionChangeReport(self, resolver)
 
+
     @classmethod
     def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        return call_processor(RemotePermission.from_koji, session.getPermission, key[1], strict=False)
+        name = key[1]
+        def filter_for_perm(perms):
+            for perm in perms:
+                if perm['name'] == name:
+                    return RemotePermission.from_koji(perm)
+            return None
+        return call_processor(filter_for_perm, session.getAllPerms)
+
 
     @classmethod
     def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        return getPermission(session, key[1])
+        name = key[1]
+        def filter_for_perm(perms):
+            for perm in perms:
+                if perm['name'] == name:
+                    return perm
+            return None
+        return call_processor(filter_for_perm, session.getAllPerms)
 
 
 class RemotePermission(PermissionModel, RemoteObject):
@@ -128,13 +131,10 @@ class RemotePermission(PermissionModel, RemoteObject):
             return None
 
         return cls(
+            koji_id=data['id'],
             name=data['name'],
             description=data.get('description')
         )
-
-    def load_additional_data(self, session: MultiCallSession):
-        # Load additional data if needed
-        pass
 
 
 # The end.

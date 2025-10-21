@@ -50,44 +50,6 @@ def session(profile: str = 'koji', authenticate: bool = False) -> ClientSession:
     return session
 
 
-class VirtualCallProcessor(VirtualCall):
-    """
-    A VirtualCall that transforms the results of the call
-    """
-
-    def __init__(self, post_process, vcall: VirtualCall):
-        self._vcall = vcall
-        self._post_process = post_process
-        self._result = None
-        self._processed = False
-
-
-    @property
-    def result(self):
-        logger.debug(f"VirtualCallProcessor.result: {self._result}")
-
-        if not self._processed:
-            self._result = self._post_process(self._vcall.result)
-            self._processed = True
-        return self._result
-
-
-def call_processor(post_process, sessionmethod, *args, **kwargs):
-    """
-    A call that transforms the results
-    """
-    if not isinstance(sessionmethod, VirtualMethod):
-        raise TypeError(f"sessionmethod must be a VirtualMethod, got {type(sessionmethod)}")
-
-    result = sessionmethod(*args, **kwargs)
-    if isinstance(result, VirtualCall):
-        logger.debug(f"VirtualCall: {result}")
-        return VirtualCallProcessor(post_process, result)
-    else:
-        logger.debug(f"normal value: {result}")
-        return post_process(result)
-
-
 class VirtualPromise(VirtualCall):
     """
     A VirtualCall that triggers a callback when the call is completed. Unlike a
@@ -122,6 +84,43 @@ class VirtualPromise(VirtualCall):
 
     def into(self, trigger: Callable[['VirtualPromise'], Any]):
         self._trigger = trigger
+
+
+class VirtualCallProcessor(VirtualCall):
+    """
+    A VirtualCall that transforms the result lazily
+    """
+
+    def __init__(self, post_process, vcall: VirtualCall):
+        self._vcall = vcall
+        self._post_process = post_process
+        self._result = None
+        self._processed = False
+
+
+    @property
+    def result(self):
+        if not self._processed:
+            self._result = self._post_process(self._vcall.result)
+            self._processed = True
+        return self._result
+
+
+def call_processor(post_process, sessionmethod, *args, **kwargs):
+    """
+    A call that transforms the results
+    """
+
+    if not isinstance(sessionmethod, VirtualMethod):
+        raise TypeError(f"sessionmethod must be a VirtualMethod, got {type(sessionmethod)}")
+
+    result = sessionmethod(*args, **kwargs)
+    if isinstance(result, VirtualCall):
+        logger.debug(f"VirtualCall: {result}")
+        return VirtualCallProcessor(post_process, result)
+    else:
+        logger.debug(f"normal value: {result}")
+        return post_process(result)
 
 
 class PromiseMultiCallSession(MultiCallSession):

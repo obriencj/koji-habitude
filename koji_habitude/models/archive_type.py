@@ -25,15 +25,6 @@ if TYPE_CHECKING:
     from ..resolver import Resolver
 
 
-def getArchiveType(session: MultiCallSession, name: str):
-    def filter_for_atype(atlist):
-        for at in atlist:
-            if at['name'] == name:
-                return at
-        return None
-
-    return call_processor(filter_for_atype, session.getArchiveTypes)
-
 
 @dataclass
 class ArchiveTypeCreate(Create):
@@ -100,13 +91,27 @@ class ArchiveType(ArchiveTypeModel, CoreObject):
     def change_report(self, resolver: 'Resolver') -> ArchiveTypeChangeReport:
         return ArchiveTypeChangeReport(self, resolver)
 
+
     @classmethod
     def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        return call_processor(RemoteArchiveType.from_koji, session.getArchiveType, key[1], strict=False)
+        name = key[1]
+        def filter_for_atype(atlist):
+            for at in atlist:
+                if at['name'] == name:
+                    return RemoteArchiveType.from_koji(at)
+            return None
+        return call_processor(filter_for_atype, session.getArchiveTypes)
+
 
     @classmethod
     def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        return getArchiveType(session, key[1])
+        name = key[1]
+        def filter_for_atype(atlist):
+            for at in atlist:
+                if at['name'] == name:
+                    return at
+            return None
+        return call_processor(filter_for_atype, session.getArchiveTypes)
 
 
 class RemoteArchiveType(ArchiveTypeModel, RemoteObject):
@@ -118,6 +123,7 @@ class RemoteArchiveType(ArchiveTypeModel, RemoteObject):
             return None
 
         return cls(
+            koji_id=data['id'],
             name=data['name'],
             description=data.get('description', ''),
             extensions=data.get('extensions', []),
