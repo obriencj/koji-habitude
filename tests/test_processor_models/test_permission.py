@@ -135,6 +135,7 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
         # Mock the getPermission call to return existing permission with different description
         get_permission_mock = Mock()
         get_permission_mock.return_value = [{
+            'id': 100,
             'name': 'existing-permission',
             'description': 'Old description'
         }]
@@ -168,6 +169,7 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
         # Mock the getPermission call to return permission that already matches desired state
         get_permission_mock = Mock()
         get_permission_mock.return_value = [{
+            'id': 100,
             'name': 'existing-permission',
             'description': 'Same description'  # Already matches
         }]
@@ -196,6 +198,7 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
         # Mock the getPermission call to return permission with no description
         get_permission_mock = Mock()
         get_permission_mock.return_value = [{
+            'id': 100,
             'name': 'existing-permission',
             'description': None  # No current description
         }]
@@ -229,6 +232,7 @@ class TestProcessorPermissionBehavior(MulticallMocking, TestCase):
         # Mock the getPermission call to return permission with a description
         get_permission_mock = Mock()
         get_permission_mock.return_value = [{
+            'id': 100,
             'name': 'existing-permission',
             'description': 'Old description'  # Has current description
         }]

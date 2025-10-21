@@ -81,6 +81,7 @@ class TestProcessorExternalRepoBehavior(MulticallMocking, TestCase):
         # Mock the getExternalRepo call to return existing repo with different URL
         get_repo_mock = Mock()
         get_repo_mock.return_value = {
+            'id': 100,
             'name': 'existing-repo',
             'url': 'https://old.example.com/repo'
         }
@@ -114,6 +115,7 @@ class TestProcessorExternalRepoBehavior(MulticallMocking, TestCase):
         # Mock the getExternalRepo call to return repo that already matches desired state
         get_repo_mock = Mock()
         get_repo_mock.return_value = {
+            'id': 100,
             'name': 'existing-repo',
             'url': 'https://example.com/repo'  # Already matches
         }
