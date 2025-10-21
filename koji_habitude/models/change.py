@@ -563,16 +563,22 @@ class ChangeReport:
 
 
     def impl_read(self, session: MultiCallSession) -> Optional[Callable[[MultiCallSession], None]]:
+        print(f"impl_read for {self.obj!r}")
         remote = self.obj.remote()
         if remote:
+            print(f"remote for {self.obj!r} is {remote!r}")
+            print(f"loading additional data for {self.obj!r}")
             remote.load_additional_data(session)
         else:
+            print(f"loading remote for {self.obj!r}")
             self.obj.load_remote(session)
             return self.impl_read_defer
 
 
     def impl_read_defer(self, session: MultiCallSession) -> None:
+        print(f"impl_read_defer for {self.obj!r}")
         remote = self.obj.remote()
+        print(f"remote for {self.obj!r} is {remote!r}")
         if remote:
             remote.load_additional_data(session)
 

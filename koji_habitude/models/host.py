@@ -121,13 +121,9 @@ class HostRemoveChannel(Remove):
 
 class HostChangeReport(ChangeReport):
 
-    def impl_read(self, session: MultiCallSession):
-        self._hostinfo: VirtualCall = self.obj.query_exists(session)
-
-
     def impl_compare(self):
-        info = self._hostinfo.result
-        if not info:
+        remote = self.obj.remote()
+        if not remote:
             if not self.obj.was_split():
                 # we don't exist, and we didn't split our create to an earlier
                 # call, so create now.
@@ -149,17 +145,16 @@ class HostChangeReport(ChangeReport):
         if self.obj.is_split():
             return
 
-        arches = set(info['arches'].split())
-        if arches != set(self.obj.arches):
+        if set(remote.arches) != set(self.obj.arches):
             yield HostSetArches(self.obj, self.obj.arches)
-        if self.obj.capacity is not None and info['capacity'] != self.obj.capacity:
+        if self.obj.capacity is not None and remote.capacity != self.obj.capacity:
             yield HostSetCapacity(self.obj, self.obj.capacity)
-        if info['enabled'] != self.obj.enabled:
+        if remote.enabled != self.obj.enabled:
             yield HostSetEnabled(self.obj, self.obj.enabled)
-        if self.obj.description is not None and info['description'] != self.obj.description:
+        if self.obj.description is not None and remote.description != self.obj.description:
             yield HostSetDescription(self.obj, self.obj.description)
 
-        channels = info['channels']
+        channels = remote.channels
         for channel in self.obj.channels:
             if channel not in channels:
                 yield HostAddChannel(self.obj, channel)
@@ -220,11 +215,6 @@ class Host(HostModel, CoreObject):
         return call_processor(RemoteHost.from_koji, session.getHost, key[1], strict=False)
 
 
-    @classmethod
-    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        return session.getHost(key[1], strict=False)
-
-
 class RemoteHost(HostModel, RemoteObject):
     """
     Remote host object from Koji API
@@ -238,18 +228,12 @@ class RemoteHost(HostModel, RemoteObject):
         return cls(
             koji_id=data['id'],
             name=data['name'],
-            arches=data.get('arches', []),
+            arches=data.get('arches', '').split(),
             capacity=data.get('capacity'),
             enabled=data.get('enabled', True),
-            description=data.get('comment'),
+            description=data.get('description'),
             channels=data.get('channels', []),
-            exact_channels=False  # Default for remote objects
         )
-
-
-    def load_additional_data(self, session: MultiCallSession):
-        # Load additional data if needed
-        pass
 
 
 # The end.

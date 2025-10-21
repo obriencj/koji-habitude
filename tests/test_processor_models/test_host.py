@@ -150,6 +150,7 @@ class TestProcessorHostBehavior(MulticallMocking, TestCase):
         # Mock the getHost call to return existing host with different arches
         get_host_mock = Mock()
         get_host_mock.return_value = {
+            'id': 100,
             'name': 'existing-host',
             'arches': 'x86_64',  # Currently only x86_64
             'capacity': 2.0,
@@ -187,6 +188,7 @@ class TestProcessorHostBehavior(MulticallMocking, TestCase):
         # Mock the getHost call to return existing host with different capacity
         get_host_mock = Mock()
         get_host_mock.return_value = {
+            'id': 100,
             'name': 'existing-host',
             'arches': 'x86_64',
             'capacity': 2.0,  # Currently 2.0
@@ -224,6 +226,7 @@ class TestProcessorHostBehavior(MulticallMocking, TestCase):
         # Mock the getHost call to return existing host with different enabled status
         get_host_mock = Mock()
         get_host_mock.return_value = {
+            'id': 100,
             'name': 'existing-host',
             'arches': 'x86_64',
             'capacity': 2.0,
@@ -261,6 +264,7 @@ class TestProcessorHostBehavior(MulticallMocking, TestCase):
         # Mock the getHost call to return existing host with different description
         get_host_mock = Mock()
         get_host_mock.return_value = {
+            'id': 100,
             'name': 'existing-host',
             'arches': 'x86_64',
             'capacity': 2.0,
@@ -298,6 +302,7 @@ class TestProcessorHostBehavior(MulticallMocking, TestCase):
         # Mock the getHost call to return existing host with no channels
         get_host_mock = Mock()
         get_host_mock.return_value = {
+            'id': 100,
             'name': 'existing-host',
             'arches': 'x86_64',
             'capacity': 2.0,
@@ -340,6 +345,7 @@ class TestProcessorHostBehavior(MulticallMocking, TestCase):
         # Mock the getHost call to return existing host with extra channels
         get_host_mock = Mock()
         get_host_mock.return_value = {
+            'id': 100,
             'name': 'existing-host',
             'arches': 'x86_64',
             'capacity': 2.0,
@@ -378,6 +384,7 @@ class TestProcessorHostBehavior(MulticallMocking, TestCase):
         # Mock the getHost call to return host that already matches desired state
         get_host_mock = Mock()
         get_host_mock.return_value = {
+            'id': 100,
             'name': 'existing-host',
             'arches': 'x86_64',  # Already matches
             'capacity': 2.0,  # Already matches

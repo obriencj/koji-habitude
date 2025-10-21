@@ -51,22 +51,20 @@ class ExternalRepoSetURL(Update):
 
 class ExternalRepoChangeReport(ChangeReport):
 
-    def impl_read(self, session: MultiCallSession):
-        self._external_repoinfo: VirtualCall = self.obj.query_exists(session)
-
-
     def impl_compare(self):
-        info = self._external_repoinfo.result
-        if not info:
+        remote = self.obj.remote()
+        if not remote:
             yield ExternalRepoCreate(self.obj)
             return
 
-        if info['url'] != self.obj.url:
+        if remote.url != self.obj.url:
             yield ExternalRepoSetURL(self.obj, self.obj.url)
 
 
 class ExternalRepoModel(CoreModel):
-    """Field definitions for ExternalRepo objects"""
+    """
+    Field definitions for ExternalRepo objects
+    """
 
     typename: ClassVar[str] = "external-repo"
 
@@ -84,8 +82,10 @@ class ExternalRepo(ExternalRepoModel, CoreObject):
             raise ValueError("url must start with http or https")
         return v
 
+
     def change_report(self, resolver: 'Resolver') -> ExternalRepoChangeReport:
         return ExternalRepoChangeReport(self, resolver)
+
 
     @classmethod
     def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
@@ -93,13 +93,11 @@ class ExternalRepo(ExternalRepoModel, CoreObject):
             RemoteExternalRepo.from_koji,
             session.getExternalRepo, key[1], strict=False)
 
-    @classmethod
-    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        return session.getExternalRepo(key[1], strict=False)
-
 
 class RemoteExternalRepo(ExternalRepoModel, RemoteObject):
-    """Remote external repository object from Koji API"""
+    """
+    Remote external repository object from Koji API
+    """
 
     @classmethod
     def from_koji(cls, data: Optional[Dict[str, Any]]):
@@ -111,10 +109,6 @@ class RemoteExternalRepo(ExternalRepoModel, RemoteObject):
             name=data['name'],
             url=data['url']
         )
-
-    def load_additional_data(self, session: MultiCallSession):
-        # Load additional data if needed
-        pass
 
 
 # The end.

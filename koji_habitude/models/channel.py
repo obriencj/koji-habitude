@@ -87,14 +87,9 @@ class ChannelChangeReport(ChangeReport):
     Change report for channel objects.
     """
 
-    def impl_read(self, session: MultiCallSession):
-        self._channelinfo: VirtualCall = self.obj.query_exists(session)
-        self._hosts: VirtualCall = session.listHosts(channelID=self.obj.name)
-
-
     def impl_compare(self):
-        info = self._channelinfo.result
-        if not info:
+        remote = self.obj.remote()
+        if not remote:
             if not self.obj.was_split():
                 # we don't exist, and we didn't split our create to an earlier
                 # call, so create now.
@@ -110,10 +105,10 @@ class ChannelChangeReport(ChangeReport):
         if self.obj.is_split():
             return
 
-        if self.obj.description is not None and info['description'] != self.obj.description:
+        if self.obj.description is not None and remote.description != self.obj.description:
             yield ChannelSetDescription(self.obj, self.obj.description)
 
-        hosts = {host['name']: host for host in self._hosts.result}
+        hosts = remote.hosts
         for host in self.obj.hosts:
             if host not in hosts:
                 yield ChannelAddHost(self.obj, host)
@@ -125,13 +120,18 @@ class ChannelChangeReport(ChangeReport):
 
 
 class ChannelModel(CoreModel):
-    """Field definitions for Channel objects"""
+    """
+    Field definitions for Channel objects
+    """
 
     typename: ClassVar[str] = "channel"
 
     description: Optional[str] = Field(alias='description', default=None)
     hosts: List[str] = Field(alias='hosts', default_factory=list)
-    exact_hosts: bool = Field(alias='exact-hosts', default=False)
+
+
+    def dependency_keys(self) -> List[BaseKey]:
+        return [('host', host) for host in self.hosts]
 
 
 class Channel(ChannelModel, CoreObject):
@@ -139,11 +139,9 @@ class Channel(ChannelModel, CoreObject):
     Local channel object from YAML.
     """
 
+    exact_hosts: bool = Field(alias='exact-hosts', default=False)
+
     _auto_split: ClassVar[bool] = True
-
-
-    def dependency_keys(self) -> List[BaseKey]:
-        return [('host', host) for host in self.hosts]
 
 
     def change_report(self, resolver: 'Resolver') -> ChannelChangeReport:
@@ -155,13 +153,10 @@ class Channel(ChannelModel, CoreObject):
         return call_processor(RemoteChannel.from_koji, session.getChannel, key[1], strict=False)
 
 
-    @classmethod
-    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        return session.getChannel(key[1], strict=False)
-
-
 class RemoteChannel(ChannelModel, RemoteObject):
-    """Remote channel object from Koji API"""
+    """
+    Remote channel object from Koji API
+    """
 
     @classmethod
     def from_koji(cls, data: Optional[Dict[str, Any]]):
@@ -172,14 +167,16 @@ class RemoteChannel(ChannelModel, RemoteObject):
             koji_id=data['id'],
             name=data['name'],
             description=data.get('description'),
-            hosts=data.get('hosts', []),
-            exact_hosts=False  # Default for remote objects
         )
 
 
+    def set_koji_hosts(self, result):
+        self.hosts = [host['name'] for host in result.result]
+
+
     def load_additional_data(self, session: MultiCallSession):
-        # Load additional data if needed
-        pass
+        print("Loading additional data for channel", self.name)
+        session.listHosts(channelID=self.name).into(self.set_koji_hosts)
 
 
 # The end.

@@ -46,14 +46,11 @@ class ArchiveTypeChangeReport(ChangeReport):
     Change report for archive type objects.
     """
 
-    def impl_read(self, session: MultiCallSession):
-        self._atypeinfo: VirtualCall = self.obj.query_exists(session)
-
-
     def impl_compare(self):
-        info = self._atypeinfo.result
-        if not info:
+        remote = self.obj.remote()
+        if not remote:
             yield ArchiveTypeCreate(self.obj)
+            return
 
         # The current implemention of koji doesn't support updating the details
         # of an archive type once it's created. I filed an RFE to enable this, but
@@ -65,7 +62,9 @@ class ArchiveTypeChangeReport(ChangeReport):
 
 
 class ArchiveTypeModel(CoreModel):
-    """Field definitions for ArchiveType objects"""
+    """
+    Field definitions for ArchiveType objects
+    """
 
     typename: ClassVar[str] = "archive-type"
 
@@ -75,11 +74,6 @@ class ArchiveTypeModel(CoreModel):
     compression: Literal['tar', 'zip', None] = Field(alias='compression-type', default=None)
 
 
-class ArchiveType(ArchiveTypeModel, CoreObject):
-    """
-    Local archive type object from YAML.
-    """
-
     @field_validator('extensions', mode='after')
     def validate_extensions(cls, v):
         for i, ext in enumerate(v):
@@ -87,6 +81,11 @@ class ArchiveType(ArchiveTypeModel, CoreObject):
                 v[i] = ext.lstrip('.')
         return list(set(v))
 
+
+class ArchiveType(ArchiveTypeModel, CoreObject):
+    """
+    Local archive type object from YAML.
+    """
 
     def change_report(self, resolver: 'Resolver') -> ArchiveTypeChangeReport:
         return ArchiveTypeChangeReport(self, resolver)
@@ -103,19 +102,10 @@ class ArchiveType(ArchiveTypeModel, CoreObject):
         return call_processor(filter_for_atype, session.getArchiveTypes)
 
 
-    @classmethod
-    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        name = key[1]
-        def filter_for_atype(atlist):
-            for at in atlist:
-                if at['name'] == name:
-                    return at
-            return None
-        return call_processor(filter_for_atype, session.getArchiveTypes)
-
-
 class RemoteArchiveType(ArchiveTypeModel, RemoteObject):
-    """Remote archive type object from Koji API"""
+    """
+    Remote archive type object from Koji API
+    """
 
     @classmethod
     def from_koji(cls, data: Optional[Dict[str, Any]]):
@@ -126,13 +116,9 @@ class RemoteArchiveType(ArchiveTypeModel, RemoteObject):
             koji_id=data['id'],
             name=data['name'],
             description=data.get('description', ''),
-            extensions=data.get('extensions', []),
+            extensions=data.get('extensions', '').split(),
             compression=data.get('compression_type')
         )
-
-    def load_additional_data(self, session: MultiCallSession):
-        # Load additional data if needed
-        pass
 
 
 # The end.

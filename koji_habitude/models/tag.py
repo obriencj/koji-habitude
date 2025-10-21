@@ -61,9 +61,9 @@ class TagCreate(Create):
         # Inheritance is the only place that cannot operate except by using the
         # parent tag's ID (not by name)
         if self.obj._is_split:
-            self.obj._original.query_exists(session)
+            self.obj._original.load_remote(session)
         else:
-            self.obj.query_exists(session)
+            self.obj.load_remote(session)
 
         return res
 
@@ -85,7 +85,7 @@ class SplitTagCheckup(Update):
     obj: 'Tag'
 
     def impl_apply(self, session: MultiCallSession):
-        return self.obj.query_exists(session)
+        return self.obj.load_remote(session)
 
     def summary(self) -> str:
         return "Post-split checkup"
@@ -528,29 +528,9 @@ class TagChangeReport(ChangeReport):
     obj: 'Tag'
 
 
-    def impl_read(self, session: MultiCallSession):
-        self._taginfo: VirtualCall = self.obj.query_exists(session)
-        self._packagelist: VirtualCall = None
-        self._groups: VirtualCall = None
-        self._inheritance: VirtualCall = None
-        self._external_repos: VirtualCall = None
-
-        return self.impl_read_defer
-
-
-    def impl_read_defer(self, session: MultiCallSession):
-        if self._taginfo.result is None:
-            return
-
-        self._packagelist = session.listPackages(tagID=self.obj.name)
-        self._groups = session.getTagGroups(self.obj.name, inherit=False, incl_blocked=True)
-        self._inheritance = session.getInheritanceData(self.obj.name)
-        self._external_repos = session.getTagExternalRepos(tag_info=self.obj.name)
-
-
     def impl_compare(self) -> Iterable[Change]:
-        info = self._taginfo.result
-        if info is None:
+        remote = self.obj.remote()
+        if not remote:
             if self.obj.was_split():
                 # we know we've split, but we don't exist yet, so we trust that we have
                 # a split create for ourself already queued up in the same multicall.
@@ -585,17 +565,17 @@ class TagChangeReport(ChangeReport):
         if self.obj.is_split():
             return
 
-        if info['locked'] != self.obj.locked:
+        if remote.locked != self.obj.locked:
             yield TagSetLocked(self.obj, self.obj.locked)
-        if not compare_arches(info['arches'], self.obj.arches):
+        if set(remote.arches) != set(self.obj.arches):
             yield TagSetArches(self.obj, self.obj.arches)
-        if info['maven_support'] != self.obj.maven_support or \
-           info['maven_include_all'] != self.obj.maven_include_all:
+        if remote.maven_support != self.obj.maven_support or \
+           remote.maven_include_all != self.obj.maven_include_all:
             yield TagSetMaven(self.obj, self.obj.maven_support, self.obj.maven_include_all)
 
-        if info['perm'] != self.obj.permission:
+        if remote.permission != self.obj.permission:
             yield TagSetPermission(self.obj, self.obj.permission)
-        if info['extra'] != self.obj.extras:
+        if remote.extras != self.obj.extras:
             yield TagSetExtras(self.obj, self.obj.extras)
 
         yield from self._compare_packages()
@@ -605,20 +585,22 @@ class TagChangeReport(ChangeReport):
 
 
     def _compare_packages(self) -> Iterable[Change]:
-        koji_pkgs = {pkg['package_name']: pkg for pkg in self._packagelist.result}
+        remote = self.obj.remote()
+        koji_pkgs = {pkg.name: pkg for pkg in remote.packages}
+
         for package in self.obj.packages:
             if package.name not in koji_pkgs:
                 yield TagPackageListAdd(self.obj, package)
             else:
                 koji_pkg = koji_pkgs[package.name]
-                if koji_pkg['blocked'] != package.block:
+                if koji_pkg.block != package.block:
                     if package.block:
                         yield TagPackageListBlock(self.obj, package.name)
                     else:
                         yield TagPackageListUnblock(self.obj, package.name)
-                if koji_pkg['owner_name'] != package.owner and package.owner is not None:
+                if koji_pkg.owner != package.owner and package.owner is not None:
                     yield TagPackageListSetOwner(self.obj, package.name, package.owner)
-                if not compare_arches(koji_pkg['extra_arches'], package.extra_arches):
+                if set(koji_pkg.extra_arches) != set(package.extra_arches):
                     yield TagPackageListSetArches(self.obj, package.name, package.extra_arches)
 
         if self.obj.exact_packages:
@@ -630,41 +612,44 @@ class TagChangeReport(ChangeReport):
 
     def _compare_inheritance(self) -> Iterable[Change]:
         # Tag Inheritance
+        remote = self.obj.remote()
 
         # tag inheritance links are by ID, not name, so we need to ensure we
         # have those values.
         for parent in self.obj.inheritance:
             tag = self.resolver.resolve(parent.key())
-            tinfo = tag.exists()
-            if tinfo:
-                parent._parent_tag_id = tinfo['id']
-                logger.debug(f"Parent tag '{parent.name}' exists already, ID: {tinfo['id']}")
+            tremote = tag.remote()
+            if tremote:
+                parent._parent_tag_id = tremote.id
+                logger.debug(f"Parent tag '{parent.name}' exists already, ID: {tremote.id}")
             else:
                 logger.debug(f"Parent tag '{parent.name}' does not exist")
 
-        koji_inher = {parent['name']: parent for parent in self._inheritance.result}
+        koji_inher = {parent.name: parent for parent in remote.inheritance}
         inher = {parent.name: parent for parent in self.obj.inheritance}
 
         for name, parent in koji_inher.items():
             if name not in inher:
-                yield TagRemoveInheritance(self.obj, parent['parent_id'], parent['name'])
+                yield TagRemoveInheritance(self.obj, parent.parent_id, parent.name)
 
         for name, parent in inher.items():
             if name not in koji_inher:
                 yield TagAddInheritance(self.obj, parent)
             else:
                 koji_parent = koji_inher[name]
-                if koji_parent['priority'] != parent.priority or \
-                   koji_parent['maxdepth'] != parent.maxdepth or \
-                   koji_parent['noconfig'] != parent.noconfig or \
-                   koji_parent['pkg_filter'] != parent.pkgfilter or \
-                   koji_parent['intransitive'] != parent.intransitive:
-                    yield TagUpdateInheritance(self.obj, parent, koji_parent['parent_id'])
+                if koji_parent.priority != parent.priority or \
+                   koji_parent.maxdepth != parent.maxdepth or \
+                   koji_parent.noconfig != parent.noconfig or \
+                   koji_parent.pkg_filter != parent.pkg_filter or \
+                   koji_parent.intransitive != parent.intransitive:
+                    yield TagUpdateInheritance(self.obj, parent, koji_parent.parent_id)
 
 
     def _compare_external_repos(self) -> Iterable[Change]:
         # External Repos
-        koji_ext_repos = {repo['external_repo_name']: repo for repo in self._external_repos.result}
+        remote = self.obj.remote()
+
+        koji_ext_repos = {repo.name: repo for repo in remote.external_repos}
         ext_repos = {repo.name: repo for repo in self.obj.external_repos}
 
         for name, koji_repo in koji_ext_repos.items():
@@ -672,9 +657,9 @@ class TagChangeReport(ChangeReport):
                 yield TagRemoveExternalRepo(self.obj, name)
             else:
                 repo = ext_repos[name]
-                if koji_repo['priority'] != repo.priority or \
-                   koji_repo['merge_mode'] != repo.merge_mode or \
-                   not compare_arches(koji_repo['arches'], repo.arches):
+                if koji_repo.priority != repo.priority or \
+                   koji_repo.merge_mode != repo.merge_mode or \
+                   set(koji_repo.arches) != set(repo.arches):
                     yield TagUpdateExternalRepo(self.obj, repo)
 
         for name, repo in ext_repos.items():
@@ -684,11 +669,11 @@ class TagChangeReport(ChangeReport):
 
     def _compare_groups(self) -> Iterable[Change]:
         # Helper function to compare groups and their package content
-
+        remote = self.obj.remote()
         # TODO: we'll need to actually invoke addGroupReq vs. Package for these.
         # depending on the type. for now we just assume package for all.
 
-        koji_groups = {group['name']: group for group in self._groups.result}
+        koji_groups = {group.name: group for group in remote.groups}
         for group_name, group in self.obj.groups.items():
             if group_name not in koji_groups:
                 yield TagAddGroup(self.obj, group)
@@ -697,18 +682,18 @@ class TagChangeReport(ChangeReport):
                 continue
 
             koji_group = koji_groups[group_name]
-            if group.block != koji_group['blocked'] or \
-               group.description != koji_group['description']:
+            if group.block != koji_group.block or \
+               group.description != koji_group.description:
                 yield TagUpdateGroup(self.obj, group)
 
             to_add : List[TagGroupPackage] = []
             to_update : List[TagGroupPackage] = []
 
-            koji_pkgs = {pkg['package']: pkg for pkg in koji_group['packagelist']}
+            koji_pkgs = {pkg.name: pkg for pkg in koji_group.packages}
             for pkg in group.packages:
                 if pkg.name not in koji_pkgs:
                     to_add.append(pkg)
-                elif pkg.block != koji_pkgs[pkg.name]['blocked']:
+                elif pkg.block != koji_pkgs[pkg.name].block:
                     to_update.append(pkg)
 
             for package in to_add:
@@ -1039,12 +1024,6 @@ class Tag(TagModel, CoreObject):
     @classmethod
     def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
         return call_processor(RemoteTag.from_koji, session.getTag, key[1], strict=False)
-
-
-    @classmethod
-    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        logger.debug(f"Checking if tag '{key[1]}' exists")
-        return session.getTag(key[1], strict=False)
 
 
 class RemoteTag(TagModel, RemoteObject):

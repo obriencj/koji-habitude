@@ -69,17 +69,13 @@ class PermissionChangeReport(ChangeReport):
     Change report for permission objects.
     """
 
-    def impl_read(self, session: MultiCallSession):
-        self._permissioninfo: VirtualCall = self.obj.query_exists(session)
-
-
     def impl_compare(self):
-        info = self._permissioninfo.result
-        if not info:
+        remote = self.obj.remote()
+        if not remote:
             yield PermissionCreate(self.obj)
             return
 
-        if info['description'] != self.obj.description:
+        if remote.description != self.obj.description:
             yield PermissionSetDescription(self.obj, self.obj.description)
 
 
@@ -98,17 +94,6 @@ class Permission(PermissionModel, CoreObject):
 
     def change_report(self, resolver: 'Resolver') -> PermissionChangeReport:
         return PermissionChangeReport(self, resolver)
-
-
-    @classmethod
-    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        name = key[1]
-        def filter_for_perm(perms):
-            for perm in perms:
-                if perm['name'] == name:
-                    return RemotePermission.from_koji(perm)
-            return None
-        return call_processor(filter_for_perm, session.getAllPerms)
 
 
     @classmethod

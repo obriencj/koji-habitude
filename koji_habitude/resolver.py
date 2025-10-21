@@ -74,7 +74,16 @@ class Reference(CoreModel, ResolvableBase):
 
     typename: ClassVar[str] = 'reference'
 
-    tp: Type[CoreObject] = Field(alias='type')
+    tp: Type[CoreObject] = Field(alias='tp')
+
+
+    def __init__(self, tp: Type[CoreObject], key: BaseKey):
+        typename, name = key
+        super().__init__(type=typename, name=name, tp=tp)
+
+
+    def can_split(self) -> bool:
+        return False
 
 
     @property
@@ -182,6 +191,8 @@ class Resolver:
         obj = self.namespace.get(key) or self._references.get(key)
         if obj is None:
             tp = self.namespace.get_type(key[0], False)
+            if tp is None:
+                raise ValueError(f"Unknown type: {key[0]}")
             obj = self._references[key] = Reference(tp, key)
         return obj
 
@@ -215,30 +226,6 @@ class Resolver:
         """
 
         self._references.clear()
-
-
-    def can_split_key(self, key: BaseKey) -> bool:
-        """
-        Convenience shortcut for `resolve(key).can_split()`
-        """
-
-        return self.resolve(key).can_split()
-
-
-    def split_key(self, key: BaseKey) -> Resolvable:
-        """
-        Convenience shortcut for `resolve(key).split()`
-        """
-
-        return self.resolve(key).split()
-
-
-    def load_remote_key(self, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        """
-        Convenience shortcut for `resolve(key).load_remote(session)`
-        """
-
-        return self.resolve(key).load_remote(session)
 
 
     def load_remote_references(self, session: MultiCallSession) -> None:

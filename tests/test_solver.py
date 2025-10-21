@@ -994,9 +994,9 @@ class TestSolverCircularDependencies(unittest.TestCase):
         tag_c_key = ('tag', 'tag-c')
 
         # All tags should be splittable
-        self.assertTrue(solver.resolver.can_split_key(tag_a_key))
-        self.assertTrue(solver.resolver.can_split_key(tag_b_key))
-        self.assertTrue(solver.resolver.can_split_key(tag_c_key))
+        self.assertTrue(solver.resolver.resolve(tag_a_key).can_split())
+        self.assertTrue(solver.resolver.resolve(tag_b_key).can_split())
+        self.assertTrue(solver.resolver.resolve(tag_c_key).can_split())
 
         # Resolve objects
         resolved_objects = list(solver)

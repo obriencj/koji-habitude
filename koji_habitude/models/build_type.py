@@ -40,13 +40,9 @@ class BuildTypeChangeReport(ChangeReport):
     Change report for build type objects.
     """
 
-    def impl_read(self, session: MultiCallSession):
-        self._btypeinfo: VirtualCall = self.obj.query_exists(session)
-
-
     def impl_compare(self):
-        info = self._btypeinfo.result
-        if not info:
+        remote = self.obj.remote()
+        if not remote:
             yield BuildTypeCreate(self.obj)
 
 
@@ -73,16 +69,6 @@ class BuildType(BuildTypeModel, CoreObject):
         def filter_for_btype(btlist):
             if btlist:
                 return RemoteBuildType.from_koji(btlist[0])
-            return None
-        return call_processor(filter_for_btype, session.listBTypes, query={'name': name})
-
-
-    @classmethod
-    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        name = key[1]
-        def filter_for_btype(btlist):
-            if btlist:
-                return btlist[0]
             return None
         return call_processor(filter_for_btype, session.listBTypes, query={'name': name})
 

@@ -89,6 +89,7 @@ class IdentifiableBase(BaseModel):
     """
 
     typename: ClassVar[str] = 'object'
+
     name: str = Field(alias='name')
     yaml_type: Optional[str] = Field(alias='type', default=None)
 
@@ -265,7 +266,6 @@ class CoreObject(CoreModel, LocalBase, ResolvableBase):
 
     def change_report(self, resolver: 'Resolver') -> 'ChangeReport':
         raise NotImplementedError("Subclasses must implement change_report")
-
 
 
 # temporary alias

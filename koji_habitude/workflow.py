@@ -190,7 +190,7 @@ class Workflow:
         yield self.state_change(WorkflowState.CONNECTED,
                                 WorkflowState.RESOLVING)
 
-        self.resolver.query_exists_references(self.session)
+        self.resolver.load_remote_references(self.session)
         self.resolver_report = self.resolver.report()
         self.review_resolver_report()
 

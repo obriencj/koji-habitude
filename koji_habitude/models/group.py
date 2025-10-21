@@ -120,23 +120,9 @@ class GroupRemovePermission(Remove):
 
 class GroupChangeReport(ChangeReport):
 
-    def impl_read(self, session: MultiCallSession):
-        self._groupinfo: VirtualCall = self.obj.query_exists(session)
-        self._members: VirtualCall = None
-        self._permissions: VirtualCall = None
-        return self.impl_read_defer
-
-
-    def impl_read_defer(self, session: MultiCallSession):
-        if self._groupinfo.result is None:
-            return
-        self._members = session.getGroupMembers(self.obj.name)
-        self._permissions = session.getUserPerms(self.obj.name)
-
-
     def impl_compare(self):
-        info = self._groupinfo.result
-        if not info:
+        remote = self.obj.remote()
+        if not remote:
             if not self.obj.was_split():
                 # we don't exist, and we didn't split our create to an earlier
                 # call, so create now.
@@ -154,13 +140,13 @@ class GroupChangeReport(ChangeReport):
         if self.obj.is_split():
             return
 
-        if info['status'] != (0 if self.obj.enabled else 1):
+        if remote.enabled != self.obj.enabled:
             if self.obj.enabled:
                 yield GroupEnable(self.obj)
             else:
                 yield GroupDisable(self.obj)
 
-        members = {m['name']: m for m in self._members.result}
+        members = remote.members
         for member in self.obj.members:
             if member not in members:
                 yield GroupAddMember(self.obj, member)
@@ -170,7 +156,7 @@ class GroupChangeReport(ChangeReport):
                 if member not in self.obj.members:
                     yield GroupRemoveMember(self.obj, member)
 
-        permissions = self._permissions.result
+        permissions = remote.permissions
         for permission in self.obj.permissions:
             if permission not in permissions:
                 yield GroupAddPermission(self.obj, permission)
@@ -182,13 +168,22 @@ class GroupChangeReport(ChangeReport):
 
 
 class GroupModel(CoreModel):
-    """Field definitions for Group objects"""
+    """
+    Field definitions for Group objects
+    """
 
     typename: ClassVar[str] = "group"
 
     enabled: bool = Field(alias='enabled', default=True)
     members: List[str] = Field(alias='members', default_factory=list)
     permissions: List[str] = Field(alias='permissions', default_factory=list)
+
+
+    def dependency_keys(self) -> List[BaseKey]:
+        deps: List[BaseKey] = []
+        deps.extend([('user', member) for member in self.members])
+        deps.extend([('permission', permission) for permission in self.permissions])
+        return deps
 
 
 class Group(GroupModel, CoreObject):
@@ -202,22 +197,13 @@ class Group(GroupModel, CoreObject):
     _auto_split: ClassVar[bool] = True
 
 
-    def dependency_keys(self) -> List[BaseKey]:
-        deps: List[BaseKey] = []
-        deps.extend([('user', member) for member in self.members])
-        deps.extend([('permission', permission) for permission in self.permissions])
-        return deps
-
     def change_report(self, resolver: 'Resolver') -> GroupChangeReport:
         return GroupChangeReport(self, resolver)
 
-    @classmethod
-    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        return call_processor(RemoteGroup.from_koji, session.getGroup, key[1], strict=False)
 
     @classmethod
-    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        return session.getUser(key[1], strict=False)
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
+        return call_processor(RemoteGroup.from_koji, session.getUser, key[1], strict=False)
 
 
 class RemoteGroup(GroupModel, RemoteObject):
