@@ -32,10 +32,10 @@ __all__ = (
     'SubModel',
 
     # Pydantic mixins
-    'IdentifiableObject',
-    'DependencyAwareObject',
-    'LocalObject',
-    'ResolvableObject',
+    'IdentifiableBase',
+    'DependencyAwareBase',
+    'LocalBase',
+    'ResolvableBase',
 
     # Base classes for core types
     'CoreModel',
@@ -76,76 +76,6 @@ class BaseStatus(Enum):
     """
 
 
-# Granular Protocols
-
-class Identifiable(Protocol):
-    """
-    All objects have identity
-    """
-
-    typename: ClassVar[str]
-    name: str
-
-    def key(self) -> BaseKey:
-        ...
-
-
-class DependencyAware(Protocol):
-    """
-    Objects that participate in dependency resolution
-    """
-
-    def dependency_keys(self) -> Sequence[BaseKey]:
-        ...
-
-
-class Local(Protocol):
-    """Objects that are local to the system"""
-
-    filename: Optional[str]
-    lineno: Optional[int]
-    trace: Optional[List[Dict[str, Any]]]
-
-    def filepos(self) -> Tuple[Optional[str], Optional[int]]:
-        ...
-
-    def filepos_str(self) -> str:
-        ...
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Local':
-        ...
-
-    def to_dict(self) -> Dict[str, Any]:
-        ...
-
-    @property
-    def data(self) -> Optional[Dict[str, Any]]:
-        ...
-
-
-class Resolvable(Identifiable, Protocol):
-    """
-    Objects that can be stored in Namespace and resolved by Resolver.
-    This is the common interface for BaseObject and Reference.
-    """
-
-    @classmethod
-    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        ...
-
-    @property
-    def remote(self) -> Optional['RemoteObject']:
-        ...
-
-    @property
-    def status(self) -> BaseStatus:
-        ...
-
-    def is_phantom(self) -> bool:
-        ...
-
-
 # Pydantic Model Mixins
 
 # we need this to enable our inheritance of both the BaseModel from pydantic and
@@ -153,9 +83,7 @@ class Resolvable(Identifiable, Protocol):
 MetaModelProtocol: Type[type] = type("MetaModelProtocol", (type(BaseModel), type(Protocol)), {})
 
 
-class IdentifiableObject(
-        BaseModel, Identifiable,
-        metaclass=MetaModelProtocol):
+class IdentifiableBase(BaseModel):
     """
     Pydantic mixin for Identifiable protocol
     """
@@ -178,23 +106,10 @@ class IdentifiableObject(
         return (typekey, self.name)
 
 
-class DependencyAwareObject(
-        BaseModel, DependencyAware,
-        metaclass=MetaModelProtocol):
-    """
-    Pydantic mixin for DependencyAware protocol
-    """
-
-    def dependency_keys(self) -> Sequence[BaseKey]:
-        return ()
+LocalT = TypeVar('LocalT', bound='LocalBase')
 
 
-LocalT = TypeVar('LocalT', bound='LocalObject')
-
-
-class LocalObject(
-        BaseModel, Local,
-        metaclass=MetaModelProtocol):
+class LocalBase(BaseModel):
     """
     Pydantic mixin for Local protocol
     """
@@ -217,6 +132,7 @@ class LocalObject(
             return f"{filename}:{self.lineno}"
         else:
             return filename
+
 
     @classmethod
     def from_dict(cls: Type[LocalT], data: Dict[str, Any]) -> LocalT:
@@ -248,16 +164,19 @@ class LocalObject(
         return self._data
 
 
-class ResolvableObject(Resolvable):
+class ResolvableBase:
 
     _remote: Optional[VirtualCall] = None
+
 
     @property
     def status(self) -> BaseStatus:
         return BaseStatus.PRESENT if self.remote() is not None else BaseStatus.PENDING
 
+
     def is_phantom(self) -> bool:
         return False
+
 
     def remote(self) -> Optional['RemoteObject']:
         try:
@@ -265,10 +184,12 @@ class ResolvableObject(Resolvable):
         except MultiCallNotReady:
             return None
 
+
     def load_remote(self, session: MultiCallSession) -> VirtualCall:
         if self._remote is None:
             self._remote = self.query_remote(session, self.key())
         return self._remote
+
 
     @classmethod
     def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
@@ -282,18 +203,19 @@ class SubModel(BaseModel):
     pass
 
 
-class CoreModel(IdentifiableObject, DependencyAwareObject):
+class CoreModel(IdentifiableBase):
     """
     A base model shared by a core and remote object
     """
 
-    pass
+    def dependency_keys(self) -> Sequence[BaseKey]:
+        return ()
 
 
 CoreT = TypeVar('CoreT', bound='CoreObject')
 
 
-class CoreObject(CoreModel, LocalObject, ResolvableObject):
+class CoreObject(CoreModel, LocalBase, ResolvableBase):
     """
     Core models that load from YAML and have full functionality through
     the Resolver, Processor, and Solver.

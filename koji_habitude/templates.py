@@ -25,14 +25,14 @@ from jinja2.meta import find_undeclared_variables
 
 from .exceptions import (TemplateError, TemplateOutputError,
                          TemplateRenderError, TemplateSyntaxError)
-from .models.base import LocalObject, IdentifiableObject
+from .models.base import LocalBase, IdentifiableBase
 from .models.compat import Field, field_validator
 
 
 logger = logging.getLogger("koji_habitude.templates")
 
 
-class TemplateCall(LocalObject):
+class TemplateCall(LocalBase):
     """
     Represents a YAML doc that needs to be expanded into zero or more
     new docs via a Template.
@@ -49,7 +49,7 @@ class TemplateCall(LocalObject):
         return self.yaml_type
 
 
-class Template(IdentifiableObject, LocalObject):
+class Template(IdentifiableBase, LocalBase):
     """
     A Template allows for the expansion of some YAML data into zero or
     more YAML docs, via Jinja2

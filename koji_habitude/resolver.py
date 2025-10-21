@@ -24,10 +24,12 @@ from typing import (TYPE_CHECKING, Any, ClassVar, Dict, Iterable, List,
 
 from koji import (ClientSession, MultiCallNotReady, MultiCallSession,
                   VirtualCall)
+from typing_extensions import TypeAlias
 
 from .koji import multicall
-from .models.base import BaseKey, BaseStatus, Resolvable
-from .models.change import ChangeReport
+from .models import (Field, BaseKey, BaseStatus, CoreModel, CoreObject,
+                     ResolvableBase, ChangeReport)
+
 
 if TYPE_CHECKING:
     from .namespace import Namespace
@@ -44,6 +46,9 @@ __all__ = (
 logger = logging.getLogger(__name__)
 
 
+Resolvable: TypeAlias = Union[CoreObject, 'Reference']
+
+
 class ReferenceChangeReport(ChangeReport):
     """
     A change report for a Reference object.
@@ -56,107 +61,39 @@ class ReferenceChangeReport(ChangeReport):
     # the ReferenceObject itself.
 
     def impl_read(self, session: MultiCallSession) -> None:
-        if self.obj._exists is not None:
-            return
-        self.obj.query_exists(session)
+        self.obj.load_remote(session)
 
     def impl_compare(self):
         return ()
 
 
-class Reference(Resolvable):
+class Reference(CoreModel, ResolvableBase):
     """
     A placeholder for a dependency that is not defined in the Namespace
     """
 
     typename: ClassVar[str] = 'reference'
 
-    def __init__(self, tp: Type[Resolvable], key: BaseKey):
-        self.tp = tp
-        self.yaml_type, self.name = key
-        self._key = key
-        self._exists: Optional[VirtualCall] = None  # None means not checked yet
-        self._remote: Optional[Any] = None  # Cached remote object
-        self.filename = None
-        self.lineno = None
-        self.trace = None
-        logger.debug(f"Reference created: {self.key()}")
+    tp: Type[CoreObject] = Field(alias='type')
 
 
     @property
     def status(self) -> BaseStatus:
-        return BaseStatus.DISCOVERED if self.exists() else BaseStatus.PHANTOM
+        return BaseStatus.DISCOVERED if self.remote() else BaseStatus.PHANTOM
+
 
     def is_phantom(self) -> bool:
-        return self.exists() is None
+        return self.remote() is None
 
-    def exists(self) -> Any:
-        try:
-            return self._exists.result if self._exists is not None else None
-        except MultiCallNotReady:
-            return None
 
-    def key(self) -> BaseKey:
-        return self._key
-
-    def filepos(self) -> Tuple[Optional[str], Optional[int]]:
-        return None, None
-
-    def filepos_str(self) -> str:
-        return ""
-
-    def can_split(self) -> bool:
-        return False
-
-    def was_split(self) -> bool:
-        return False
-
-    def is_split(self) -> bool:
-        return False
-
-    def split(self) -> Resolvable:
-        raise TypeError("Cannot split a Reference")
-
-    def dependency_keys(self) -> Sequence[BaseKey]:
-        return ()
-
-    def change_report(self, resolver: 'Resolver') -> ReferenceChangeReport:
-        logger.debug(f"Reference change_report: {self.key()}")
-        return ReferenceChangeReport(self, resolver)
-
-    def query_exists(self, session: MultiCallSession) -> VirtualCall:
-        res = self.tp.check_exists(session, self.key())
-        if isinstance(res, VirtualCall):
-            self._exists = res
-        else:
-            self._exists = VirtualCall(None, None, None)
-            self._exists._result = res  # type: ignore
-        return self._exists
-
-    def load_remote(self, session: MultiCallSession) -> Optional[Any]:
-        """Load the full remote object for this reference"""
-        if self._remote is None and self.exists():
-            # Use tp.query_remote to fetch full remote object
-            if hasattr(self.tp, 'query_remote'):
-                vc = self.tp.query_remote(session, self._key)
-                try:
-                    self._remote = vc.result if hasattr(vc, 'result') else None
-                except MultiCallNotReady:
-                    pass
+    def load_remote(self, session: MultiCallSession) -> VirtualCall:
+        if self._remote is None:
+            self._remote = self.tp.query_remote(session, self.key())
         return self._remote
 
-    @classmethod
-    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        msg = ("Reference.check_exists shouldn't be called,"
-               " use query_exists instead")
-        raise NotImplementedError(msg)
 
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Reference':
-        raise TypeError("Reference cannot be created from a dictionary")
-
-    def to_dict(self) -> Dict[str, Any]:
-        raise TypeError("Reference cannot be converted to a dictionary")
+    def change_report(self, resolver: 'Resolver') -> ReferenceChangeReport:
+        return ReferenceChangeReport(self, resolver)
 
 
 @dataclass

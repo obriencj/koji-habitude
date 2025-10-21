@@ -16,9 +16,8 @@ from typing import Mapping, Tuple, Type
 
 from .archive_type import ArchiveType
 from .base import (
-    BaseKey, BaseObject, BaseStatus, CoreObject, Identifiable, IdentifiableObject,
-    DependencyAware, DependencyAwareObject,
-    Resolvable, ResolvableObject)
+    BaseKey, BaseObject, BaseStatus, CoreModel, CoreObject,
+    IdentifiableBase, LocalBase, ResolvableBase)
 from .build_type import BuildType
 from .change import Add, Change, ChangeReport, Create, Modify, Remove, Update
 from .channel import Channel
@@ -41,19 +40,13 @@ __all__ = (
     'BaseObject',
     'BaseKey',
     'BaseStatus',
+    'CoreModel',
     'CoreObject',
 
-    # Granular protocols
-    'Identifiable',
-    'DependencyAware',
-    'Changeable',
-    'Resolvable',
-
     # Pydantic mixins
-    'IdentifiableObject',
-    'DependencyAwareObject',
-    'LocalObject',
-    'ResolvableObject',
+    'IdentifiableBase',
+    'LocalBase',
+    'ResolvableBase',
 
     # Compat
     'Field',

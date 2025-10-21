@@ -866,7 +866,9 @@ def _simplified_link(data: Any) -> Any:
 
 
 class TagModel(CoreModel):
-    """Field definitions for Tag objects"""
+    """
+    Field definitions for Tag objects
+    """
 
     typename: ClassVar[str] = "tag"
 
