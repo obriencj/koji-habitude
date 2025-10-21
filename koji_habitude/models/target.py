@@ -81,18 +81,14 @@ class TargetEdit(Update):
 
 class TargetChangeReport(ChangeReport):
 
-    def impl_read(self, session: MultiCallSession):
-        self._targetinfo: VirtualCall = self.obj.query_exists(session)
-
-
     def impl_compare(self):
-        info = self._targetinfo.result
-        if info is None:
+        remote = self.obj.remote()
+        if remote is None:
             yield TargetCreate(self.obj)
             return
 
-        build_tag = info['build_tag_name']
-        dest_tag = info['dest_tag_name']
+        build_tag = remote.build_tag
+        dest_tag = remote.dest_tag
 
         if build_tag != self.obj.build_tag or dest_tag != self.obj.dest_tag:
             yield TargetEdit(self.obj)

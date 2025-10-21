@@ -58,12 +58,7 @@ class VirtualPromise(VirtualCall):
     PromiseMultiCallSession stores the result value or exception into it.
     """
 
-    def __init__(
-            self,
-            method: str,
-            args,
-            kwargs):
-
+    def __init__(self, method: str, args, kwargs):
         self._real_result: Any = None
         self._trigger: Optional[Callable[['VirtualPromise'], None]] = None
         super().__init__(method, args, kwargs)
@@ -125,7 +120,7 @@ def call_processor(post_process, sessionmethod, *args, **kwargs):
 
 class PromiseMultiCallSession(MultiCallSession):
 
-    def _callMethod(self, name: str, *args, **kwargs) -> VirtualPromise:
+    def _callMethod(self, name: str, args, kwargs=None, retry=True) -> VirtualPromise:
         if kwargs is None:
             kwargs = {}
         ret = VirtualPromise(name, args, kwargs)
@@ -154,8 +149,8 @@ class ReportingMulticall(PromiseMultiCallSession):
         self._call_log: List[VirtualPromise] = associations.setdefault(None, [])
 
 
-    def _callMethod(self, name: str, *args, **kwargs) -> VirtualPromise:
-        result = super()._callMethod(name, *args, **kwargs)  # type: ignore
+    def _callMethod(self, name: str, args, kwargs=None, retry=True) -> VirtualPromise:
+        result = super()._callMethod(name, args, kwargs=kwargs, retry=retry)  # type: ignore
         self._call_log.append(result)
         return result
 

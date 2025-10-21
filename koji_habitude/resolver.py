@@ -156,10 +156,10 @@ class Resolver:
             return list(self._references.keys())
         elif exists:
             return [key for key, obj in self._references.items()
-                    if obj.exists()]
+                    if obj.remote()]
         else:
             return [key for key, obj in self._references.items()
-                    if not obj.exists()]
+                    if not obj.remote()]
 
 
     def phantom_keys(self) -> List[BaseKey]:
@@ -233,15 +233,15 @@ class Resolver:
         return self.resolve(key).split()
 
 
-    def query_exists_key(self, session: MultiCallSession, key: BaseKey) -> VirtualCall:
+    def load_remote_key(self, session: MultiCallSession, key: BaseKey) -> VirtualCall:
         """
-        Convenience shortcut for `resolve(key).check_exists(session)`
+        Convenience shortcut for `resolve(key).load_remote(session)`
         """
 
-        return self.resolve(key).query_exists(session)
+        return self.resolve(key).load_remote(session)
 
 
-    def query_exists_references(self, session: Union[ClientSession, MultiCallSession]) -> None:
+    def load_remote_references(self, session: MultiCallSession) -> None:
         """
         creates a multicall for session, and queries for the existence of all
         current reference objects.
@@ -250,14 +250,9 @@ class Resolver:
         if not self._references:
             return
 
-        if isinstance(session, MultiCallSession):
-            mc = cast(MultiCallSession, session)
-            for key in self._references.keys():
-                self.query_exists_key(mc, key)
-        else:
-            with multicall(session) as mc:
-                for key in self._references.keys():
-                    self.query_exists_key(mc, key)
+        with multicall(session) as mc:
+            for ref in self._references.values():
+                ref.load_remote(mc)
 
 
     def report(self) -> ResolverReport:
@@ -268,7 +263,7 @@ class Resolver:
         discovered = {}
         phantoms = {}
         for key, obj in self._references.items():
-            if obj.exists():
+            if obj.remote():
                 discovered[key] = obj
             else:
                 phantoms[key] = obj

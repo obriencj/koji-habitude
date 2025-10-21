@@ -211,6 +211,9 @@ class CoreModel(IdentifiableBase):
     def dependency_keys(self) -> Sequence[BaseKey]:
         return ()
 
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}({self.name})>"
+
 
 CoreT = TypeVar('CoreT', bound='CoreObject')
 
@@ -263,9 +266,6 @@ class CoreObject(CoreModel, LocalBase, ResolvableBase):
     def change_report(self, resolver: 'Resolver') -> 'ChangeReport':
         raise NotImplementedError("Subclasses must implement change_report")
 
-
-    def __repr__(self) -> str:
-        return f"<{self.__class__.__name__}({self.name})>"
 
 
 # temporary alias

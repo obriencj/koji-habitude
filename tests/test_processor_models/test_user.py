@@ -84,7 +84,7 @@ class TestProcessorUserBehavior(MulticallMocking, TestCase):
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
         get_user_mock.assert_called_once_with('new-user', strict=False, groups=True)
-        get_perms_mock.assert_called_once_with('new-user')
+        get_perms_mock.assert_not_called()
         create_mock.assert_called_once_with('new-user', status=0)
 
     def test_user_creation_with_groups_and_permissions(self):
@@ -136,7 +136,7 @@ class TestProcessorUserBehavior(MulticallMocking, TestCase):
 
         # Verify all calls were made
         get_user_mock.assert_called_once_with('new-user', strict=False, groups=True)
-        get_perms_mock.assert_called_once_with('new-user')
+        get_perms_mock.assert_not_called()
         create_mock.assert_called_once_with('new-user', status=0)
         grant_perm1_mock.assert_called_once_with('new-user', 'perm1', create=True)
         grant_perm2_mock.assert_called_once_with('new-user', 'perm2', create=True)
@@ -152,6 +152,7 @@ class TestProcessorUserBehavior(MulticallMocking, TestCase):
         # Mock the getUser call to return existing user with disabled status
         get_user_mock = Mock()
         get_user_mock.return_value = {
+            'id': 100,
             'name': 'existing-user',
             'status': 1,  # User is disabled
             'groups': []
@@ -191,6 +192,7 @@ class TestProcessorUserBehavior(MulticallMocking, TestCase):
         # Mock the getUser call to return existing user with enabled status
         get_user_mock = Mock()
         get_user_mock.return_value = {
+            'id': 100,
             'name': 'existing-user',
             'status': 0,  # User is enabled
             'groups': []
@@ -230,6 +232,7 @@ class TestProcessorUserBehavior(MulticallMocking, TestCase):
         # Mock the getUser call to return user with no groups
         get_user_mock = Mock()
         get_user_mock.return_value = {
+            'id': 100,
             'name': 'existing-user',
             'status': 0,  # User is enabled
             'groups': []  # User has no groups currently
@@ -274,6 +277,7 @@ class TestProcessorUserBehavior(MulticallMocking, TestCase):
         # Mock the getUser call to return user with extra groups
         get_user_mock = Mock()
         get_user_mock.return_value = {
+            'id': 100,
             'name': 'existing-user',
             'status': 0,  # User is enabled
             'groups': ['group1', 'extra-group']  # User has extra group
@@ -313,6 +317,7 @@ class TestProcessorUserBehavior(MulticallMocking, TestCase):
         # Mock the getUser call to return user with no permissions
         get_user_mock = Mock()
         get_user_mock.return_value = {
+            'id': 100,
             'name': 'existing-user',
             'status': 0,  # User is enabled
             'groups': []
@@ -357,6 +362,7 @@ class TestProcessorUserBehavior(MulticallMocking, TestCase):
         # Mock the getUser call to return user with extra permissions
         get_user_mock = Mock()
         get_user_mock.return_value = {
+            'id': 100,
             'name': 'existing-user',
             'status': 0,  # User is enabled
             'groups': []
@@ -396,6 +402,7 @@ class TestProcessorUserBehavior(MulticallMocking, TestCase):
         # Mock the getUser call to return user that already matches desired state
         get_user_mock = Mock()
         get_user_mock.return_value = {
+            'id': 100,
             'name': 'existing-user',
             'status': 0,  # Already enabled
             'groups': ['group1']  # Already in group1
@@ -486,8 +493,8 @@ class TestProcessorUserBehavior(MulticallMocking, TestCase):
         # Verify all calls were made
         get_user1_mock.assert_called_once_with('user1', strict=False, groups=True)
         get_user2_mock.assert_called_once_with('user2', strict=False, groups=True)
-        get_perms1_mock.assert_called_once_with('user1')
-        get_perms2_mock.assert_called_once_with('user2')
+        get_perms1_mock.assert_not_called()
+        get_perms2_mock.assert_not_called()
         create1_mock.assert_called_once_with('user1', status=0)
         create2_mock.assert_called_once_with('user2', status=1)
         add_group1_mock.assert_called_once_with('group1', 'user1', strict=False)

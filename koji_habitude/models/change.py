@@ -563,15 +563,18 @@ class ChangeReport:
 
 
     def impl_read(self, session: MultiCallSession) -> Optional[Callable[[MultiCallSession], None]]:
-        """
-        Must be implemented by subclasses to perform the actual work of reading
-        the Koji state. This method may return None to indicate that is has
-        completed its work, or a callable object that will be invoked in a
-        separate, later multicall session to perform deferred lookups which will
-        have the results of the initial read calls available.
-        """
+        remote = self.obj.remote()
+        if remote:
+            remote.load_additional_data(session)
+        else:
+            self.obj.load_remote(session)
+            return self.impl_read_defer
 
-        raise NotImplementedError("Subclasses of ChangeReport must implement impl_read")
+
+    def impl_read_defer(self, session: MultiCallSession) -> None:
+        remote = self.obj.remote()
+        if remote:
+            remote.load_additional_data(session)
 
 
     def compare(self) -> None:

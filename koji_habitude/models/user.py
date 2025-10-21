@@ -128,14 +128,9 @@ class UserChangeReport(ChangeReport):
     Change report for user objects.
     """
 
-    def impl_read(self, session: MultiCallSession):
-        self._userinfo: VirtualCall = self.obj.query_exists(session)
-        self._permissions: VirtualCall = session.getUserPerms(self.obj.name)
-
-
     def impl_compare(self):
-        info = self._userinfo.result
-        if not info:
+        remote = self.obj.remote()
+        if not remote:
             if not self.obj.was_split():
                 # we don't exist, and we didn't split our create to an earlier
                 # call, so create now.
@@ -154,13 +149,13 @@ class UserChangeReport(ChangeReport):
             return
 
         if self.obj.enabled is not None:
-            if info['status'] != (0 if self.obj.enabled else 1):
+            if remote.enabled != self.obj.enabled:
                 if self.obj.enabled:
                     yield UserEnable(self.obj)
                 else:
                     yield UserDisable(self.obj)
 
-        groups = info['groups']
+        groups = remote.groups
         for group in self.obj.groups:
             if group not in groups:
                 yield UserAddToGroup(self.obj, group)
@@ -170,7 +165,7 @@ class UserChangeReport(ChangeReport):
                 if group not in self.obj.groups:
                     yield UserRemoveFromGroup(self.obj, group)
 
-        perms = self._permissions.result
+        perms = remote.permissions
         for perm in self.obj.permissions:
             if perm not in perms:
                 yield UserGrantPermission(self.obj, perm)
