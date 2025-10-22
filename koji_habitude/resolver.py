@@ -28,7 +28,7 @@ from typing_extensions import TypeAlias
 
 from .koji import multicall
 from .models import (Field, BaseKey, BaseStatus, CoreModel, CoreObject,
-                     ResolvableBase, ChangeReport)
+                     ResolvableMixin, ChangeReport)
 
 
 if TYPE_CHECKING:
@@ -67,7 +67,7 @@ class ReferenceChangeReport(ChangeReport):
         return ()
 
 
-class Reference(CoreModel, ResolvableBase):
+class Reference(CoreModel, ResolvableMixin):
     """
     A placeholder for a dependency that is not defined in the Namespace
     """

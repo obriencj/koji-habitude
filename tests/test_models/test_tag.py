@@ -545,19 +545,19 @@ class TestTagModelPackagesField(unittest.TestCase):
         self.assertEqual(tag.packages[0].name, 'package1')
         self.assertEqual(tag.packages[0].block, False)
         self.assertEqual(tag.packages[0].owner, None)
-        self.assertEqual(tag.packages[0].extra_arches, None)
+        self.assertEqual(tag.packages[0].extra_arches, [])
 
         # Check second package
         self.assertEqual(tag.packages[1].name, 'package2')
         self.assertEqual(tag.packages[1].block, False)
         self.assertEqual(tag.packages[1].owner, None)
-        self.assertEqual(tag.packages[1].extra_arches, None)
+        self.assertEqual(tag.packages[1].extra_arches, [])
 
         # Check third package
         self.assertEqual(tag.packages[2].name, 'package3')
         self.assertEqual(tag.packages[2].block, False)
         self.assertEqual(tag.packages[2].owner, None)
-        self.assertEqual(tag.packages[2].extra_arches, None)
+        self.assertEqual(tag.packages[2].extra_arches, [])
 
     def test_tag_packages_dict_format(self):
         """
@@ -582,13 +582,13 @@ class TestTagModelPackagesField(unittest.TestCase):
         self.assertEqual(tag.packages[0].name, 'package1')
         self.assertEqual(tag.packages[0].owner, 'user1')
         self.assertEqual(tag.packages[0].block, False)
-        self.assertEqual(tag.packages[0].extra_arches, None)
+        self.assertEqual(tag.packages[0].extra_arches, [])
 
         # Check second package (with owner and blocked)
         self.assertEqual(tag.packages[1].name, 'package2')
         self.assertEqual(tag.packages[1].owner, 'user2')
         self.assertEqual(tag.packages[1].block, True)
-        self.assertEqual(tag.packages[1].extra_arches, None)
+        self.assertEqual(tag.packages[1].extra_arches, [])
 
         # Check third package (with owner and extra-arches)
         self.assertEqual(tag.packages[2].name, 'package3')

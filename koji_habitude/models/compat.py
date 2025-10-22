@@ -13,14 +13,19 @@ AI-Assistant: Claude 4.5 Sonnet via Cursor
 
 
 from typing import Any, Callable, Dict, Optional, Type, TypeVar
-from pydantic import BaseModel as _BaseModel, Field
+from pydantic import BaseModel as _BaseModel, Field, PrivateAttr
 
 
 __all__ = (
     'BaseModel',
+    'Mixin',
     'Field',
+    'PrivateAttr',
     'field_validator',
 )
+
+
+Mixin = _BaseModel
 
 
 try:
@@ -31,11 +36,13 @@ try:
     class BaseModel(_BaseModel):
         model_config = ConfigDict(validate_by_alias=True, validate_by_name=True)
 
+
 except ImportError:
     # Pydantic v1.10 compatibility
     from pydantic import validator as _validator
 
     T = TypeVar('T', bound='BaseModel')
+
 
     class BaseModel(_BaseModel):  # type: ignore
         # This is a compatability shim for pydantic v1.10 to look more like v2

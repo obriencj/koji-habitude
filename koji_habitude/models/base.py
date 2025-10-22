@@ -13,13 +13,13 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 from enum import Enum
 from typing import (TYPE_CHECKING, Any, ClassVar, Dict, List, Optional,
-                    Protocol, Sequence, Tuple, Type, TypeVar)
+                    Sequence, Tuple, Type, TypeVar)
 
 from koji import MultiCallNotReady, MultiCallSession, VirtualCall
 from typing_extensions import TypeAlias
 
-from .compat import BaseModel, Field, field_validator
 from ..koji import PromiseMultiCallSession
+from .compat import BaseModel, Field, Mixin, PrivateAttr, field_validator
 
 if TYPE_CHECKING:
     from ..resolver import Resolver
@@ -32,10 +32,9 @@ __all__ = (
     'SubModel',
 
     # Pydantic mixins
-    'IdentifiableBase',
-    'DependencyAwareBase',
-    'LocalBase',
-    'ResolvableBase',
+    'IdentifiableMixin',
+    'LocalMixin',
+    'ResolvableMixin',
 
     # Base classes for core types
     'CoreModel',
@@ -78,12 +77,7 @@ class BaseStatus(Enum):
 
 # Pydantic Model Mixins
 
-# we need this to enable our inheritance of both the BaseModel from pydantic and
-# the Protocol from typing
-MetaModelProtocol: Type[type] = type("MetaModelProtocol", (type(BaseModel), type(Protocol)), {})
-
-
-class IdentifiableBase(BaseModel):
+class IdentifiableMixin(Mixin):
     """
     Pydantic mixin for Identifiable protocol
     """
@@ -107,10 +101,14 @@ class IdentifiableBase(BaseModel):
         return (typekey, self.name)
 
 
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}({self.name})>"
+
+
 LocalT = TypeVar('LocalT', bound='LocalBase')
 
 
-class LocalBase(BaseModel):
+class LocalMixin(Mixin):
     """
     Pydantic mixin for Local protocol
     """
@@ -120,7 +118,7 @@ class LocalBase(BaseModel):
     trace: Optional[List[Dict[str, Any]]] = Field(alias='__trace__', default_factory=list)
 
     # this is the record of the `from_dict` call if it was used
-    _data: Optional[Dict[str, Any]] = None
+    _data: Optional[Dict[str, Any]] = PrivateAttr(default=None)
 
 
     def filepos(self) -> Tuple[Optional[str], Optional[int]]:
@@ -165,9 +163,9 @@ class LocalBase(BaseModel):
         return self._data
 
 
-class ResolvableBase:
+class ResolvableMixin(Mixin):
 
-    _remote: Optional[VirtualCall] = None
+    _remote: Optional[VirtualCall] = PrivateAttr(default=None)
 
 
     @property
@@ -186,8 +184,8 @@ class ResolvableBase:
             return None
 
 
-    def load_remote(self, session: MultiCallSession) -> VirtualCall:
-        if self._remote is None:
+    def load_remote(self, session: MultiCallSession, reload: bool = False) -> VirtualCall:
+        if reload or self._remote is None:
             self._remote = self.query_remote(session, self.key())
         return self._remote
 
@@ -204,7 +202,7 @@ class SubModel(BaseModel):
     pass
 
 
-class CoreModel(IdentifiableBase):
+class CoreModel(BaseModel,IdentifiableMixin):
     """
     A base model shared by a core and remote object
     """
@@ -212,14 +210,11 @@ class CoreModel(IdentifiableBase):
     def dependency_keys(self) -> Sequence[BaseKey]:
         return ()
 
-    def __repr__(self) -> str:
-        return f"<{self.__class__.__name__}({self.name})>"
-
 
 CoreT = TypeVar('CoreT', bound='CoreObject')
 
 
-class CoreObject(CoreModel, LocalBase, ResolvableBase):
+class CoreObject(CoreModel, LocalMixin, ResolvableMixin):
     """
     Core models that load from YAML and have full functionality through
     the Resolver, Processor, and Solver.
@@ -227,9 +222,13 @@ class CoreObject(CoreModel, LocalBase, ResolvableBase):
 
     typename: ClassVar[str] = 'object'
 
-    _auto_split: ClassVar[bool] = False
-    _is_split: bool = False
-    _was_split: bool = False
+    _auto_split: ClassVar[bool] = PrivateAttr(default=False)
+    _is_split: bool = PrivateAttr(default=False)
+    _was_split: bool = PrivateAttr(default=False)
+
+
+    def dependency_keys(self) -> Sequence[BaseKey]:
+        return ()
 
 
     def key(self) -> BaseKey:
@@ -268,6 +267,10 @@ class CoreObject(CoreModel, LocalBase, ResolvableBase):
         raise NotImplementedError("Subclasses must implement change_report")
 
 
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}({self.name})>"
+
+
 # temporary alias
 BaseObject = CoreObject
 
@@ -284,6 +287,10 @@ class RemoteObject(CoreModel):
     koji_id: int = Field(alias='id')
 
 
+    def dependency_keys(self) -> Sequence[BaseKey]:
+        return ()
+
+
     @classmethod
     def from_koji(cls: Type[RemoteT], data: Optional[Dict[str, Any]]) -> RemoteT:
         raise NotImplementedError("Subclasses must implement from_koji")
@@ -291,6 +298,10 @@ class RemoteObject(CoreModel):
 
     def load_additional_data(self, session: MultiCallSession):
         pass  # Default implementation
+
+
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}({self.name})>"
 
 
 # The end.

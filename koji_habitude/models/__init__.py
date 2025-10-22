@@ -17,7 +17,7 @@ from typing import Mapping, Tuple, Type
 from .archive_type import ArchiveType
 from .base import (
     BaseKey, BaseObject, BaseStatus, CoreModel, CoreObject,
-    IdentifiableBase, LocalBase, ResolvableBase)
+    IdentifiableMixin, LocalMixin, ResolvableMixin)
 from .build_type import BuildType
 from .change import Add, Change, ChangeReport, Create, Modify, Remove, Update
 from .channel import Channel
@@ -44,9 +44,9 @@ __all__ = (
     'CoreObject',
 
     # Pydantic mixins
-    'IdentifiableBase',
-    'LocalBase',
-    'ResolvableBase',
+    'IdentifiableMixin',
+    'LocalMixin',
+    'ResolvableMixin',
 
     # Compat
     'Field',

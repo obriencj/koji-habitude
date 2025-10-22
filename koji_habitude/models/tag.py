@@ -61,9 +61,9 @@ class TagCreate(Create):
         # Inheritance is the only place that cannot operate except by using the
         # parent tag's ID (not by name)
         if self.obj._is_split:
-            self.obj._original.load_remote(session)
+            self.obj._original.load_remote(session, reload=True)
         else:
-            self.obj.load_remote(session)
+            self.obj.load_remote(session, reload=True)
 
         return res
 
@@ -318,14 +318,14 @@ class TagAddInheritance(Add):
         tag = resolver.resolve(self.parent.key())
         logger.debug(f"Resolved parent tag '{self.parent.name}' to {tag}")
 
-        tinfo = tag.exists()
+        tinfo = tag.remote()
         if tinfo is None:
             assert not tag.is_phantom()
             logger.debug("MultiCallNotReady, breaking out of multicall")
             return True
 
-        logger.debug(f"Parent tag '{self.parent.name}' exists, ID: {tinfo['id']}")
-        self.parent._parent_tag_id = tinfo['id']
+        logger.debug(f"Parent tag '{self.parent.name}' exists, ID: {tinfo.koji_id}")
+        self.parent._parent_tag_id = tinfo.koji_id
         return False
 
 
@@ -620,8 +620,8 @@ class TagChangeReport(ChangeReport):
             tag = self.resolver.resolve(parent.key())
             tremote = tag.remote()
             if tremote:
-                parent._parent_tag_id = tremote.id
-                logger.debug(f"Parent tag '{parent.name}' exists already, ID: {tremote.id}")
+                parent._parent_tag_id = tremote.koji_id
+                logger.debug(f"Parent tag '{parent.name}' exists already, ID: {tremote.koji_id}")
             else:
                 logger.debug(f"Parent tag '{parent.name}' does not exist")
 
@@ -673,7 +673,7 @@ class TagChangeReport(ChangeReport):
         # TODO: we'll need to actually invoke addGroupReq vs. Package for these.
         # depending on the type. for now we just assume package for all.
 
-        koji_groups = {group.name: group for group in remote.groups}
+        koji_groups = remote.groups
         for group_name, group in self.obj.groups.items():
             if group_name not in koji_groups:
                 yield TagAddGroup(self.obj, group)
@@ -767,7 +767,7 @@ class PackageEntry(SubModel):
     name: str = Field(alias='name')
     block: bool = Field(alias='blocked', default=False)
     owner: Optional[str] = Field(alias='owner', default=None)
-    extra_arches: Optional[List[str]] = Field(alias='extra-arches', default=None)
+    extra_arches: List[str] = Field(alias='extra-arches', default_factory=list)
 
 
 class InheritanceLink(SubModel):
@@ -1060,12 +1060,18 @@ class RemoteTag(TagModel, RemoteObject):
 
 
     def set_koji_groups(self, result: VirtualPromise):
+        print(f"set_koji_groups: {result.result}")
         self.groups = {
             group['name']: TagGroup(
                 name=group['name'],
                 description=group['description'],
-                block=group['block'])
+                block=group['blocked'],
+                packages=[TagGroupPackage(
+                    name=package['package'],
+                    block=package['blocked'])
+                    for package in group['packagelist']])
             for group in result.result}
+        print(f"self.groups: {self.groups!r}")
 
 
     def set_koji_inheritance(self, result: VirtualPromise):

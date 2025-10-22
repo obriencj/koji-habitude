@@ -76,7 +76,7 @@ def create_resolver_with_objects(objects: Dict[BaseKey, BaseObject]) -> Resolver
 
     def resolve(key: BaseKey) -> BaseObject:
         m = Mock(spec=BaseObject)
-        m.exists.return_value = objects.get(key)
+        m.remote.return_value = objects.get(key)
         return m
 
     mock_resolver = Mock(spec=Resolver)
