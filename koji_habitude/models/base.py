@@ -88,6 +88,12 @@ class IdentifiableMixin(Mixin):
     yaml_type: Optional[str] = Field(alias='type', default=None)
 
 
+    def model_post_init(self, __context: Any):
+        if self.yaml_type is None:
+            self.yaml_type = self.typename
+        super().model_post_init(__context)
+
+
     @field_validator('name', mode='before')
     def validate_name(cls, value: str):
         value = value and value.strip()
