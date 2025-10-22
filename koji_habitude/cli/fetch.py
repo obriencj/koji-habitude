@@ -30,8 +30,16 @@ from .util import catchall
 @click.option(
     "--output", "-o", default=sys.stdout, type=click.File('w'), metavar='PATH',
     help="Path to output YAML file (default: stdout)")
+@click.option(
+    "--exclude-defaults", "-x", default=False, is_flag=True,
+    help="Whether to exclude default values (bool default: False)")
 @catchall
-def fetch(data, templates=None, profile='koji', output=sys.stdout):
+def fetch(
+        data,
+        templates=None,
+        profile='koji',
+        output=sys.stdout,
+        exclude_defaults=False):
     """
     Fetch remote data from Koji instance and output as YAML.
 
@@ -55,7 +63,7 @@ def fetch(data, templates=None, profile='koji', output=sys.stdout):
             continue  # Skip all References
         remote = obj.remote()
         if remote is not None:
-            remote_objects.append(remote.to_dict())
+            remote_objects.append(remote.to_dict(exclude_defaults=exclude_defaults))
 
     # Output all remote objects as YAML
     pretty_yaml_all(remote_objects, out=output)
