@@ -28,13 +28,13 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def compare_arches(koji_arches: Optional[str], arches: Optional[List[str]]) -> bool:
-    if koji_arches is None:
-        return arches is None
-    elif arches is None:
+def compare_arches(arches_a: Optional[List[str]], arches_b: Optional[List[str]]) -> bool:
+    if arches_a is None:
+        return arches_b is None
+    elif arches_b is None:
         return False
     else:
-        return set(koji_arches.split()) == set(arches)
+        return set(arches_a) == set(arches_b)
 
 
 def split_arches(arches: Optional[str]) -> Optional[List[str]]:
@@ -567,7 +567,7 @@ class TagChangeReport(ChangeReport):
 
         if remote.locked != self.obj.locked:
             yield TagSetLocked(self.obj, self.obj.locked)
-        if set(remote.arches) != set(self.obj.arches):
+        if not compare_arches(remote.arches, self.obj.arches):
             yield TagSetArches(self.obj, self.obj.arches)
         if remote.maven_support != self.obj.maven_support or \
            remote.maven_include_all != self.obj.maven_include_all:
@@ -600,7 +600,7 @@ class TagChangeReport(ChangeReport):
                         yield TagPackageListUnblock(self.obj, package.name)
                 if koji_pkg.owner != package.owner and package.owner is not None:
                     yield TagPackageListSetOwner(self.obj, package.name, package.owner)
-                if set(koji_pkg.extra_arches) != set(package.extra_arches):
+                if not compare_arches(koji_pkg.extra_arches, package.extra_arches):
                     yield TagPackageListSetArches(self.obj, package.name, package.extra_arches)
 
         if self.obj.exact_packages:
@@ -659,7 +659,7 @@ class TagChangeReport(ChangeReport):
                 repo = ext_repos[name]
                 if koji_repo.priority != repo.priority or \
                    koji_repo.merge_mode != repo.merge_mode or \
-                   set(koji_repo.arches) != set(repo.arches):
+                   not compare_arches(koji_repo.arches, repo.arches):
                     yield TagUpdateExternalRepo(self.obj, repo)
 
         for name, repo in ext_repos.items():
@@ -1060,7 +1060,6 @@ class RemoteTag(TagModel, RemoteObject):
 
 
     def set_koji_groups(self, result: VirtualPromise):
-        print(f"set_koji_groups: {result.result}")
         self.groups = {
             group['name']: TagGroup(
                 name=group['name'],
@@ -1071,7 +1070,6 @@ class RemoteTag(TagModel, RemoteObject):
                     block=package['blocked'])
                     for package in group['packagelist']])
             for group in result.result}
-        print(f"self.groups: {self.groups!r}")
 
 
     def set_koji_inheritance(self, result: VirtualPromise):

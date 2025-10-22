@@ -175,7 +175,6 @@ class RemoteChannel(ChannelModel, RemoteObject):
 
 
     def load_additional_data(self, session: MultiCallSession):
-        print("Loading additional data for channel", self.name)
         session.listHosts(channelID=self.name).into(self.set_koji_hosts)
 
 
