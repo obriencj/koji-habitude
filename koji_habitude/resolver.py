@@ -26,7 +26,7 @@ from koji import (ClientSession, MultiCallNotReady, MultiCallSession,
                   VirtualCall)
 from typing_extensions import TypeAlias
 
-from .koji import multicall
+from .koji import multicall, VirtualPromise
 from .models import (BaseKey, BaseStatus, ChangeReport, CoreModel, CoreObject,
                      Field, PrivateAttr, ResolvableMixin)
 
@@ -98,8 +98,8 @@ class Reference(CoreModel, ResolvableMixin):
         return self.remote() is None
 
 
-    def load_remote(self, session: MultiCallSession) -> VirtualCall:
-        if self._remote is None:
+    def load_remote(self, session: MultiCallSession, reload: bool = False) -> VirtualPromise:
+        if reload or self._remote is None:
             self._remote = self.tp.query_remote(session, self.key())
         return self._remote
 

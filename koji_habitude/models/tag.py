@@ -413,7 +413,7 @@ class TagUpdateExternalRepo(Modify):
             arches=arches)
 
     def summary(self) -> str:
-        msg = "with priority {self.repo.priority}"
+        msg = f"with priority {self.repo.priority}"
         if self.repo.arches is not None:
             msg += f" and arches {self.repo.arches!r}"
         if self.repo.merge_mode is not None:
@@ -576,6 +576,7 @@ class TagChangeReport(ChangeReport):
         if remote.permission != self.obj.permission:
             yield TagSetPermission(self.obj, self.obj.permission)
         if remote.extras != self.obj.extras:
+            print(f"extras changed from {remote.extras} to {self.obj.extras}")
             yield TagSetExtras(self.obj, self.obj.extras)
 
         yield from self._compare_packages()

@@ -566,6 +566,7 @@ class ChangeReport:
         remote = self.obj.remote()
         if remote:
             remote.load_additional_data(session)
+            return None
         else:
             self.obj.load_remote(session)
             return self.impl_read_defer
