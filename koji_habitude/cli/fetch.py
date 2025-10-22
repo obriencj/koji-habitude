@@ -69,7 +69,7 @@ def fetch(
         work_objects = workflow.dataseries
     else:
         work_objects = []
-        for change_report in workflow.resolver_report.change_reports.values():
+        for change_report in workflow.summary.change_reports.values():
             if len(change_report.changes):
                 work_objects.append(change_report.obj)
 
