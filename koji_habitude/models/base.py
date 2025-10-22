@@ -308,6 +308,10 @@ class RemoteObject(IdentifiableMixin, BaseModel):
         pass  # Default implementation
 
 
+    def to_dict(self) -> Dict[str, Any]:
+        return self.model_dump(by_alias=True)
+
+
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}({self.name})>"
 
