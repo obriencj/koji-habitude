@@ -309,7 +309,7 @@ class RemoteObject(IdentifiableMixin, BaseModel):
 
 
     def to_dict(self) -> Dict[str, Any]:
-        return self.model_dump(by_alias=True)
+        return self.model_dump(by_alias=True, exclude={'koji_id'})
 
 
     def __repr__(self) -> str:

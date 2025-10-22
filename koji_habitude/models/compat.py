@@ -68,13 +68,13 @@ except ImportError:
             """
             return cls.parse_obj(data)
 
-        def model_dump(self, by_alias: bool = True) -> Dict[str, Any]:  # type: ignore
+        def model_dump(self, by_alias: bool = True, **kwargs: Any) -> Dict[str, Any]:  # type: ignore
             """
             Return a dictionary representation of this object. This is distinct from
             the original data that was used to create the object, and may include
             fields with default values and validated forms.
             """
-            return self.dict(by_alias=by_alias)
+            return self.dict(by_alias=by_alias, **kwargs)
 
     def field_validator(  # type: ignore
             field: str,

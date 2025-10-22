@@ -724,12 +724,16 @@ class TagGroupPackage(SubModel):
     block: bool = Field(alias='blocked', default=False)
 
 
-class TagGroup(SubModel):
+class TagGroupModel(SubModel):
 
     name: str = Field(alias='name')
     description: Optional[str] = Field(alias='description', default=None)
     block: bool = Field(alias='blocked', default=False)
     packages: List[TagGroupPackage] = Field(alias='packages', default_factory=list)
+
+
+class TagGroup(TagGroupModel):
+
     exact_packages: bool = Field(alias='exact-packages', default=False)
 
     @field_validator("packages", mode='before')
@@ -760,6 +764,10 @@ class TagGroup(SubModel):
             fixed.append(item)
 
         return fixed
+
+
+class RemoteTagGroup(TagGroupModel):
+    pass
 
 
 class PackageEntry(SubModel):
@@ -1061,7 +1069,7 @@ class RemoteTag(TagModel, RemoteObject):
 
     def set_koji_groups(self, result: VirtualPromise):
         self.groups = {
-            group['name']: TagGroup(
+            group['name']: RemoteTagGroup(
                 name=group['name'],
                 description=group['description'],
                 block=group['blocked'],
