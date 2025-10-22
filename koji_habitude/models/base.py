@@ -150,14 +150,14 @@ class LocalMixin(Mixin):
         return obj
 
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kwargs: Any) -> Dict[str, Any]:
         """
         Return a dictionary representation of this object. This is distinct from
         the original data that was used to create the object, and may include
         fields with default values and validated forms.
         """
 
-        return self.model_dump(by_alias=True)
+        return self.model_dump(by_alias=True, **kwargs)
 
 
     @property
@@ -314,8 +314,8 @@ class RemoteObject(IdentifiableMixin, BaseModel):
         pass  # Default implementation
 
 
-    def to_dict(self) -> Dict[str, Any]:
-        return self.model_dump(by_alias=True, exclude={'koji_id'})
+    def to_dict(self, **kwargs: Any) -> Dict[str, Any]:
+        return self.model_dump(by_alias=True, exclude={'koji_id'}, **kwargs)
 
 
     def __repr__(self) -> str:
