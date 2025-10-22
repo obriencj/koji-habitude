@@ -14,8 +14,6 @@ from dataclasses import dataclass
 from typing import (TYPE_CHECKING, Any, ClassVar, Dict, Iterable, List,
                     Literal, Optional, Sequence)
 
-from click.utils import P
-
 from koji import MultiCallSession, VirtualCall
 
 from ..koji import call_processor, VirtualPromise
