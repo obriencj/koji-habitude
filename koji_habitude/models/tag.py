@@ -37,9 +37,9 @@ def compare_arches(arches_a: Optional[List[str]], arches_b: Optional[List[str]])
         return set(arches_a) == set(arches_b)
 
 
-def split_arches(arches: Optional[str]) -> Optional[List[str]]:
+def split_arches(arches: Optional[str], allow_none: bool = False) -> Optional[List[str]]:
     if arches is None:
-        return []
+        return None if allow_none else []
     else:
         return arches.split()
 
@@ -576,7 +576,6 @@ class TagChangeReport(ChangeReport):
         if remote.permission != self.obj.permission:
             yield TagSetPermission(self.obj, self.obj.permission)
         if remote.extras != self.obj.extras:
-            print(f"extras changed from {remote.extras} to {self.obj.extras}")
             yield TagSetExtras(self.obj, self.obj.extras)
 
         yield from self._compare_packages()
@@ -661,10 +660,6 @@ class TagChangeReport(ChangeReport):
                 if koji_repo.priority != repo.priority or \
                    koji_repo.merge_mode != repo.merge_mode or \
                    not compare_arches(koji_repo.arches, repo.arches):
-                    print(f"external repo {name} changed from {koji_repo} to {repo}")
-                    print(f"priority: {koji_repo.priority} != {repo.priority}")
-                    print(f"merge_mode: {koji_repo.merge_mode} != {repo.merge_mode}")
-                    print(f"arches: {koji_repo.arches} != {repo.arches}")
                     yield TagUpdateExternalRepo(self.obj, repo)
 
         for name, repo in ext_repos.items():
@@ -1095,7 +1090,7 @@ class RemoteTag(TagModel, RemoteObject):
             ExternalRepoLink(
                 name=repo['external_repo_name'],
                 priority=repo['priority'],
-                arches=split_arches(repo['arches']),
+                arches=split_arches(repo['arches'], allow_none=True),
                 merge_mode=repo['merge_mode'])
             for repo in result.result]
 
