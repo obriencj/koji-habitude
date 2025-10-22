@@ -105,7 +105,7 @@ class IdentifiableMixin(Mixin):
         return f"<{self.__class__.__name__}({self.name})>"
 
 
-LocalT = TypeVar('LocalT', bound='LocalBase')
+LocalT = TypeVar('LocalT', bound='LocalMixin')
 
 
 class LocalMixin(Mixin):
@@ -118,7 +118,7 @@ class LocalMixin(Mixin):
     trace: Optional[List[Dict[str, Any]]] = Field(alias='__trace__', default_factory=list)
 
     # this is the record of the `from_dict` call if it was used
-    _data: Optional[Dict[str, Any]] = PrivateAttr(default=None)
+    x_data: Optional[Dict[str, Any]] = None
 
 
     def filepos(self) -> Tuple[Optional[str], Optional[int]]:
@@ -141,7 +141,7 @@ class LocalMixin(Mixin):
         """
 
         obj = cls.model_validate(data)
-        obj._data = data
+        obj.x_data = data
         return obj
 
 
@@ -160,7 +160,7 @@ class LocalMixin(Mixin):
         """
         Access the raw data that was used if this object was created via `from_dict`
         """
-        return self._data
+        return self.x_data
 
 
 class ResolvableMixin(Mixin):
@@ -202,7 +202,7 @@ class SubModel(BaseModel):
     pass
 
 
-class CoreModel(BaseModel,IdentifiableMixin):
+class CoreModel(IdentifiableMixin, BaseModel):
     """
     A base model shared by a core and remote object
     """
@@ -214,7 +214,7 @@ class CoreModel(BaseModel,IdentifiableMixin):
 CoreT = TypeVar('CoreT', bound='CoreObject')
 
 
-class CoreObject(CoreModel, LocalMixin, ResolvableMixin):
+class CoreObject(IdentifiableMixin, LocalMixin, ResolvableMixin, BaseModel):
     """
     Core models that load from YAML and have full functionality through
     the Resolver, Processor, and Solver.
@@ -222,9 +222,9 @@ class CoreObject(CoreModel, LocalMixin, ResolvableMixin):
 
     typename: ClassVar[str] = 'object'
 
-    _auto_split: ClassVar[bool] = PrivateAttr(default=False)
-    _is_split: bool = PrivateAttr(default=False)
-    _was_split: bool = PrivateAttr(default=False)
+    _auto_split: ClassVar[bool] = False
+    _is_split: bool = False
+    _was_split: bool = False
 
 
     def dependency_keys(self) -> Sequence[BaseKey]:
@@ -278,7 +278,7 @@ BaseObject = CoreObject
 RemoteT = TypeVar('RemoteT', bound='RemoteObject')
 
 
-class RemoteObject(CoreModel):
+class RemoteObject(IdentifiableMixin, BaseModel):
     """
     Base models that load from the Koji API, and are used for comparison by a
     CoreObject

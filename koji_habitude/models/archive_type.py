@@ -19,7 +19,7 @@ from koji import MultiCallSession, VirtualCall
 from ..koji import call_processor
 from .base import BaseKey, CoreModel, CoreObject, RemoteObject
 from .change import ChangeReport, Create
-from .compat import Field, field_validator
+from .compat import BaseModel, Field, field_validator
 
 if TYPE_CHECKING:
     from ..resolver import Resolver

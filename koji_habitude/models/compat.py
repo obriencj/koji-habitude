@@ -40,6 +40,8 @@ try:
 except ImportError:
     # Pydantic v1.10 compatibility
     from pydantic import validator as _validator
+    from pydantic.main import ModelMetaclass
+    from pydantic.fields import ModelPrivateAttr
 
     T = TypeVar('T', bound='BaseModel')
 

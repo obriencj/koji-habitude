@@ -779,7 +779,7 @@ class InheritanceLink(SubModel):
     pkgfilter: str = Field(alias='pkg-filter', default='')
     intransitive: bool = Field(alias='intransitive', default=False)
 
-    parent_id: Optional[int] = None
+    _parent_tag_id: Optional[int] = None
 
 
     @field_validator('pkgfilter', mode='before')
