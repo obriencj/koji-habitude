@@ -640,7 +640,7 @@ class TagChangeReport(ChangeReport):
                 if koji_parent.priority != parent.priority or \
                    koji_parent.maxdepth != parent.maxdepth or \
                    koji_parent.noconfig != parent.noconfig or \
-                   koji_parent.pkg_filter != parent.pkg_filter or \
+                   koji_parent.pkgfilter != parent.pkgfilter or \
                    koji_parent.intransitive != parent.intransitive:
                     yield TagUpdateInheritance(self.obj, parent, koji_parent.parent_id)
 
