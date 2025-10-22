@@ -25,9 +25,8 @@ from jinja2.meta import find_undeclared_variables
 
 from .exceptions import (TemplateError, TemplateOutputError,
                          TemplateRenderError, TemplateSyntaxError)
-from .models.base import LocalMixin, IdentifiableMixin
-from .models.compat import BaseModel, Field, PrivateAttr, field_validator
-
+from .models import (BaseModel, Field, IdentifiableMixin, LocalMixin,
+                     PrivateAttr, field_validator)
 
 logger = logging.getLogger("koji_habitude.templates")
 

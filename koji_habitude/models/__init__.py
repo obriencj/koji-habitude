@@ -21,7 +21,7 @@ from .base import (
 from .build_type import BuildType
 from .change import Add, Change, ChangeReport, Create, Modify, Remove, Update
 from .channel import Channel
-from .compat import Field, field_validator
+from .compat import BaseModel, Field, PrivateAttr, field_validator
 from .content_generator import ContentGenerator
 from .external_repo import ExternalRepo
 from .group import Group
@@ -49,7 +49,9 @@ __all__ = (
     'ResolvableMixin',
 
     # Compat
+    'BaseModel',
     'Field',
+    'PrivateAttr',
     'field_validator',
 
     # Change classes

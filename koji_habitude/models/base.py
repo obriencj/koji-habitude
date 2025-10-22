@@ -117,8 +117,7 @@ class LocalMixin(Mixin):
     lineno: Optional[int] = Field(alias='__line__', default=None)
     trace: Optional[List[Dict[str, Any]]] = Field(alias='__trace__', default_factory=list)
 
-    # this is the record of the `from_dict` call if it was used
-    x_data: Optional[Dict[str, Any]] = None
+    _data: Optional[Dict[str, Any]] = PrivateAttr(default=None)
 
 
     def filepos(self) -> Tuple[Optional[str], Optional[int]]:
@@ -141,7 +140,7 @@ class LocalMixin(Mixin):
         """
 
         obj = cls.model_validate(data)
-        obj.x_data = data
+        obj._data = data
         return obj
 
 
@@ -160,12 +159,18 @@ class LocalMixin(Mixin):
         """
         Access the raw data that was used if this object was created via `from_dict`
         """
-        return self.x_data
+        return self._data
 
 
 class ResolvableMixin(Mixin):
 
-    _remote: Optional[VirtualCall] = PrivateAttr(default=None)
+    # We cannot make this a PrivateAttr because doing so breaks Pydantic v1.10
+    # compatibility. This is because v1.10 creates a __slots__ attribute for the
+    # class when there are private attributes, and you cannot use __slots__ with
+    # multiple inheritance, which is the whole damned point of mixins. The _data
+    # attribute from LocalMixin is the one that conflicts with us. Inheriting
+    # from LocalMixin and ResolvableMixin together explodes pydantic v1.10
+    _remote: Optional[VirtualCall] = None
 
 
     @property
@@ -223,8 +228,11 @@ class CoreObject(IdentifiableMixin, LocalMixin, ResolvableMixin, BaseModel):
     typename: ClassVar[str] = 'object'
 
     _auto_split: ClassVar[bool] = False
-    _is_split: bool = False
-    _was_split: bool = False
+    _is_split: bool = PrivateAttr(default=False)
+    _was_split: bool = PrivateAttr(default=False)
+
+    # pydantic v1.10 compatibility for ResolvableMixin
+    _remote: Optional[VirtualCall] = PrivateAttr(default=None)
 
 
     def dependency_keys(self) -> Sequence[BaseKey]:

@@ -27,9 +27,8 @@ from koji import (ClientSession, MultiCallNotReady, MultiCallSession,
 from typing_extensions import TypeAlias
 
 from .koji import multicall
-from .models import (Field, BaseKey, BaseStatus, CoreModel, CoreObject,
-                     ResolvableMixin, ChangeReport)
-
+from .models import (BaseKey, BaseStatus, ChangeReport, CoreModel, CoreObject,
+                     Field, PrivateAttr, ResolvableMixin)
 
 if TYPE_CHECKING:
     from .namespace import Namespace
@@ -73,6 +72,10 @@ class Reference(CoreModel, ResolvableMixin):
     """
 
     typename: ClassVar[str] = 'reference'
+
+    # pydantic v1.10 compatibility for ResolvableMixin
+    _remote: Optional[VirtualCall] = PrivateAttr(default=None)
+
 
     tp: Type[CoreObject] = Field(alias='tp')
 
