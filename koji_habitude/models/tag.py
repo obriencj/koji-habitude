@@ -14,6 +14,8 @@ from dataclasses import dataclass
 from typing import (TYPE_CHECKING, Any, ClassVar, Dict, Iterable, List,
                     Literal, Optional, Sequence)
 
+from click.utils import P
+
 from koji import MultiCallSession, VirtualCall
 
 from ..koji import call_processor, VirtualPromise
@@ -661,6 +663,10 @@ class TagChangeReport(ChangeReport):
                 if koji_repo.priority != repo.priority or \
                    koji_repo.merge_mode != repo.merge_mode or \
                    not compare_arches(koji_repo.arches, repo.arches):
+                    print(f"external repo {name} changed from {koji_repo} to {repo}")
+                    print(f"priority: {koji_repo.priority} != {repo.priority}")
+                    print(f"merge_mode: {koji_repo.merge_mode} != {repo.merge_mode}")
+                    print(f"arches: {koji_repo.arches} != {repo.arches}")
                     yield TagUpdateExternalRepo(self.obj, repo)
 
         for name, repo in ext_repos.items():
