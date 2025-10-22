@@ -9,13 +9,15 @@ AI-Assistant: Claude 4.5 Sonnet via Cursor
 """
 
 
-import click
 import sys
+from typing import List, TextIO
 
-from . import main
+import click
+
 from ..loader import pretty_yaml_all
 from ..resolver import Reference
 from ..workflow import CompareWorkflow
+from . import main
 from .util import catchall
 
 
@@ -31,15 +33,19 @@ from .util import catchall
     "--output", "-o", default=sys.stdout, type=click.File('w'), metavar='PATH',
     help="Path to output YAML file (default: stdout)")
 @click.option(
-    "--exclude-defaults", "-x", default=False, is_flag=True,
-    help="Whether to exclude default values (bool default: False)")
+    "--include-defaults", "-d", default=False, is_flag=True,
+    help="Whether to include default values (bool default: False)")
+@click.option(
+    "--show-unchanged", "-u", default=False, is_flag=True,
+    help="Whether to show unchanged objects (bool default: False)")
 @catchall
 def fetch(
-        data,
-        templates=None,
-        profile='koji',
-        output=sys.stdout,
-        exclude_defaults=False):
+        data: List[str],
+        templates: List[str] = None,
+        profile: str = 'koji',
+        output: TextIO = sys.stdout,
+        include_defaults: bool = False,
+        show_unchanged: bool = False):
     """
     Fetch remote data from Koji instance and output as YAML.
 
@@ -56,17 +62,31 @@ def fetch(
         profile=profile)
     workflow.run()
 
-    # Filter to only CoreObjects with remote data (skip References and phantoms)
+    exclude_defaults = not include_defaults
+
+    if show_unchanged:
+        # just show all objects from the dataseries
+        work_objects = workflow.dataseries
+    else:
+        work_objects = []
+        for change_report in workflow.resolver_report.change_reports.values():
+            if len(change_report.changes):
+                work_objects.append(change_report.obj)
+
     remote_objects = []
-    for obj in workflow.dataseries:
+    for obj in work_objects:
         if isinstance(obj, Reference):
-            continue  # Skip all References
+            continue
+
         remote = obj.remote()
-        if remote is not None:
-            remote_objects.append(remote.to_dict(exclude_defaults=exclude_defaults))
+        if remote is None:
+            continue
+
+        remote_objects.append(remote)
 
     # Output all remote objects as YAML
-    pretty_yaml_all(remote_objects, out=output)
+    series = (remote.to_dict(exclude_defaults=exclude_defaults) for remote in remote_objects)
+    pretty_yaml_all(series, out=output)
 
     return 0
 
