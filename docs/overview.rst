@@ -38,12 +38,12 @@ Current Status
 --------------
 
 **Implemented:** - Complete CLI framework with all core commands
-(``apply``, ``compare``, ``expand``, ``list-templates``) - All Koji
-object types (11 CORE_MODELS) with Pydantic validation - Dependency
-resolution architecture (Resolver and Solver modules) - Processor module
-with state machine and multicall integration - Comprehensive unit
-testing (360+ tests, 74%+ coverage) - Template expansion and change
-tracking system
+(``apply``, ``compare``, ``expand``, ``fetch``, ``list-templates``) - All Koji
+object types (11 CORE_MODELS) with Pydantic validation - Remote object models
+for fetching and comparing against Koji state - Dependency resolution
+architecture (Resolver and Solver modules) - Processor module with state
+machine and multicall integration - Comprehensive unit testing (360+ tests,
+74%+ coverage) - Template expansion and change tracking system
 
 **Next Steps:** - CLI testing coverage improvements - Integration
 testing on a real koji instance - Performance optimization and error
@@ -90,6 +90,18 @@ Main Commands
 
 - Expands templates and outputs final YAML to stdout
 - Options: ``--templates PATH``, ``--validate``, ``--select TYPE``
+
+**``fetch``** - Fetch remote data from Koji instance
+
+.. code:: bash
+
+   koji-habitude fetch [OPTIONS] DATA [DATA...]
+
+- Loads templates and data files, connects to Koji
+- Outputs YAML documents representing remote state of objects
+- Shows objects that differ from local definitions (or all with ``--show-unchanged``)
+- Options: ``--templates PATH``, ``--profile PROFILE``, ``--output PATH``,
+  ``--include-defaults``, ``--show-unchanged``
 
 **``list-templates``** - List available templates
 
@@ -253,12 +265,15 @@ Architecture Components
 
 - **Template System**: Jinja2-based template expansion with recursive
   processing
+- **Remote Models**: Complete set of remote object models for fetching and
+  comparing Koji state
 - **Processor Module**: State machine-driven synchronization engine with
   multicall integration
 - **Change Tracking**: ``ChangeReport`` system tracks all modifications
   with detailed explanations
 - **Dry-Run Support**: ``CompareOnlyProcessor`` for previewing changes
   without applying them
+- **Fetch Capability**: Pull remote Koji state as YAML for comparison and backup
 
 **Data Flow**: YAML files → Template expansion → Dependency resolution →
 Tiered processing
