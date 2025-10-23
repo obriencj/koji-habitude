@@ -47,34 +47,22 @@ def parse_patterns(args: List[str], default_types: List[str]) -> List[BaseKey]:
 
 def search_tags(session_obj, pattern: str) -> List[BaseKey]:
     """Search for tags using koji search API."""
-    try:
-        return [('tag', v['name']) for v in session_obj.search(pattern, 'tag', 'glob')]
-    except Exception:
-        return []
+    return [('tag', v['name']) for v in session_obj.search(pattern, 'tag', 'glob')]
 
 
 def search_targets(session_obj, pattern: str) -> List[BaseKey]:
     """Search for targets using koji search API."""
-    try:
-        return [('target', v['name']) for v in session_obj.search(pattern, 'target', 'glob')]
-    except Exception:
-        return []
+    return [('target', v['name']) for v in session_obj.search(pattern, 'target', 'glob')]
 
 
 def search_users(session_obj, pattern: str) -> List[BaseKey]:
     """Search for users using koji search API."""
-    try:
-        return [('user', v['name']) for v in session_obj.search(pattern, 'user', 'glob')]
-    except Exception:
-        return []
+    return [('user', v['name']) for v in session_obj.search(pattern, 'user', 'glob')]
 
 
 def search_hosts(session_obj, pattern: str) -> List[BaseKey]:
     """Search for hosts using koji search API."""
-    try:
-        return [('host', v['name']) for v in session_obj.search(pattern, 'host', 'glob')]
-    except Exception:
-        return []
+    return [('host', v['name']) for v in session_obj.search(pattern, 'host', 'glob')]
 
 
 # Registry of search functions
@@ -97,7 +85,7 @@ def resolve_term(session, resolver: Resolver, key: BaseKey) -> List[Reference]:
         search_fn = SEARCH_FUNCTIONS.get(typename)
         if search_fn is None:
             raise ValueError(f"No search function for type {typename}")
-        print(f"Searching {name} for {typename}")
+        print(f"Searching {search_fn!r} for {name!r}")
         return [resolver.resolve(key) for key in search_fn(session, name)]
     else:
         return [resolver.resolve(key)]
