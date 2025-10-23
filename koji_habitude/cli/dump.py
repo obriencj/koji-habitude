@@ -86,7 +86,7 @@ SEARCH_FUNCTIONS = {
 }
 
 
-glob_like = re.compile(r'[*?[]').match
+glob_like = re.compile(r'[\*\?\[\]]').search
 
 
 def resolve_term(session, resolver: Resolver, key: BaseKey) -> List[Reference]:
