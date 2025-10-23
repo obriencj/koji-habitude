@@ -167,7 +167,7 @@ def dump(patterns, profile='koji', output=sys.stdout, include_defaults=False,
 
     # performs searches and resolves individual units to References
     for key in search_list:
-        refs = resolve_term(session, resolver, key)
+        refs = resolve_term(session_obj, resolver, key)
         for ref in refs:
             print(f"Resolved {ref!r}")
 
