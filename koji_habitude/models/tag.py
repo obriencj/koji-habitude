@@ -1030,7 +1030,7 @@ class Tag(TagModel, CoreObject):
 
 
     @classmethod
-    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall['RemoteTag']:
         return call_processor(RemoteTag.from_koji, session.getTag, key[1], strict=False)
 
 
@@ -1038,6 +1038,9 @@ class RemoteTag(TagModel, RemoteObject):
     """
     Remote tag object from Koji API
     """
+
+    groups: Dict[str, RemoteTagGroup] = Field(alias='groups', default_factory=dict)  # type: ignore
+
 
     @classmethod
     def from_koji(cls, data: Optional[Dict[str, Any]]):

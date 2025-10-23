@@ -211,7 +211,7 @@ class Host(HostModel, CoreObject):
 
 
     @classmethod
-    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall['RemoteHost']:
         return call_processor(RemoteHost.from_koji, session.getHost, key[1], strict=False)
 
 

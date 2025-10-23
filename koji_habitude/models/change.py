@@ -27,6 +27,7 @@ from .base import BaseObject, BaseKey
 
 if TYPE_CHECKING:
     from ..resolver import Resolver
+    from .base import ResolvableMixin as Resolvable
 
 
 logger = getLogger(__name__)
@@ -518,8 +519,8 @@ class ChangeReport:
     * state is CHECKED
     """
 
-    def __init__(self, obj: BaseObject, resolver: 'Resolver'):
-        self.obj: BaseObject = obj
+    def __init__(self, obj: 'Resolvable', resolver: 'Resolver'):
+        self.obj: 'Resolvable' = obj
         self.key: BaseKey = obj.key()
         self.state: ChangeReportState = ChangeReportState.PENDING
         self.changes: List[Change] = []

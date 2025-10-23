@@ -138,15 +138,15 @@ class ReportingMulticall(PromiseMultiCallSession):
             session: ClientSession,
             strict: bool = False,
             batch: Optional[bool] = None,
-            associations: Optional[Dict['BaseKey', List[VirtualPromise]]] = None):
+            associations: Optional[Dict['BaseKey', List[VirtualCall]]] = None):
 
         super().__init__(session, strict=strict, batch=batch)
 
         if associations is None:
             associations = {}
 
-        self._associations: Dict['BaseKey', List[VirtualPromise]] = associations
-        self._call_log: List[VirtualPromise] = associations.setdefault(None, [])
+        self._associations: Dict['BaseKey', List[VirtualCall]] = associations
+        self._call_log: List[VirtualCall] = associations.setdefault(None, [])
 
 
     def _callMethod(self, name: str, args, kwargs=None, retry=True) -> VirtualPromise:

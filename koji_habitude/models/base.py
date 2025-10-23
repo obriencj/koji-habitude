@@ -12,7 +12,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from enum import Enum
-from typing import (TYPE_CHECKING, Any, ClassVar, Dict, List, Optional,
+from typing import (TYPE_CHECKING, Any, ClassVar, Dict, List, Optional, Protocol,
                     Sequence, Tuple, Type, TypeVar)
 
 from koji import MultiCallNotReady, MultiCallSession, VirtualCall
@@ -73,6 +73,12 @@ class BaseStatus(Enum):
     """
     Dependency which is not defined in a Namespace, and not known to exist on the Koji instance
     """
+
+
+class Identifiable(Protocol):
+
+    def key(self) -> BaseKey:
+        ...
 
 
 # Pydantic Model Mixins
@@ -168,7 +174,7 @@ class LocalMixin(Mixin):
         return self._data
 
 
-class ResolvableMixin(Mixin):
+class ResolvableMixin(Identifiable, Mixin):
 
     # We cannot make this a PrivateAttr because doing so breaks Pydantic v1.10
     # compatibility. This is because v1.10 creates a __slots__ attribute for the
@@ -188,7 +194,7 @@ class ResolvableMixin(Mixin):
         return False
 
 
-    def remote(self) -> Optional['RemoteObject']:
+    def remote(self):
         try:
             return self._remote.result if self._remote is not None else None
         except MultiCallNotReady:

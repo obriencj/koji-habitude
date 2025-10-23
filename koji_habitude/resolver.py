@@ -19,7 +19,7 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 import logging
 from dataclasses import dataclass
-from typing import (TYPE_CHECKING, Any, ClassVar, Dict, Iterable, List,
+from typing import (TYPE_CHECKING, cast, Any, ClassVar, Dict, Iterable, List,
                     Optional, Sequence, Tuple, Type, Union, cast)
 
 from koji import (ClientSession, MultiCallNotReady, MultiCallSession,
@@ -89,6 +89,10 @@ class Reference(CoreModel, ResolvableMixin):
         return False
 
 
+    def split(self) -> 'Reference':
+        assert False, "References cannot be split"
+
+
     @property
     def status(self) -> BaseStatus:
         return BaseStatus.DISCOVERED if self.remote() else BaseStatus.PHANTOM
@@ -98,7 +102,7 @@ class Reference(CoreModel, ResolvableMixin):
         return self.remote() is None
 
 
-    def load_remote(self, session: MultiCallSession, reload: bool = False) -> VirtualPromise:
+    def load_remote(self, session: MultiCallSession, reload: bool = False) -> VirtualCall:
         if reload or self._remote is None:
             self._remote = self.tp.query_remote(session, self.key())
         return self._remote
@@ -193,7 +197,7 @@ class Resolver:
 
         obj = self.namespace.get(key) or self._references.get(key)
         if obj is None:
-            tp = self.namespace.get_type(key[0], False)
+            tp = cast(Type[CoreObject], self.namespace.get_type(key[0], False))
             if tp is None:
                 raise ValueError(f"Unknown type: {key[0]}")
             obj = self._references[key] = Reference(tp, key)
@@ -231,7 +235,7 @@ class Resolver:
         self._references.clear()
 
 
-    def load_remote_references(self, session: MultiCallSession) -> None:
+    def load_remote_references(self, session: Union[MultiCallSession, ClientSession]) -> None:
         """
         creates a multicall for session, and queries for the existence of all
         current reference objects.
@@ -240,9 +244,13 @@ class Resolver:
         if not self._references:
             return
 
-        with multicall(session) as mc:
+        if isinstance(session, MultiCallSession):
             for ref in self._references.values():
-                ref.load_remote(mc)
+                ref.load_remote(session)
+        else:
+            with multicall(session) as mc:
+                for ref in self._references.values():
+                    ref.load_remote(mc)
 
 
     def report(self) -> ResolverReport:

@@ -222,7 +222,7 @@ class User(UserModel, CoreObject):
 
 
     @classmethod
-    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall['RemoteUser']:
         return call_processor(RemoteUser.from_koji, session.getUser, key[1], strict=False, groups=True)
 
 

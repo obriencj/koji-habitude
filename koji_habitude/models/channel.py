@@ -149,7 +149,7 @@ class Channel(ChannelModel, CoreObject):
 
 
     @classmethod
-    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall['RemoteChannel']:
         return call_processor(RemoteChannel.from_koji, session.getChannel, key[1], strict=False)
 
 

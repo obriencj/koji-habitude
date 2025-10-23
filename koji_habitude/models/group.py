@@ -202,7 +202,7 @@ class Group(GroupModel, CoreObject):
 
 
     @classmethod
-    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall['RemoteGroup']:
         return call_processor(RemoteGroup.from_koji, session.getUser, key[1], strict=False)
 
 

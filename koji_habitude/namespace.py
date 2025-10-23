@@ -163,10 +163,10 @@ class Namespace:
         # indicates the class to be used when nothing else matches. This
         # is normally a TemplateCall
         if isinstance(coretypes, Mapping):
-            coretypes = dict(coretypes)
+            _coretypes = dict(coretypes)
         else:
-            coretypes = {tp.typename: tp for tp in coretypes}
-        self.typemap: Dict[str, Type[CoreType]] = coretypes
+            _coretypes = {tp.typename: tp for tp in coretypes}
+        self.typemap: Dict[str, CoreType] = _coretypes
 
         if enable_templates:
             self.typemap["template"] = Template
@@ -248,7 +248,7 @@ class Namespace:
         merge_into(self._templates, other._templates, redefine, self.logger)
 
 
-    def get_type(self, typename: str, or_call: bool = True) -> Optional[Type[Core]]:
+    def get_type(self, typename: str, or_call: bool = True) -> Optional[CoreType]:
         """
         Return the type for the given typename. If or_call is True (the
         default), will return a TemplateCall for missing type names. If or_call
@@ -498,7 +498,7 @@ class TemplateNamespace(Namespace):
 
     def __init__(
             self,
-            coretypes: Union[Mapping[str, Type[Core]], Iterable[Type[Core]]] = CORE_MODELS,
+            coretypes: Union[Mapping[str, Type[CoreObject]], Iterable[Type[CoreObject]]] = CORE_MODELS,
             redefine: Redefine = Redefine.ERROR,
             logger: Optional[logging.Logger] = None):
 
@@ -546,7 +546,7 @@ class ExpanderNamespace(Namespace):
 
     def __init__(
             self,
-            coretypes: Union[Mapping[str, Type[Core]], Iterable[Type[Core]]] = CORE_MODELS,
+            coretypes: Union[Mapping[str, Type[CoreObject]], Iterable[Type[CoreObject]]] = CORE_MODELS,
             redefine: Redefine = Redefine.ERROR,
             logger: Optional[logging.Logger] = None):
 

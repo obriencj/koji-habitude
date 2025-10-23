@@ -10,7 +10,6 @@ AI-Assistant: Claude 4.5 Sonnet via Cursor
 
 
 import sys
-from typing import List, TextIO
 
 import click
 
@@ -39,13 +38,8 @@ from .util import catchall
     "--show-unchanged", "-u", default=False, is_flag=True,
     help="Whether to show unchanged objects (bool default: False)")
 @catchall
-def fetch(
-        data: List[str],
-        templates: List[str] = None,
-        profile: str = 'koji',
-        output: TextIO = sys.stdout,
-        include_defaults: bool = False,
-        show_unchanged: bool = False):
+def fetch(data, templates, profile = 'koji', output = sys.stdout,
+          include_defaults = False, show_unchanged = False):
     """
     Fetch remote data from Koji instance and output as YAML.
 

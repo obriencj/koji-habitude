@@ -115,7 +115,7 @@ class ContentGenerator(ContentGeneratorModel, CoreObject):
 
 
     @classmethod
-    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall['RemoteContentGenerator']:
         name = key[1]
 
         def filter_for_cg(cglist):

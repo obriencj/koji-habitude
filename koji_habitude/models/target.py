@@ -122,7 +122,7 @@ class Target(TargetModel, CoreObject):
 
 
     @classmethod
-    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall['RemoteTarget']:
         return call_processor(RemoteTarget.from_koji, session.getBuildTarget, key[1], strict=False)
 
 

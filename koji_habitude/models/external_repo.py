@@ -88,7 +88,7 @@ class ExternalRepo(ExternalRepoModel, CoreObject):
 
 
     @classmethod
-    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall['RemoteExternalRepo']:
         return call_processor(
             RemoteExternalRepo.from_koji,
             session.getExternalRepo, key[1], strict=False)
