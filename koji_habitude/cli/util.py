@@ -33,6 +33,7 @@ __all__ = (
     'display_summary',
     'display_resolver_report',
     'resplit',
+    'sort_objects_for_output',
 )
 
 
@@ -222,6 +223,24 @@ def display_resolver_report(report, theme=None):
             echo(f"  {style(key[0], tp='object_name')} {style(key[1], tp='object_name')}")
 
     echo()
+
+
+def sort_objects_for_output(objects):
+    """
+    Sort objects for consistent YAML output.
+
+    Groups objects by typename, sorts each group by name,
+    and returns flattened list in type-then-name order.
+
+    Args:
+        objects: Iterable of objects with .typename and .name attributes
+
+    Returns:
+        List of objects sorted by type, then by name
+    """
+
+    dedup = {obj.key(): obj for obj in objects}
+    return [item[1] for item in sorted(dedup.items())]
 
 
 # The end.

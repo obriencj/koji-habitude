@@ -16,12 +16,16 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 # the AI never actually emitted code.
 
 
-from typing import TYPE_CHECKING, Dict, Iterator, List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Dict, Iterator, List, Optional, Set, Tuple, Union
+from typing_extensions import TypeAlias
 
-from .models import Base, BaseKey
+from .models import BaseKey, CoreObject
 
 if TYPE_CHECKING:
-    from .resolver import Resolver, ResolverReport
+    from .resolver import Resolver, ResolverReport, Reference
+
+
+Solvable: TypeAlias = Union[CoreObject, 'Reference']
 
 
 class Node:
@@ -30,9 +34,9 @@ class Node:
     type. Used internally by the Solver to track dependency links.
     """
 
-    def __init__(self, obj: Base, splitable: bool = None):
+    def __init__(self, obj: Solvable, splitable: bool = None):
         self.key: BaseKey = obj.key()
-        self.obj: Base = obj
+        self.obj: Solvable = obj
 
         if splitable is None:
             self.can_split: bool = obj.can_split()
@@ -102,7 +106,7 @@ class Solver:
         if self.remaining is not None:
             raise ValueError("Solver already prepared")
 
-        into: Dict[BaseKey, Base] = {}
+        into: Dict[BaseKey, Solvable] = {}
 
         if self.work is None:
             for key in self.resolver.namespace_keys():
@@ -125,13 +129,13 @@ class Solver:
         return self.resolver.report()
 
 
-    def _unlink(self, node: Node) -> Base:
+    def _unlink(self, node: Node) -> Solvable:
         self.remaining.pop(node.key)
         node.unlink()
         return node.obj
 
 
-    def _split(self, node: Node) -> Base:
+    def _split(self, node: Node) -> Solvable:
         key = node.key
         for dependent in node.dependents.values():
             dependent.dependencies.pop(key)
@@ -140,7 +144,7 @@ class Solver:
         return node.obj.split()
 
 
-    def __iter__(self) -> Iterator[Base]:
+    def __iter__(self) -> Iterator[Solvable]:
         # create a list of nodes, sorted by priority
 
         acted: bool = False

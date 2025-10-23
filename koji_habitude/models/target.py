@@ -9,11 +9,12 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar, Optional, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional, Sequence
 
 from koji import MultiCallSession, VirtualCall
 
-from .base import BaseKey, BaseObject
+from ..koji import call_processor
+from .base import BaseKey, CoreModel, CoreObject, RemoteObject
 from .change import ChangeReport, Create, Update
 from .compat import Field
 
@@ -80,26 +81,22 @@ class TargetEdit(Update):
 
 class TargetChangeReport(ChangeReport):
 
-    def impl_read(self, session: MultiCallSession):
-        self._targetinfo: VirtualCall = self.obj.query_exists(session)
-
-
     def impl_compare(self):
-        info = self._targetinfo.result
-        if info is None:
+        remote = self.obj.remote()
+        if remote is None:
             yield TargetCreate(self.obj)
             return
 
-        build_tag = info['build_tag_name']
-        dest_tag = info['dest_tag_name']
+        build_tag = remote.build_tag
+        dest_tag = remote.dest_tag
 
         if build_tag != self.obj.build_tag or dest_tag != self.obj.dest_tag:
             yield TargetEdit(self.obj)
 
 
-class Target(BaseObject):
+class TargetModel(CoreModel):
     """
-    Koji build target object model.
+    Field definitions for Target objects
     """
 
     typename: ClassVar[str] = "target"
@@ -109,27 +106,41 @@ class Target(BaseObject):
 
 
     def dependency_keys(self) -> Sequence[BaseKey]:
-        """
-        Return dependencies for this target.
-
-        Targets depend on:
-        - Build tag
-        - Destination tag
-        """
-
         return [
             ('tag', self.build_tag),
             ('tag', self.dest_tag or self.name),
         ]
 
 
+class Target(TargetModel, CoreObject):
+    """
+    Local target object from YAML.
+    """
+
     def change_report(self, resolver: 'Resolver') -> TargetChangeReport:
         return TargetChangeReport(self, resolver)
 
 
     @classmethod
-    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        return session.getBuildTarget(key[1], strict=False)
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> 'VirtualCall[RemoteTarget]':
+        return call_processor(RemoteTarget.from_koji, session.getBuildTarget, key[1], strict=False)
+
+
+class RemoteTarget(TargetModel, RemoteObject):
+    """
+    Remote target object from Koji API
+    """
+
+    @classmethod
+    def from_koji(cls, data: Optional[Dict[str, Any]]):
+        if data is None:
+            return None
+
+        return cls(
+            koji_id=data['id'],
+            name=data['name'],
+            build_tag=data['build_tag_name'],
+            dest_tag=data['dest_tag_name'])
 
 
 # The end.

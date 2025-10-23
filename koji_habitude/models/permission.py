@@ -13,12 +13,12 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 import logging
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar, Optional
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional
 
 from koji import MultiCallSession, VirtualCall
 
 from ..koji import call_processor
-from .base import BaseKey, BaseObject
+from .base import BaseKey, CoreModel, CoreObject, RemoteObject
 from .change import ChangeReport, Create, Update
 from .compat import Field
 
@@ -27,17 +27,6 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
-
-
-def getPermission(session: MultiCallSession, name: str):
-
-    def filter_for_perm(perms):
-        for perm in perms:
-            if perm['name'] == name:
-                return perm
-        return None
-
-    return call_processor(filter_for_perm, session.getAllPerms)
 
 
 @dataclass
@@ -80,37 +69,59 @@ class PermissionChangeReport(ChangeReport):
     Change report for permission objects.
     """
 
-    def impl_read(self, session: MultiCallSession):
-        self._permissioninfo: VirtualCall = self.obj.query_exists(session)
-
-
     def impl_compare(self):
-        info = self._permissioninfo.result
-        if not info:
+        remote = self.obj.remote()
+        if not remote:
             yield PermissionCreate(self.obj)
             return
 
-        if info['description'] != self.obj.description:
+        if remote.description != self.obj.description:
             yield PermissionSetDescription(self.obj, self.obj.description)
 
 
-class Permission(BaseObject):
-    """
-    Koji permission object model.
-    """
+class PermissionModel(CoreModel):
+    """Field definitions for Permission objects"""
 
     typename: ClassVar[str] = "permission"
 
     description: Optional[str] = Field(alias='description', default=None)
 
 
+class Permission(PermissionModel, CoreObject):
+    """
+    Local permission object from YAML.
+    """
+
     def change_report(self, resolver: 'Resolver') -> PermissionChangeReport:
         return PermissionChangeReport(self, resolver)
 
 
     @classmethod
-    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        return getPermission(session, key[1])
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> 'VirtualCall[RemotePermission]':
+        name = key[1]
+
+        def filter_for_perm(perms):
+            for perm in perms:
+                if perm['name'] == name:
+                    return RemotePermission.from_koji(perm)
+            return None
+
+        return call_processor(filter_for_perm, session.getAllPerms)
+
+
+class RemotePermission(PermissionModel, RemoteObject):
+    """Remote permission object from Koji API"""
+
+    @classmethod
+    def from_koji(cls, data: Optional[Dict[str, Any]]):
+        if data is None:
+            return None
+
+        return cls(
+            koji_id=data['id'],
+            name=data['name'],
+            description=data.get('description')
+        )
 
 
 # The end.

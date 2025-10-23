@@ -37,12 +37,14 @@ keep projects packagers happy.
 
 **Implemented:**
 - Complete CLI framework with all core commands (`apply`, `compare`, `expand`,
-  `list-templates`)
+  `fetch`, `dump`, `list-templates`)
 - All Koji object types (11 CORE_MODELS) with Pydantic validation
+- Remote object models for fetching and comparing against Koji state
 - Dependency resolution architecture (Resolver and Solver modules)
 - Processor module with state machine and multicall integration
 - Comprehensive unit testing (360+ tests, 74%+ coverage)
 - Template expansion and change tracking system
+- Remote state bootstrapping with pattern matching
 
 **Next Steps:**
 - CLI testing coverage improvements
@@ -53,7 +55,7 @@ keep projects packagers happy.
 ## CLI Commands
 
 koji-habitude is built using [Click](https://click.palletsprojects.com/) and
-provides four main commands plus a template subcommand group for working with
+provides six main commands plus a template subcommand group for working with
 individual templates.
 
 
@@ -81,6 +83,24 @@ koji-habitude expand [OPTIONS] DATA [DATA...]
 ```
 - Expands templates and outputs final YAML to stdout
 - Options: `--templates PATH`, `--validate`, `--select TYPE`
+
+**`fetch`** - Fetch remote data from Koji instance
+```bash
+koji-habitude fetch [OPTIONS] DATA [DATA...]
+```
+- Loads templates and data files, connects to Koji
+- Outputs YAML documents representing remote state of objects
+- Shows objects that differ from local definitions (or all with `--show-unchanged`)
+- Options: `--templates PATH`, `--profile PROFILE`, `--output PATH`, `--include-defaults`, `--show-unchanged`
+
+**`dump`** - Bootstrap local definitions from remote Koji state
+```bash
+koji-habitude dump [OPTIONS] PATTERNS...
+```
+- Searches koji for objects matching patterns and outputs as YAML
+- Supports pattern matching for searchable types (tags, targets, users, hosts)
+- No local YAML definitions required - operates entirely on remote data
+- Options: `--profile PROFILE`, `--output PATH`, `--include-defaults`, `--with-deps`, `--max-depth`, `--with-dep-type`, type flags (`--tags`, `--users`, etc.)
 
 **`list-templates`** - List available templates
 ```bash
@@ -125,9 +145,25 @@ koji-habitude template apply [OPTIONS] NAME [KEY=VALUE...]
 
 ### Common Patterns
 - `DATA`: Directories or files containing YAML definitions
+- `PATTERNS`: Search patterns for dump command (e.g., `tag:foo`, `*-build`, `user:*bob*`)
 - `--templates PATH`: Additional template locations (can be repeated)
 - `--profile PROFILE`: Koji profile to use (default: 'koji')
 - `--show-unchanged`: Include objects that don't need changes
+
+### Dump Command Examples
+```bash
+# Search tags and targets for *-build (default behavior)
+koji-habitude dump *-build
+
+# Search specific types
+koji-habitude dump --tags --users *bob*
+
+# Exact matches with dependencies
+koji-habitude dump tag:f40-build --with-deps --max-depth 2
+
+# Mixed patterns
+koji-habitude dump tag:foo target:bar *-build user:*admin*
+```
 
 
 ## YAML Format & Templates
@@ -221,15 +257,19 @@ intelligent resolution:
 ### Architecture Components
 
 - **Template System**: Jinja2-based template expansion with recursive processing
+- **Remote Models**: Complete set of remote object models for fetching and comparing Koji state
 - **Processor Module**: State machine-driven synchronization engine with
   multicall integration
 - **Change Tracking**: `ChangeReport` system tracks all modifications with
   detailed explanations
 - **Dry-Run Support**: `CompareOnlyProcessor` for previewing changes without
   applying them
+- **Fetch Capability**: Pull remote Koji state as YAML for comparison and backup
+- **Dump Capability**: Bootstrap local definitions from remote Koji state using pattern matching
 
-**Data Flow**: YAML files → Template expansion → Dependency resolution → Tiered
-processing
+**Data Flow**:
+- **Forward**: YAML files → Template expansion → Dependency resolution → Tiered processing
+- **Reverse**: Remote patterns → Search/Discovery → Dependency resolution → YAML output
 
 
 ## Requirements & Installation

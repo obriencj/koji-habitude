@@ -12,11 +12,12 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar, List, Optional
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Optional
 
 from koji import MultiCallSession, VirtualCall
 
-from .base import BaseKey, BaseObject
+from ..koji import call_processor, promise_call, VirtualPromise
+from .base import BaseKey, CoreModel, CoreObject, RemoteObject
 from .change import Add, ChangeReport, Create, Remove, Update
 from .compat import Field
 
@@ -127,14 +128,9 @@ class UserChangeReport(ChangeReport):
     Change report for user objects.
     """
 
-    def impl_read(self, session: MultiCallSession):
-        self._userinfo: VirtualCall = self.obj.query_exists(session)
-        self._permissions: VirtualCall = session.getUserPerms(self.obj.name)
-
-
     def impl_compare(self):
-        info = self._userinfo.result
-        if not info:
+        remote = self.obj.remote()
+        if not remote:
             if not self.obj.was_split():
                 # we don't exist, and we didn't split our create to an earlier
                 # call, so create now.
@@ -153,13 +149,13 @@ class UserChangeReport(ChangeReport):
             return
 
         if self.obj.enabled is not None:
-            if info['status'] != (0 if self.obj.enabled else 1):
+            if remote.enabled != self.obj.enabled:
                 if self.obj.enabled:
                     yield UserEnable(self.obj)
                 else:
                     yield UserDisable(self.obj)
 
-        groups = info['groups']
+        groups = remote.groups
         for group in self.obj.groups:
             if group not in groups:
                 yield UserAddToGroup(self.obj, group)
@@ -169,7 +165,7 @@ class UserChangeReport(ChangeReport):
                 if group not in self.obj.groups:
                     yield UserRemoveFromGroup(self.obj, group)
 
-        perms = self._permissions.result
+        perms = remote.permissions
         for perm in self.obj.permissions:
             if perm not in perms:
                 yield UserGrantPermission(self.obj, perm)
@@ -180,20 +176,36 @@ class UserChangeReport(ChangeReport):
                     yield UserRevokePermission(self.obj, perm)
 
 
-class User(BaseObject):
-    """
-    Koji user object model.
-    """
+class UserModel(CoreModel):
+    """Field definitions for User objects"""
 
     typename: ClassVar[str] = "user"
 
-    groups: List[str] = Field(alias='groups', default_factory=list)
-    exact_groups: bool = Field(validation_alias='exact-groups', default=False)
-
-    permissions: List[str] = Field(alias='permissions', default_factory=list)
-    exact_permissions: bool = Field(alias='exact-permissions', default=False)
-
     enabled: Optional[bool] = Field(alias='enabled', default=None)
+    groups: List[str] = Field(alias='groups', default_factory=list)
+    permissions: List[str] = Field(alias='permissions', default_factory=list)
+
+
+    def dependency_keys(self) -> List[BaseKey]:
+        """
+        Users can depend on:
+        - Groups
+        - Permissions
+        """
+
+        deps: List[BaseKey] = []
+        deps.extend(('group', group) for group in self.groups)
+        deps.extend(('permission', permission) for permission in self.permissions)
+        return deps
+
+
+class User(UserModel, CoreObject):
+    """
+    Local user object from YAML.
+    """
+
+    exact_groups: bool = Field(validation_alias='exact-groups', default=False)
+    exact_permissions: bool = Field(alias='exact-permissions', default=False)
 
     _auto_split: ClassVar[bool] = True
 
@@ -205,31 +217,38 @@ class User(BaseObject):
         return child
 
 
-    def dependency_keys(self) -> List[BaseKey]:
-        """
-        Users can depend on:
-        - Groups
-        - Permissions
-        """
-
-        deps: List[BaseKey] = []
-
-        for group in self.groups:
-            deps.append(('group', group))
-
-        for permission in self.permissions:
-            deps.append(('permission', permission))
-
-        return deps
-
-
     def change_report(self, resolver: 'Resolver') -> UserChangeReport:
         return UserChangeReport(self, resolver)
 
 
     @classmethod
-    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        return session.getUser(key[1], strict=False, groups=True)
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> 'VirtualCall[RemoteUser]':
+        return call_processor(RemoteUser.from_koji, session.getUser, key[1], strict=False, groups=True)
+
+
+class RemoteUser(UserModel, RemoteObject):
+    """
+    Remote user object from Koji API
+    """
+
+    @classmethod
+    def from_koji(cls, data: Optional[Dict[str, Any]]):
+        if data is None:
+            return None
+
+        return cls(
+            koji_id=data['id'],
+            name=data['name'],
+            groups=data['groups'],
+            enabled=(data['status'] == 0))
+
+
+    def set_koji_perms(self, perms: VirtualPromise):
+        self.permissions = list(perms.result)
+
+
+    def load_additional_data(self, session: MultiCallSession):
+        promise_call(self.set_koji_perms, session.getUserPerms, self.name)
 
 
 # The end.

@@ -24,9 +24,11 @@ from typing import (TYPE_CHECKING, Any, ClassVar, Dict, Iterable, List,
 
 from koji import (ClientSession, MultiCallNotReady, MultiCallSession,
                   VirtualCall)
+from typing_extensions import TypeAlias
 
-from .koji import multicall
-from .models import Base, BaseKey, BaseStatus, ChangeReport
+from .koji import VirtualPromise, multicall
+from .models import (BaseKey, BaseStatus, ChangeReport, CoreModel, CoreObject,
+                     Field, PrivateAttr, ResolvableMixin)
 
 if TYPE_CHECKING:
     from .namespace import Namespace
@@ -43,6 +45,9 @@ __all__ = (
 logger = logging.getLogger(__name__)
 
 
+Resolvable: TypeAlias = Union[CoreObject, 'Reference']
+
+
 class ReferenceChangeReport(ChangeReport):
     """
     A change report for a Reference object.
@@ -55,95 +60,56 @@ class ReferenceChangeReport(ChangeReport):
     # the ReferenceObject itself.
 
     def impl_read(self, session: MultiCallSession) -> None:
-        if self.obj._exists is not None:
-            return
-        self.obj.query_exists(session)
+        self.obj.load_remote(session)
 
     def impl_compare(self):
         return ()
 
 
-class Reference(Base):
+class Reference(CoreModel, ResolvableMixin):
     """
     A placeholder for a dependency that is not defined in the Namespace
     """
 
     typename: ClassVar[str] = 'reference'
 
-
-    def __init__(self, tp: Type[Base], key: BaseKey):
-        self.tp = tp
-        self.yaml_type, self.name = key
-        self._key = key
-        self._exists: Optional[VirtualCall] = None  # None means not checked yet
-        self.filename = None
-        self.lineno = None
-        self.trace = None
-        logger.debug(f"Reference created: {self.key()}")
+    # pydantic v1.10 compatibility for ResolvableMixin
+    _remote: Optional[VirtualCall] = PrivateAttr(default=None)
 
 
-    @property
-    def status(self) -> BaseStatus:
-        return BaseStatus.DISCOVERED if self.exists() else BaseStatus.PHANTOM
+    tp: Type[CoreObject] = Field(alias='tp')
 
-    def is_phantom(self) -> bool:
-        return self.exists() is None
 
-    def exists(self) -> Any:
-        try:
-            return self._exists.result if self._exists is not None else None
-        except MultiCallNotReady:
-            return None
+    def __init__(self, tp: Type[CoreObject], key: BaseKey):
+        typename, name = key
+        super().__init__(type=typename, name=name, tp=tp)
 
-    def key(self) -> BaseKey:
-        return self._key
-
-    def filepos(self) -> Tuple[Optional[str], Optional[int]]:
-        return None, None
-
-    def filepos_str(self) -> str:
-        return ""
 
     def can_split(self) -> bool:
         return False
 
-    def was_split(self) -> bool:
-        return False
 
-    def is_split(self) -> bool:
-        return False
+    def split(self) -> 'Reference':
+        raise TypeError("References cannot be split")
 
-    def split(self) -> Base:
-        raise TypeError("Cannot split a Reference")
 
-    def dependency_keys(self) -> Sequence[BaseKey]:
-        return ()
+    @property
+    def status(self) -> BaseStatus:
+        return BaseStatus.DISCOVERED if self.remote() else BaseStatus.PHANTOM
+
+
+    def is_phantom(self) -> bool:
+        return self.remote() is None
+
+
+    def load_remote(self, session: MultiCallSession, reload: bool = False) -> VirtualCall:
+        if reload or self._remote is None:
+            self._remote = self.tp.query_remote(session, self.key())
+        return self._remote
+
 
     def change_report(self, resolver: 'Resolver') -> ReferenceChangeReport:
-        logger.debug(f"Reference change_report: {self.key()}")
         return ReferenceChangeReport(self, resolver)
-
-    def query_exists(self, session: MultiCallSession) -> VirtualCall:
-        res = self.tp.check_exists(session, self.key())
-        if isinstance(res, VirtualCall):
-            self._exists = res
-        else:
-            self._exists = VirtualCall(None, None, None)
-            self._exists._result = res  # type: ignore
-        return self._exists
-
-    @classmethod
-    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        msg = ("Reference.check_exists shouldn't be called,"
-               " use query_exists instead")
-        raise NotImplementedError(msg)
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Reference':
-        raise TypeError("Reference cannot be created from a dictionary")
-
-    def to_dict(self) -> Dict[str, Any]:
-        raise TypeError("Reference cannot be converted to a dictionary")
 
 
 @dataclass
@@ -157,8 +123,8 @@ class ResolverReport:
     references that *have* been found to exist in a Koji instance.
     """
 
-    discovered: Dict[BaseKey, Base]
-    phantoms: Dict[BaseKey, Base]
+    discovered: Dict[BaseKey, Resolvable]
+    phantoms: Dict[BaseKey, Resolvable]
 
 
 class Resolver:
@@ -172,7 +138,7 @@ class Resolver:
             raise ValueError("namespace is required")
 
         self.namespace: 'Namespace' = namespace
-        self._references: Dict[BaseKey, Base] = {}
+        self._references: Dict[BaseKey, Resolvable] = {}
 
 
     def namespace_keys(self) -> Iterable[BaseKey]:
@@ -206,10 +172,10 @@ class Resolver:
             return list(self._references.keys())
         elif exists:
             return [key for key, obj in self._references.items()
-                    if obj.exists()]
+                    if obj.remote()]
         else:
             return [key for key, obj in self._references.items()
-                    if not obj.exists()]
+                    if not obj.remote()]
 
 
     def phantom_keys(self) -> List[BaseKey]:
@@ -223,7 +189,7 @@ class Resolver:
         return self.reference_keys(exists=False)
 
 
-    def resolve(self, key: BaseKey) -> Base:
+    def resolve(self, key: BaseKey) -> Resolvable:
         """
         Resolve a key into either an object from the Namespace, or a
         ReferenceObject placeholder.
@@ -231,12 +197,14 @@ class Resolver:
 
         obj = self.namespace.get(key) or self._references.get(key)
         if obj is None:
-            tp = self.namespace.get_type(key[0], False)
+            tp = cast(Type[CoreObject], self.namespace.get_type(key[0], False))
+            if tp is None:
+                raise ValueError(f"Unknown type: {key[0]}")
             obj = self._references[key] = Reference(tp, key)
         return obj
 
 
-    def chain_resolve(self, key, into=None) -> Dict[BaseKey, Base]:
+    def chain_resolve(self, key, into=None) -> Dict[BaseKey, Resolvable]:
         """
         Resolve a key into either an object from the Namespace, or
         a Reference placeholder. If that object has dependencies,
@@ -267,31 +235,7 @@ class Resolver:
         self._references.clear()
 
 
-    def can_split_key(self, key: BaseKey) -> bool:
-        """
-        Convenience shortcut for `resolve(key).can_split()`
-        """
-
-        return self.resolve(key).can_split()
-
-
-    def split_key(self, key: BaseKey) -> Base:
-        """
-        Convenience shortcut for `resolve(key).split()`
-        """
-
-        return self.resolve(key).split()
-
-
-    def query_exists_key(self, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        """
-        Convenience shortcut for `resolve(key).check_exists(session)`
-        """
-
-        return self.resolve(key).query_exists(session)
-
-
-    def query_exists_references(self, session: Union[ClientSession, MultiCallSession]) -> None:
+    def load_remote_references(self, session: ClientSession, full=False) -> None:
         """
         creates a multicall for session, and queries for the existence of all
         current reference objects.
@@ -300,14 +244,18 @@ class Resolver:
         if not self._references:
             return
 
-        if isinstance(session, MultiCallSession):
-            mc = cast(MultiCallSession, session)
-            for key in self._references.keys():
-                self.query_exists_key(mc, key)
-        else:
-            with multicall(session) as mc:
-                for key in self._references.keys():
-                    self.query_exists_key(mc, key)
+        with multicall(session) as mc:
+            for ref in self._references.values():
+                ref.load_remote(mc)
+
+        if not full:
+            return
+
+        with multicall(session) as mc:
+            for ref in self._references.values():
+                remote = ref.remote()
+                if remote:
+                    remote.load_additional_data(mc)
 
 
     def report(self) -> ResolverReport:
@@ -318,7 +266,7 @@ class Resolver:
         discovered = {}
         phantoms = {}
         for key, obj in self._references.items():
-            if obj.exists():
+            if obj.remote():
                 discovered[key] = obj
             else:
                 phantoms[key] = obj

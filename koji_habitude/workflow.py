@@ -27,7 +27,7 @@ from typing import Any, Dict, Iterator, List, Type, Union
 
 from .koji import ClientSession, session
 from .loader import MultiLoader, YAMLLoader
-from .models import Base
+from .models import BaseObject
 from .namespace import Namespace, TemplateNamespace
 from .processor import CompareOnlyProcessor, Processor, ProcessorSummary
 from .resolver import Resolver, ResolverReport
@@ -103,7 +103,7 @@ class Workflow:
     solver: Solver = field(init=False, default=None)
     session: ClientSession = field(init=False, default=None)
 
-    dataseries: List[Base] = field(init=False, default=None)
+    dataseries: List[BaseObject] = field(init=False, default=None)
     summary: ProcessorSummary = field(init=False, default=None)
     resolver_report: ResolverReport = field(init=False, default=None)
 
@@ -190,7 +190,7 @@ class Workflow:
         yield self.state_change(WorkflowState.CONNECTED,
                                 WorkflowState.RESOLVING)
 
-        self.resolver.query_exists_references(self.session)
+        self.resolver.load_remote_references(self.session)
         self.resolver_report = self.resolver.report()
         self.review_resolver_report()
 

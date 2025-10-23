@@ -12,28 +12,17 @@ AI-Assistant: Claude 4.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar, List, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Optional, Sequence
 
 from koji import MultiCallSession, VirtualCall
 
 from ..koji import call_processor
-from .base import BaseKey, BaseObject
+from .base import BaseKey, CoreModel, CoreObject, RemoteObject
 from .change import Add, ChangeReport, Create, Remove
 from .compat import Field
 
 if TYPE_CHECKING:
     from ..resolver import Resolver
-
-
-def getContentGenerator(session: MultiCallSession, name: str):
-
-    def filter_for_cg(cglist):
-        dat = cglist.get(name)
-        if dat is not None:
-            dat['name'] = name
-        return dat
-
-    return call_processor(filter_for_cg, session.listCGs)
 
 
 @dataclass
@@ -82,19 +71,15 @@ class ContentGeneratorChangeReport(ChangeReport):
     Change report for content generator objects.
     """
 
-    def impl_read(self, session: MultiCallSession):
-        self._cg_info: VirtualCall = self.obj.query_exists(session)
-
-
     def impl_compare(self):
-        info = self._cg_info.result
-        if not info:
+        remote = self.obj.remote()
+        if not remote:
             yield ContentGeneratorCreate(self.obj)
             for user in self.obj.users:
                 yield ContentGeneratorAddUser(self.obj, user)
             return
 
-        users = info['users']
+        users = remote.users
         for user in self.obj.users:
             if user not in users:
                 yield ContentGeneratorAddUser(self.obj, user)
@@ -105,9 +90,9 @@ class ContentGeneratorChangeReport(ChangeReport):
                     yield ContentGeneratorRemoveUser(self.obj, user)
 
 
-class ContentGenerator(BaseObject):
+class ContentGeneratorModel(CoreModel):
     """
-    Koji content generator object model.
+    Field definitions for ContentGenerator objects
     """
 
     typename: ClassVar[str] = "content-generator"
@@ -120,13 +105,45 @@ class ContentGenerator(BaseObject):
         return [('user', user) for user in self.users]
 
 
+class ContentGenerator(ContentGeneratorModel, CoreObject):
+    """
+    Local content generator object from YAML.
+    """
+
     def change_report(self, resolver: 'Resolver') -> ContentGeneratorChangeReport:
         return ContentGeneratorChangeReport(self, resolver)
 
 
     @classmethod
-    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        return getContentGenerator(session, key[1])
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> 'VirtualCall[RemoteContentGenerator]':
+        name = key[1]
+
+        def filter_for_cg(cglist):
+            dat = cglist.get(name)
+            if dat is not None:
+                dat['name'] = name
+                return RemoteContentGenerator.from_koji(dat)
+            return None
+
+        return call_processor(filter_for_cg, session.listCGs)
+
+
+class RemoteContentGenerator(ContentGeneratorModel, RemoteObject):
+    """
+    Remote content generator object from Koji API
+    """
+
+    @classmethod
+    def from_koji(cls, data: Optional[Dict[str, Any]]):
+        if data is None:
+            return None
+
+        return cls(
+            koji_id=data['id'],
+            name=data['name'],
+            users=data.get('users', []),
+            exact_users=False  # Default for remote objects
+        )
 
 
 # The end.

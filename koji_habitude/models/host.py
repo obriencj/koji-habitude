@@ -12,11 +12,12 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar, List, Optional, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Optional, Sequence
 
 from koji import MultiCallSession, VirtualCall
 
-from .base import BaseKey, BaseObject
+from ..koji import call_processor
+from .base import BaseKey, CoreModel, CoreObject, RemoteObject
 from .change import Add, ChangeReport, Create, Remove, Update
 from .compat import Field
 
@@ -120,13 +121,9 @@ class HostRemoveChannel(Remove):
 
 class HostChangeReport(ChangeReport):
 
-    def impl_read(self, session: MultiCallSession):
-        self._hostinfo: VirtualCall = self.obj.query_exists(session)
-
-
     def impl_compare(self):
-        info = self._hostinfo.result
-        if not info:
+        remote = self.obj.remote()
+        if not remote:
             if not self.obj.was_split():
                 # we don't exist, and we didn't split our create to an earlier
                 # call, so create now.
@@ -148,17 +145,16 @@ class HostChangeReport(ChangeReport):
         if self.obj.is_split():
             return
 
-        arches = set(info['arches'].split())
-        if arches != set(self.obj.arches):
+        if set(remote.arches) != set(self.obj.arches):
             yield HostSetArches(self.obj, self.obj.arches)
-        if self.obj.capacity is not None and info['capacity'] != self.obj.capacity:
+        if self.obj.capacity is not None and remote.capacity != self.obj.capacity:
             yield HostSetCapacity(self.obj, self.obj.capacity)
-        if info['enabled'] != self.obj.enabled:
+        if remote.enabled != self.obj.enabled:
             yield HostSetEnabled(self.obj, self.obj.enabled)
-        if self.obj.description is not None and info['description'] != self.obj.description:
+        if self.obj.description is not None and remote.description != self.obj.description:
             yield HostSetDescription(self.obj, self.obj.description)
 
-        channels = info['channels']
+        channels = remote.channels
         for channel in self.obj.channels:
             if channel not in channels:
                 yield HostAddChannel(self.obj, channel)
@@ -169,10 +165,8 @@ class HostChangeReport(ChangeReport):
                     yield HostRemoveChannel(self.obj, channel)
 
 
-class Host(BaseObject):
-    """
-    Koji build host object model.
-    """
+class HostModel(CoreModel):
+    """Field definitions for Host objects"""
 
     typename: ClassVar[str] = "host"
 
@@ -181,6 +175,20 @@ class Host(BaseObject):
     enabled: bool = Field(alias='enabled', default=True)
     description: Optional[str] = Field(alias='description', default=None)
     channels: List[str] = Field(alias='channels', default_factory=list)
+
+
+    def dependency_keys(self) -> Sequence[BaseKey]:
+        """
+        Return dependencies for this host.
+        """
+        return [('channel', channel) for channel in self.channels]
+
+
+class Host(HostModel, CoreObject):
+    """
+    Local host object from YAML.
+    """
+
     exact_channels: bool = Field(alias='exact-channels', default=False)
 
     _auto_split: ClassVar[bool] = True
@@ -198,20 +206,34 @@ class Host(BaseObject):
         return child
 
 
-    def dependency_keys(self) -> Sequence[BaseKey]:
-        """
-        Return dependencies for this host.
-        """
-        return [('channel', channel) for channel in self.channels]
-
-
     def change_report(self, resolver: 'Resolver') -> HostChangeReport:
         return HostChangeReport(self, resolver)
 
 
     @classmethod
-    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        return session.getHost(key[1], strict=False)
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> 'VirtualCall[RemoteHost]':
+        return call_processor(RemoteHost.from_koji, session.getHost, key[1], strict=False)
+
+
+class RemoteHost(HostModel, RemoteObject):
+    """
+    Remote host object from Koji API
+    """
+
+    @classmethod
+    def from_koji(cls, data: Optional[Dict[str, Any]]):
+        if data is None:
+            return None
+
+        return cls(
+            koji_id=data['id'],
+            name=data['name'],
+            arches=data.get('arches', '').split(),
+            capacity=data.get('capacity'),
+            enabled=data.get('enabled', True),
+            description=data.get('description'),
+            channels=data.get('channels', []),
+        )
 
 
 # The end.

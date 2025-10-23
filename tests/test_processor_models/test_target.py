@@ -86,6 +86,8 @@ class TestProcessorTargetBehavior(MulticallMocking, TestCase):
         # Mock the getBuildTarget call to return existing target with different values
         get_target_mock = Mock()
         get_target_mock.return_value = {
+            'id': 100,
+            'name': 'existing-target',
             'build_tag_name': 'old-build-tag',
             'dest_tag_name': 'old-dest-tag'
         }

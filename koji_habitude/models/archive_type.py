@@ -12,27 +12,18 @@ AI-Assistant: Claude 4.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar, List, Literal
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Literal, Optional
 
 from koji import MultiCallSession, VirtualCall
 
 from ..koji import call_processor
-from .base import BaseKey, BaseObject
+from .base import BaseKey, CoreModel, CoreObject, RemoteObject
 from .change import ChangeReport, Create
-from .compat import Field, field_validator
+from .compat import BaseModel, Field, field_validator
 
 if TYPE_CHECKING:
     from ..resolver import Resolver
 
-
-def getArchiveType(session: MultiCallSession, name: str):
-    def filter_for_atype(atlist):
-        for at in atlist:
-            if at['name'] == name:
-                return at
-        return None
-
-    return call_processor(filter_for_atype, session.getArchiveTypes)
 
 
 @dataclass
@@ -55,14 +46,11 @@ class ArchiveTypeChangeReport(ChangeReport):
     Change report for archive type objects.
     """
 
-    def impl_read(self, session: MultiCallSession):
-        self._atypeinfo: VirtualCall = self.obj.query_exists(session)
-
-
     def impl_compare(self):
-        info = self._atypeinfo.result
-        if not info:
+        remote = self.obj.remote()
+        if not remote:
             yield ArchiveTypeCreate(self.obj)
+            return
 
         # The current implemention of koji doesn't support updating the details
         # of an archive type once it's created. I filed an RFE to enable this, but
@@ -73,13 +61,14 @@ class ArchiveTypeChangeReport(ChangeReport):
         return
 
 
-class ArchiveType(BaseObject):
+class ArchiveTypeModel(CoreModel):
     """
-    Koji archive type object model.
+    Field definitions for ArchiveType objects
     """
 
     typename: ClassVar[str] = "archive-type"
 
+    name: str = Field(alias='name')
     description: str = Field(alias='description', default='')
     extensions: List[str] = Field(alias='extensions', default=[])
     compression: Literal['tar', 'zip', None] = Field(alias='compression-type', default=None)
@@ -93,13 +82,45 @@ class ArchiveType(BaseObject):
         return list(set(v))
 
 
+class ArchiveType(ArchiveTypeModel, CoreObject):
+    """
+    Local archive type object from YAML.
+    """
+
     def change_report(self, resolver: 'Resolver') -> ArchiveTypeChangeReport:
         return ArchiveTypeChangeReport(self, resolver)
 
 
     @classmethod
-    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        return getArchiveType(session, key[1])
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
+        name = key[1]
+
+        def filter_for_atype(atlist):
+            for at in atlist:
+                if at['name'] == name:
+                    return RemoteArchiveType.from_koji(at)
+            return None
+
+        return call_processor(filter_for_atype, session.getArchiveTypes)
+
+
+class RemoteArchiveType(ArchiveTypeModel, RemoteObject):
+    """
+    Remote archive type object from Koji API
+    """
+
+    @classmethod
+    def from_koji(cls, data: Optional[Dict[str, Any]]):
+        if data is None:
+            return None
+
+        return cls(
+            koji_id=data['id'],
+            name=data['name'],
+            description=data.get('description', ''),
+            extensions=data.get('extensions', '').split(),
+            compression=data.get('compression_type')
+        )
 
 
 # The end.

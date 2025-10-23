@@ -12,7 +12,7 @@ from unittest import TestCase
 from unittest.mock import Mock
 
 from koji_habitude.models import Tag
-from koji_habitude.models.tag import ExternalRepoLink, InheritanceLink
+from koji_habitude.models.tag import ExternalRepoLink, InheritanceLink, RemoteTag
 from koji_habitude.processor import (
     CompareOnlyProcessor,
     Processor,
@@ -225,7 +225,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
             koji_session=mock_session,
             dataseries=solver,
             resolver=create_resolver_with_objects({
-                ('tag', 'parent-tag'): {'id': 123, 'name': 'parent-tag'}
+                ('tag', 'parent-tag'): RemoteTag(koji_id=123, name='parent-tag', type='tag')
             }),
             chunk_size=10
         )
@@ -271,6 +271,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         # Mock the getTag call to return existing tag with different locked status
         get_tag_mock = Mock()
         get_tag_mock.return_value = {
+            'id': 100,
             'name': 'existing-tag',
             'locked': False,  # Currently unlocked
             'perm': None,
@@ -326,6 +327,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         # Mock the getTag call to return existing tag with different permission
         get_tag_mock = Mock()
         get_tag_mock.return_value = {
+            'id': 100,
             'name': 'existing-tag',
             'locked': False,
             'perm': None,  # Currently no permission
@@ -381,6 +383,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         # Mock the getTag call to return existing tag with different arches
         get_tag_mock = Mock()
         get_tag_mock.return_value = {
+            'id': 100,
             'name': 'existing-tag',
             'locked': False,
             'perm': None,
@@ -436,6 +439,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         # Mock the getTag call to return existing tag with different maven settings
         get_tag_mock = Mock()
         get_tag_mock.return_value = {
+            'id': 100,
             'name': 'existing-tag',
             'locked': False,
             'perm': None,
@@ -491,6 +495,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         # Mock the getTag call to return tag that already matches desired state
         get_tag_mock = Mock()
         get_tag_mock.return_value = {
+            'id': 100,
             'name': 'existing-tag',
             'locked': False,  # Already matches
             'perm': None,
@@ -643,6 +648,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         # Mock the getTag call to return existing tag
         get_tag_mock = Mock()
         get_tag_mock.return_value = {
+            'id': 100,
             'name': 'existing-tag',
             'locked': False,
             'perm': None,
@@ -705,6 +711,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         # Mock the getTag call to return existing tag
         get_tag_mock = Mock()
         get_tag_mock.return_value = {
+            'id': 100,
             'name': 'existing-tag',
             'locked': False,
             'perm': None,
@@ -771,6 +778,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         # Mock the getTag call to return existing tag
         get_tag_mock = Mock()
         get_tag_mock.return_value = {
+            'id': 100,
             'name': 'existing-tag',
             'locked': False,
             'perm': None,
@@ -835,6 +843,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         # Mock the getTag call to return existing tag
         get_tag_mock = Mock()
         get_tag_mock.return_value = {
+            'id': 100,
             'name': 'existing-tag',
             'locked': False,
             'perm': None,
@@ -899,6 +908,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         # Mock the getTag call to return existing tag
         get_tag_mock = Mock()
         get_tag_mock.return_value = {
+            'id': 100,
             'name': 'existing-tag',
             'locked': False,
             'perm': None,
@@ -965,6 +975,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         # Mock the getTag call to return existing tag
         get_tag_mock = Mock()
         get_tag_mock.return_value = {
+            'id': 100,
             'name': 'existing-tag',
             'locked': False,
             'perm': None,
@@ -1040,6 +1051,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         # Mock the getTag call to return existing tag
         get_tag_mock = Mock()
         get_tag_mock.return_value = {
+            'id': 100,
             'name': 'existing-tag',
             'locked': False,
             'perm': None,
@@ -1129,6 +1141,7 @@ class TestProcessorTagDependencies(MulticallMocking, TestCase):
         # Mock the getTag call to return existing tag
         get_tag_mock = Mock()
         get_tag_mock.return_value = {
+            'id': 100,
             'name': 'existing-tag',
             'locked': False,
             'perm': None,
@@ -1161,7 +1174,7 @@ class TestProcessorTagDependencies(MulticallMocking, TestCase):
         self.queue_client_response('setInheritanceData', add_inheritance_mock)
 
         resolver = create_resolver_with_objects({
-            ('tag', 'parent-tag'): {'id': 1, 'name': 'parent-tag'},
+            ('tag', 'parent-tag'): RemoteTag(koji_id=1, name='parent-tag', type='tag'),
         })
 
         processor = Processor(
@@ -1188,6 +1201,7 @@ class TestProcessorTagDependencies(MulticallMocking, TestCase):
         # Mock the getTag call to return existing tag
         get_tag_mock = Mock()
         get_tag_mock.return_value = {
+            'id': 100,
             'name': 'existing-tag',
             'locked': False,
             'perm': None,
@@ -1327,8 +1341,8 @@ class TestProcessorTagDependencies(MulticallMocking, TestCase):
 
         # Create resolver with both tags to handle dependency resolution
         resolver = create_resolver_with_objects({
-            ('tag', 'parent-tag'): {'id': 1, 'name': 'parent-tag'},
-            ('tag', 'child-tag'): {'id': 2, 'name': 'child-tag'},
+            ('tag', 'parent-tag'): RemoteTag(koji_id=1, name='parent-tag', type='tag'),
+            ('tag', 'child-tag'): RemoteTag(koji_id=2, name='child-tag', type='tag'),
         })
 
         processor = Processor(
@@ -1391,6 +1405,7 @@ class TestProcessorTagPackages(MulticallMocking, TestCase):
         # Mock the getTag call to return existing tag
         get_tag_mock = Mock()
         get_tag_mock.return_value = {
+            'id': 100,
             'name': 'existing-tag',
             'locked': False,
             'perm': None,
@@ -1454,6 +1469,7 @@ class TestProcessorTagPackages(MulticallMocking, TestCase):
         # Mock the getTag call to return existing tag
         get_tag_mock = Mock()
         get_tag_mock.return_value = {
+            'id': 100,
             'name': 'existing-tag',
             'locked': False,
             'perm': None,
@@ -1515,6 +1531,7 @@ class TestProcessorTagPackages(MulticallMocking, TestCase):
         # Mock the getTag call to return existing tag
         get_tag_mock = Mock()
         get_tag_mock.return_value = {
+            'id': 100,
             'name': 'existing-tag',
             'locked': False,
             'perm': None,
@@ -1577,6 +1594,7 @@ class TestProcessorTagPackages(MulticallMocking, TestCase):
         # Mock the getTag call to return existing tag
         get_tag_mock = Mock()
         get_tag_mock.return_value = {
+            'id': 100,
             'name': 'existing-tag',
             'locked': False,
             'perm': None,
@@ -1636,6 +1654,7 @@ class TestProcessorTagPackages(MulticallMocking, TestCase):
         # Mock the getTag call to return existing tag
         get_tag_mock = Mock()
         get_tag_mock.return_value = {
+            'id': 100,
             'name': 'existing-tag',
             'locked': False,
             'perm': None,
@@ -1695,6 +1714,7 @@ class TestProcessorTagPackages(MulticallMocking, TestCase):
         # Mock the getTag call to return existing tag
         get_tag_mock = Mock()
         get_tag_mock.return_value = {
+            'id': 100,
             'name': 'existing-tag',
             'locked': False,
             'perm': None,
@@ -1756,6 +1776,7 @@ class TestProcessorTagPackages(MulticallMocking, TestCase):
         # Mock the getTag call to return existing tag
         get_tag_mock = Mock()
         get_tag_mock.return_value = {
+            'id': 100,
             'name': 'existing-tag',
             'locked': False,
             'perm': None,
@@ -1824,6 +1845,7 @@ class TestProcessorTagPackages(MulticallMocking, TestCase):
         # Mock the getTag call to return existing tag
         get_tag_mock = Mock()
         get_tag_mock.return_value = {
+            'id': 100,
             'name': 'existing-tag',
             'locked': False,
             'perm': None,
@@ -1894,6 +1916,7 @@ class TestProcessorTagPackages(MulticallMocking, TestCase):
         # Mock the getTag call to return existing tag
         get_tag_mock = Mock()
         get_tag_mock.return_value = {
+            'id': 100,
             'name': 'existing-tag',
             'locked': False,
             'perm': None,

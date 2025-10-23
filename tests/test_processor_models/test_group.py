@@ -159,6 +159,7 @@ class TestProcessorGroupBehavior(MulticallMocking, TestCase):
         # Mock the getUser call to return existing group with no members
         get_group_mock = Mock()
         get_group_mock.return_value = {
+            'id': 100,
             'name': 'existing-group',
             'status': 0,  # Group is enabled
             'permissions': []
@@ -209,6 +210,7 @@ class TestProcessorGroupBehavior(MulticallMocking, TestCase):
         # Mock the getUser call to return existing group with extra members
         get_group_mock = Mock()
         get_group_mock.return_value = {
+            'id': 100,
             'name': 'existing-group',
             'status': 0,  # Group is enabled
             'permissions': []
@@ -256,6 +258,7 @@ class TestProcessorGroupBehavior(MulticallMocking, TestCase):
         # Mock the getUser call to return existing group with no permissions
         get_group_mock = Mock()
         get_group_mock.return_value = {
+            'id': 100,
             'name': 'existing-group',
             'status': 0,  # Group is enabled
             'permissions': []
@@ -306,6 +309,7 @@ class TestProcessorGroupBehavior(MulticallMocking, TestCase):
         # Mock the getUser call to return existing group with extra permissions
         get_group_mock = Mock()
         get_group_mock.return_value = {
+            'id': 100,
             'name': 'existing-group',
             'status': 0,  # Group is enabled
             'permissions': []
@@ -350,6 +354,7 @@ class TestProcessorGroupBehavior(MulticallMocking, TestCase):
         # Mock the getUser call to return group that already matches desired state
         get_group_mock = Mock()
         get_group_mock.return_value = {
+            'id': 100,
             'name': 'existing-group',
             'status': 0,  # Group is enabled
             'permissions': ['perm1']  # Already has perm1

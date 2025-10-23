@@ -145,6 +145,7 @@ class TestProcessorContentGeneratorBehavior(MulticallMocking, TestCase):
         list_cgs_mock = Mock()
         list_cgs_mock.return_value = {
             'existing-cg': {
+                'id': 100,
                 'users': ['user1']  # Only user1 exists
             }
         }
@@ -179,6 +180,7 @@ class TestProcessorContentGeneratorBehavior(MulticallMocking, TestCase):
         list_cgs_mock = Mock()
         list_cgs_mock.return_value = {
             'existing-cg': {
+                'id': 100,
                 'users': ['user1', 'extra-user']  # Has extra user
             }
         }
@@ -213,6 +215,7 @@ class TestProcessorContentGeneratorBehavior(MulticallMocking, TestCase):
         list_cgs_mock = Mock()
         list_cgs_mock.return_value = {
             'existing-cg': {
+                'id': 100,
                 'users': ['user1', 'extra-user']  # Has extra user, but shouldn't be removed
             }
         }
@@ -243,6 +246,7 @@ class TestProcessorContentGeneratorBehavior(MulticallMocking, TestCase):
         list_cgs_mock = Mock()
         list_cgs_mock.return_value = {
             'existing-cg': {
+                'id': 100,
                 'users': ['user1', 'user2']  # Already matches
             }
         }
@@ -274,6 +278,7 @@ class TestProcessorContentGeneratorBehavior(MulticallMocking, TestCase):
         list_cgs_mock = Mock()
         list_cgs_mock.return_value = {
             'existing-cg': {
+                'id': 100,
                 'users': ['user1', 'user2']  # user2 should be removed, user3 should be added
             }
         }

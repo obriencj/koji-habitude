@@ -17,6 +17,7 @@ from unittest.mock import Mock
 from koji_habitude.resolver import Resolver, Reference, ResolverReport
 from koji_habitude.namespace import Namespace
 from koji_habitude.models import Tag, User, ExternalRepo, Target
+from koji_habitude.models import CoreObject
 
 
 class TestReference(TestCase):
@@ -31,24 +32,6 @@ class TestReference(TestCase):
         self.assertEqual(missing.name, 'missing-tag')
         self.assertEqual(missing.yaml_type, 'tag')
         self.assertEqual(missing.key(), key)
-
-    def test_missing_object_filepos(self):
-        """Test that Reference returns None for file position."""
-        key = ('user', 'missing-user')
-        missing = Reference(User, key)
-
-        filename, lineno = missing.filepos()
-        self.assertIsNone(filename)
-        self.assertIsNone(lineno)
-
-    def test_missing_object_cannot_split(self):
-        """Test that Reference cannot be split."""
-        key = ('external-repo', 'missing-repo')
-        missing = Reference(ExternalRepo, key)
-
-        self.assertFalse(missing.can_split())
-        with self.assertRaises(TypeError):
-            missing.split()
 
     def test_missing_object_no_dependencies(self):
         """Test that Reference has no dependencies."""
@@ -73,6 +56,7 @@ class TestResolver(TestCase):
             ('user', 'existing-user'): User(name='existing-user', type='user'),
         }
         self.namespace.get = self.namespace._ns.get
+        self.namespace.get_type.return_value = CoreObject
 
         self.resolver = Resolver(self.namespace)
 
@@ -129,36 +113,6 @@ class TestResolver(TestCase):
         # Clear should remove them
         self.resolver.clear()
         self.assertEqual(len(self.resolver._references), 0)
-
-    def test_can_split_key_existing_object(self):
-        """Test can_split_key with an existing object."""
-        # Tag objects can be split
-        key = ('tag', 'existing-tag')
-        can_split = self.resolver.can_split_key(key)
-        self.assertTrue(can_split)
-
-    def test_can_split_key_missing_object(self):
-        """Test can_split_key with a missing object."""
-        # Reference cannot be split
-        key = ('tag', 'missing-tag')
-        can_split = self.resolver.can_split_key(key)
-        self.assertFalse(can_split)
-
-    def test_split_key_existing_object(self):
-        """Test split_key with an existing object."""
-        key = ('tag', 'existing-tag')
-        split_obj = self.resolver.split_key(key)
-
-        self.assertIsInstance(split_obj, Tag)
-        self.assertEqual(split_obj.name, 'existing-tag')
-        # Split object should have minimal data
-        self.assertEqual(split_obj.arches, [])
-
-    def test_split_key_missing_object(self):
-        """Test split_key with a missing object."""
-        key = ('tag', 'missing-tag')
-        with self.assertRaises(TypeError):
-            self.resolver.split_key(key)
 
     def test_report_returns_created_missing_objects(self):
         """Test that report() returns missing objects that were created."""

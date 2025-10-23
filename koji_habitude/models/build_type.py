@@ -12,23 +12,16 @@ AI-Assistant: Claude 4.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional
 
 from koji import MultiCallSession, VirtualCall
 
 from ..koji import call_processor
-from .base import BaseKey, BaseObject
+from .base import BaseKey, CoreModel, CoreObject, RemoteObject
 from .change import ChangeReport, Create
 
 if TYPE_CHECKING:
     from ..resolver import Resolver
-
-
-def getBuildType(session: MultiCallSession, name: str):
-    def filter_for_btype(btlist):
-        return btlist[0] if btlist else None
-
-    return call_processor(filter_for_btype, session.listBTypes, query={'name': name})
 
 
 @dataclass
@@ -47,31 +40,55 @@ class BuildTypeChangeReport(ChangeReport):
     Change report for build type objects.
     """
 
-    def impl_read(self, session: MultiCallSession):
-        self._btypeinfo: VirtualCall = self.obj.query_exists(session)
-
-
     def impl_compare(self):
-        info = self._btypeinfo.result
-        if not info:
+        remote = self.obj.remote()
+        if not remote:
             yield BuildTypeCreate(self.obj)
 
 
-class BuildType(BaseObject):
+class BuildTypeModel(CoreModel):
     """
-    Koji build type object model.
+    Field definitions for BuildType objects
     """
 
     typename: ClassVar[str] = "build-type"
 
+
+class BuildType(BuildTypeModel, CoreObject):
+    """
+    Local build type object from YAML.
+    """
 
     def change_report(self, resolver: 'Resolver') -> BuildTypeChangeReport:
         return BuildTypeChangeReport(self, resolver)
 
 
     @classmethod
-    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        return getBuildType(session, key[1])
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> 'VirtualCall[RemoteBuildType]':
+        name = key[1]
+
+        def filter_for_btype(btlist):
+            if btlist:
+                return RemoteBuildType.from_koji(btlist[0])
+            return None
+
+        return call_processor(filter_for_btype, session.listBTypes, query={'name': name})
+
+
+class RemoteBuildType(BuildTypeModel, RemoteObject):
+    """
+    Remote build type object from Koji API
+    """
+
+    @classmethod
+    def from_koji(cls, data: Optional[Dict[str, Any]]):
+        if data is None:
+            return None
+
+        return cls(
+            koji_id=data['id'],
+            name=data['name']
+        )
 
 
 # The end.

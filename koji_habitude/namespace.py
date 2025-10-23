@@ -19,10 +19,12 @@ from typing import (Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple,
                     Type, Union)
 
 from pydantic import ValidationError as PydanticValidationError
+from typing_extensions import TypeAlias
 
 from .exceptions import ExpansionError, RedefineError, ValidationError
-from .models import CORE_MODELS, Base, BaseKey, BaseObject
+from .models import CORE_MODELS, BaseObject, BaseKey, CoreObject
 from .templates import Template, TemplateCall
+
 
 __all__ = (
     'Namespace',
@@ -36,7 +38,6 @@ default_logger = logging.getLogger(__name__)
 
 
 class Redefine(Enum):
-
     """
     Represents the options for how we want `Namespace.add` and
     `Namespace.add_template` to behave when the newly added item
@@ -72,10 +73,9 @@ class Redefine(Enum):
 def add_into(
         into: Dict,
         key: Any,
-        obj: Base,
+        obj: Any,
         redefine: Redefine = Redefine.ERROR,
         logger: Optional[logging.Logger] = None) -> None:
-
     """
     Add an object into a dictionary, handling redefinition.
 
@@ -135,17 +135,23 @@ def merge_into(
         redefine: Redefine = Redefine.ERROR,
         logger: Optional[logging.Logger] = None) -> None:
     """
-    Merge a dictionary into another dictionary, following the redefine semantics.
+    Merge a dictionary into another dictionary, following the redefine
+    semantics.
     """
+
     for key, obj in other.items():
         add_into(into, key, obj, redefine, logger)
+
+
+CoreType: TypeAlias = Union[Type[CoreObject], Type[Template], Type[TemplateCall]]
+Core: TypeAlias = Union[CoreObject, Template, TemplateCall]
 
 
 class Namespace:
 
     def __init__(
             self,
-            coretypes: Union[Mapping[str, Type[Base]], Iterable[Type[Base]]] = CORE_MODELS,
+            coretypes: Union[Mapping[str, Type[CoreObject]], Iterable[Type[CoreObject]]] = CORE_MODELS,
             enable_templates: bool = True,
             redefine: Redefine = Redefine.ERROR,
             logger: Optional[logging.Logger] = None):
@@ -157,10 +163,10 @@ class Namespace:
         # indicates the class to be used when nothing else matches. This
         # is normally a TemplateCall
         if isinstance(coretypes, Mapping):
-            coretypes = dict(coretypes)
+            _coretypes = dict(coretypes)
         else:
-            coretypes = {tp.typename: tp for tp in coretypes}
-        self.typemap: Dict[Optional[str], Type[Base]] = coretypes
+            _coretypes = {tp.typename: tp for tp in coretypes}
+        self.typemap: Dict[str, CoreType] = _coretypes
 
         if enable_templates:
             self.typemap["template"] = Template
@@ -168,11 +174,11 @@ class Namespace:
 
         # a sequence of un-processed objects to be added into this
         # namespace
-        self._feedline: List[Base] = []
+        self._feedline: List[Core] = []
 
         # the actual namespace storage, mapping
         #  `(obj.typename, obj.name): obj`
-        self._ns: Dict[BaseKey, Base] = {}
+        self._ns: Dict[BaseKey, BaseObject] = {}
 
         # templates, mapping simply as `tmpl.name: tmpl`
         self._templates: Dict[str, Template] = {}
@@ -190,7 +196,7 @@ class Namespace:
         return self._ns.keys()
 
 
-    def items(self) -> Iterable[Tuple[BaseKey, Base]]:
+    def items(self) -> Iterable[Tuple[BaseKey, BaseObject]]:
         """
         Return an iterator over the items in the namespace.
         """
@@ -198,7 +204,7 @@ class Namespace:
         return self._ns.items()
 
 
-    def values(self) -> Iterable[Base]:
+    def values(self) -> Iterable[BaseObject]:
         """
         Return an iterator over the values in the namespace.
         """
@@ -206,7 +212,7 @@ class Namespace:
         return self._ns.values()
 
 
-    def get(self, key: BaseKey, default: Any = None) -> Optional[Base]:
+    def get(self, key: BaseKey, default: Any = None) -> Optional[BaseObject]:
         """
         Return the object in the namespace with the given key.
         """
@@ -242,7 +248,7 @@ class Namespace:
         merge_into(self._templates, other._templates, redefine, self.logger)
 
 
-    def get_type(self, typename: str, or_call: bool = True) -> Optional[Type[Base]]:
+    def get_type(self, typename: str, or_call: bool = True) -> Optional[CoreType]:
         """
         Return the type for the given typename. If or_call is True (the
         default), will return a TemplateCall for missing type names. If or_call
@@ -255,9 +261,9 @@ class Namespace:
             return self.typemap.get(typename)
 
 
-    def to_object(self, objdict: Dict[str, Any]) -> Base:
+    def to_object(self, objdict: Dict[str, Any]) -> Core:
         """
-        Convert a dictionary into a Base object instance. Types are resolved
+        Convert a dictionary into a Resolvable object instance. Types are resolved
         from the `type` key. An exception is raised if no type key is present.
 
         If templates are enabled, then the `type` key may be `template` in order
@@ -289,16 +295,16 @@ class Namespace:
             ) from e
 
 
-    def to_objects(self, objseq: Iterable[Dict[str, Any]]) -> Iterable[Base]:
+    def to_objects(self, objseq: Iterable[Dict[str, Any]]) -> Iterable[Core]:
         """
-        Convert a sequence of dictionaries into a sequence of Base object
+        Convert a sequence of dictionaries into a sequence of Resolvable object
         instances, via the `to_object` method.
         """
 
         return map(self.to_object, objseq)
 
 
-    def add(self, obj: Base) -> None:
+    def add(self, obj: BaseObject) -> None:
         """
         Add an object to the namespace. This is called during the `expand`
         method as objects are loaded from the feed queue.
@@ -350,7 +356,7 @@ class Namespace:
         return self.feedall(self.to_objects(datasequence))
 
 
-    def feed(self, obj):
+    def feed(self, obj: Core):
         """
         Appends an object to the queue of objects to be added to this
         namespace. This queue is processed via the `expand()` method.
@@ -359,7 +365,7 @@ class Namespace:
         return self._feedline.append(obj)
 
 
-    def feedall(self, sequence):
+    def feedall(self, sequence: Iterable[Core]) -> None:
         """
         Appends all objects in sequence into the queue of objects
         to be added to this namespace. This queue is processed via the
@@ -390,7 +396,7 @@ class Namespace:
 
         work = self._feedline
         while work:
-            deferals: List[Base] = []
+            deferals: List[Core] = []
             if self._expand(work, deferals):
                 work = self._feedline = deferals
 
@@ -405,7 +411,7 @@ class Namespace:
                 )
 
 
-    def _expand(self, sequence, deferals, depth=0):
+    def _expand(self, sequence: Iterable[Core], deferals: List[Core], depth: int = 0) -> bool:
 
         # processes the sequence in order, either adding core objects
         # or templates to the namespace. If it hits a TemplateCall,
@@ -468,7 +474,7 @@ class Namespace:
                         self._expand(expanded, deferals, depth=depth+1)
                     acted = True
 
-            else:
+            elif isinstance(obj, BaseObject):
                 if deferals:
                     # we want to enforce some ordering, so if we are already
                     # deferring, we need to give earlier calls a chance to
@@ -477,6 +483,9 @@ class Namespace:
                 else:
                     self.add(obj)
                     acted = True
+
+            else:
+                raise TypeError(f"Unknown object type: {type(obj).__name__}")
 
         return acted
 
@@ -489,7 +498,7 @@ class TemplateNamespace(Namespace):
 
     def __init__(
             self,
-            coretypes: Union[Mapping[str, Type[Base]], Iterable[Type[Base]]] = CORE_MODELS,
+            coretypes: Union[Mapping[str, Type[CoreObject]], Iterable[Type[CoreObject]]] = CORE_MODELS,
             redefine: Redefine = Redefine.ERROR,
             logger: Optional[logging.Logger] = None):
 
@@ -508,19 +517,19 @@ class TemplateNamespace(Namespace):
         self.ignored_types: Set[str] = ignores
 
 
-    def to_objects(self, dataseq: Iterable[Dict[str, Any]]) -> Iterable[Base]:
+    def to_objects(self, dataseq: Iterable[Dict[str, Any]]) -> Iterable[Core]:
         # updated to chop out the None values that our to_object will
         # return for ignored_types
         return filter(None, map(self.to_object, dataseq))
 
 
-    def to_object(self, data: Dict[str, Any]) -> Optional[Base]:
+    def to_object(self, data: Dict[str, Any]) -> Optional[Core]:
         if data['type'] in self.ignored_types:
             return None
         return super().to_object(data)
 
 
-    def add(self, obj: Base) -> None:
+    def add(self, obj: BaseObject) -> None:
         """
         Does nothing in this subclass
         """
@@ -537,7 +546,7 @@ class ExpanderNamespace(Namespace):
 
     def __init__(
             self,
-            coretypes: Union[Mapping[str, Type[Base]], Iterable[Type[Base]]] = CORE_MODELS,
+            coretypes: Union[Mapping[str, Type[CoreObject]], Iterable[Type[CoreObject]]] = CORE_MODELS,
             redefine: Redefine = Redefine.ERROR,
             logger: Optional[logging.Logger] = None):
 

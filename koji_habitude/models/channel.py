@@ -12,11 +12,12 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar, List, Optional
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Optional
 
 from koji import MultiCallSession, VirtualCall
 
-from .base import BaseKey, BaseObject
+from ..koji import call_processor, promise_call
+from .base import BaseKey, CoreModel, CoreObject, RemoteObject
 from .change import Add, ChangeReport, Create, Remove, Update
 from .compat import Field
 
@@ -86,14 +87,9 @@ class ChannelChangeReport(ChangeReport):
     Change report for channel objects.
     """
 
-    def impl_read(self, session: MultiCallSession):
-        self._channelinfo: VirtualCall = self.obj.query_exists(session)
-        self._hosts: VirtualCall = session.listHosts(channelID=self.obj.name)
-
-
     def impl_compare(self):
-        info = self._channelinfo.result
-        if not info:
+        remote = self.obj.remote()
+        if not remote:
             if not self.obj.was_split():
                 # we don't exist, and we didn't split our create to an earlier
                 # call, so create now.
@@ -109,10 +105,10 @@ class ChannelChangeReport(ChangeReport):
         if self.obj.is_split():
             return
 
-        if self.obj.description is not None and info['description'] != self.obj.description:
+        if self.obj.description is not None and remote.description != self.obj.description:
             yield ChannelSetDescription(self.obj, self.obj.description)
 
-        hosts = {host['name']: host for host in self._hosts.result}
+        hosts = remote.hosts
         for host in self.obj.hosts:
             if host not in hosts:
                 yield ChannelAddHost(self.obj, host)
@@ -123,27 +119,29 @@ class ChannelChangeReport(ChangeReport):
                     yield ChannelRemoveHost(self.obj, host)
 
 
-class Channel(BaseObject):
+class ChannelModel(CoreModel):
     """
-    Koji channel object model.
+    Field definitions for Channel objects
     """
 
     typename: ClassVar[str] = "channel"
 
     description: Optional[str] = Field(alias='description', default=None)
     hosts: List[str] = Field(alias='hosts', default_factory=list)
-    exact_hosts: bool = Field(alias='exact-hosts', default=False)
-
-    _auto_split: ClassVar[bool] = True
 
 
     def dependency_keys(self) -> List[BaseKey]:
-        """
-        Channels can depend on:
-        - Hosts
-        """
-
         return [('host', host) for host in self.hosts]
+
+
+class Channel(ChannelModel, CoreObject):
+    """
+    Local channel object from YAML.
+    """
+
+    exact_hosts: bool = Field(alias='exact-hosts', default=False)
+
+    _auto_split: ClassVar[bool] = True
 
 
     def change_report(self, resolver: 'Resolver') -> ChannelChangeReport:
@@ -151,8 +149,33 @@ class Channel(BaseObject):
 
 
     @classmethod
-    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        return session.getChannel(key[1], strict=False)
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> 'VirtualCall[RemoteChannel]':
+        return call_processor(RemoteChannel.from_koji, session.getChannel, key[1], strict=False)
+
+
+class RemoteChannel(ChannelModel, RemoteObject):
+    """
+    Remote channel object from Koji API
+    """
+
+    @classmethod
+    def from_koji(cls, data: Optional[Dict[str, Any]]):
+        if data is None:
+            return None
+
+        return cls(
+            koji_id=data['id'],
+            name=data['name'],
+            description=data.get('description'),
+        )
+
+
+    def set_koji_hosts(self, result):
+        self.hosts = [host['name'] for host in result.result]
+
+
+    def load_additional_data(self, session: MultiCallSession):
+        promise_call(self.set_koji_hosts, session.listHosts, channelID=self.name)
 
 
 # The end.

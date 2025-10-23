@@ -79,7 +79,7 @@ class TestProcessorChannelBehavior(MulticallMocking, TestCase):
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
         get_channel_mock.assert_called_once_with('new-channel', strict=False)
-        list_hosts_mock.assert_called_once_with(channelID='new-channel')
+        list_hosts_mock.assert_not_called()
         create_mock.assert_called_once_with('new-channel', 'Test channel')
 
     def test_channel_creation_without_description(self):
@@ -113,7 +113,7 @@ class TestProcessorChannelBehavior(MulticallMocking, TestCase):
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
         get_channel_mock.assert_called_once_with('new-channel', strict=False)
-        list_hosts_mock.assert_called_once_with(channelID='new-channel')
+        list_hosts_mock.assert_not_called()
         create_mock.assert_called_once_with('new-channel', None)
 
     def test_channel_creation_with_hosts(self):
@@ -155,7 +155,7 @@ class TestProcessorChannelBehavior(MulticallMocking, TestCase):
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
         get_channel_mock.assert_called_once_with('new-channel', strict=False)
-        list_hosts_mock.assert_called_once_with(channelID='new-channel')
+        list_hosts_mock.assert_not_called()
         create_mock.assert_called_once_with('new-channel', None)
         add_host1_mock.assert_called_once_with('host1', 'new-channel')
         add_host2_mock.assert_called_once_with('host2', 'new-channel')
@@ -169,6 +169,7 @@ class TestProcessorChannelBehavior(MulticallMocking, TestCase):
         # Mock the getChannel call to return existing channel with different description
         get_channel_mock = Mock()
         get_channel_mock.return_value = {
+            'id': 100,
             'name': 'existing-channel',
             'description': 'Old description'
         }
@@ -207,6 +208,7 @@ class TestProcessorChannelBehavior(MulticallMocking, TestCase):
         # Mock the getChannel call to return existing channel
         get_channel_mock = Mock()
         get_channel_mock.return_value = {
+            'id': 100,
             'name': 'existing-channel',
             'description': 'Test channel'
         }
@@ -250,6 +252,7 @@ class TestProcessorChannelBehavior(MulticallMocking, TestCase):
         # Mock the getChannel call to return existing channel with extra hosts
         get_channel_mock = Mock()
         get_channel_mock.return_value = {
+            'id': 100,
             'name': 'existing-channel',
             'description': 'Test channel'
         }
@@ -292,6 +295,7 @@ class TestProcessorChannelBehavior(MulticallMocking, TestCase):
         # Mock the getChannel call to return channel that already matches desired state
         get_channel_mock = Mock()
         get_channel_mock.return_value = {
+            'id': 100,
             'name': 'existing-channel',
             'description': 'Test description'  # Already matches
         }
@@ -328,6 +332,7 @@ class TestProcessorChannelBehavior(MulticallMocking, TestCase):
         # Mock the getChannel call to return channel with no description
         get_channel_mock = Mock()
         get_channel_mock.return_value = {
+            'id': 100,
             'name': 'existing-channel',
             'description': None  # No current description
         }
@@ -417,8 +422,8 @@ class TestProcessorChannelBehavior(MulticallMocking, TestCase):
         # Verify all calls were made
         get_channel1_mock.assert_called_once_with('channel1', strict=False)
         get_channel2_mock.assert_called_once_with('channel2', strict=False)
-        list_hosts1_mock.assert_called_once_with(channelID='channel1')
-        list_hosts2_mock.assert_called_once_with(channelID='channel2')
+        list_hosts1_mock.assert_not_called()
+        list_hosts2_mock.assert_not_called()
         create1_mock.assert_called_once_with('channel1', 'First channel')
         create2_mock.assert_called_once_with('channel2', None)
         add_host_mock.assert_called_once_with('host1', 'channel2')

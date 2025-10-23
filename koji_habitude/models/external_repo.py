@@ -13,11 +13,12 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 from dataclasses import dataclass
 from re import match
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional
 
 from koji import MultiCallSession, VirtualCall
 
-from .base import BaseKey, BaseObject
+from ..koji import call_processor
+from .base import BaseKey, CoreModel, CoreObject, RemoteObject
 from .change import ChangeReport, Create, Update
 from .compat import Field, field_validator
 
@@ -50,29 +51,30 @@ class ExternalRepoSetURL(Update):
 
 class ExternalRepoChangeReport(ChangeReport):
 
-    def impl_read(self, session: MultiCallSession):
-        self._external_repoinfo: VirtualCall = self.obj.query_exists(session)
-
-
     def impl_compare(self):
-        info = self._external_repoinfo.result
-        if not info:
+        remote = self.obj.remote()
+        if not remote:
             yield ExternalRepoCreate(self.obj)
             return
 
-        if info['url'] != self.obj.url:
+        if remote.url != self.obj.url:
             yield ExternalRepoSetURL(self.obj, self.obj.url)
 
 
-class ExternalRepo(BaseObject):
+class ExternalRepoModel(CoreModel):
     """
-    Koji external repository object model.
+    Field definitions for ExternalRepo objects
     """
 
     typename: ClassVar[str] = "external-repo"
 
     url: str = Field(alias='url')
 
+
+class ExternalRepo(ExternalRepoModel, CoreObject):
+    """
+    Local external repository object from YAML.
+    """
 
     @field_validator('url', mode='before')
     def validate_url(cls, v):
@@ -86,8 +88,27 @@ class ExternalRepo(BaseObject):
 
 
     @classmethod
-    def check_exists(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
-        return session.getExternalRepo(key[1], strict=False)
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> 'VirtualCall[RemoteExternalRepo]':
+        return call_processor(
+            RemoteExternalRepo.from_koji,
+            session.getExternalRepo, key[1], strict=False)
+
+
+class RemoteExternalRepo(ExternalRepoModel, RemoteObject):
+    """
+    Remote external repository object from Koji API
+    """
+
+    @classmethod
+    def from_koji(cls, data: Optional[Dict[str, Any]]):
+        if data is None:
+            return None
+
+        return cls(
+            koji_id=data['id'],
+            name=data['name'],
+            url=data['url']
+        )
 
 
 # The end.

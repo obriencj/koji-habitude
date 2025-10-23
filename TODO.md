@@ -5,12 +5,15 @@ This document tracks planned features and improvements for koji-habitude.
 ## ✅ Recently Completed
 
 **Core Implementation**:
-- [x] Complete CLI framework with sync, diff, list-templates, and expand commands
+- [x] Complete CLI framework with apply, compare, expand, fetch, dump, and list-templates commands
 - [x] All CORE_MODELS implemented with Pydantic validation and dependency resolution
+- [x] Remote object models for all core types with Koji API integration
 - [x] Comprehensive unit testing (360 tests, 74% coverage)
 - [x] Dependency resolution with Resolver and Solver modules for tiered execution
 - [x] Processor module with multicall integration and change tracking
 - [x] Workflow orchestration and koji profile support
+- [x] Fetch command for pulling remote state as YAML
+- [x] Dump command for bootstrapping local definitions from remote state
 
 ## 🚀 Immediate Next Steps
 
@@ -29,6 +32,18 @@ This document tracks planned features and improvements for koji-habitude.
 - [ ] Add type hints throughout codebase
 - [ ] Implement proper logging configuration
 - [ ] Performance optimization and benchmarking
+
+## 🔄 Remote State Management
+
+**Goal**: Complete bidirectional synchronization with Koji instances.
+
+- [x] Remote object models for all core types (RemoteTag, RemoteUser, etc.)
+- [x] Fetch command for pulling remote state as YAML
+- [x] Dump command for bootstrapping local definitions from remote state
+- [x] Enhanced multicall integration with VirtualPromise support
+- [ ] Remote state caching and incremental updates
+- [ ] Configuration drift detection and reporting
+- [ ] Backup/restore functionality using fetch/apply cycle
 
 ## 🧪 Testing Priorities
 
@@ -86,7 +101,6 @@ This document tracks planned features and improvements for koji-habitude.
 - [ ] Integration with git hooks for automatic sync
 - [ ] Backup/restore functionality
 - [ ] Configuration drift detection
-- [ ] Multi-hub synchronization
 - [ ] Performance metrics and monitoring
 - [ ] Rollback capabilities
 
