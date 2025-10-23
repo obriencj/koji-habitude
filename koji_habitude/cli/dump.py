@@ -73,7 +73,7 @@ SEARCH_FUNCTIONS = {
 glob_like = re.compile(r'[\*\?\[\]]').search
 
 
-def resolve_term(session_obj, resolver: Resolver, key: BaseKey) -> List[Reference]:
+def resolve_term(session_obj, resolver: Resolver, key: BaseKey):
     typename, name = key
 
     if glob_like(name):
