@@ -172,6 +172,71 @@ class TagSetExtras(Update):
 
 
 @dataclass
+class TagAddExtra(Add):
+    obj: 'Tag'
+    key: str
+    value: Any
+
+    def impl_apply(self, session: MultiCallSession):
+        return session.editTag2(self.obj.name, extra={self.key: self.value})
+
+    def summary(self) -> str:
+        return f"Add extra field {self.key} = {self.value}"
+
+
+@dataclass
+class TagUpdateExtra(Modify):
+    obj: 'Tag'
+    key: str
+    value: Any
+
+    def impl_apply(self, session: MultiCallSession):
+        return session.editTag2(self.obj.name, extra={self.key: self.value})
+
+    def summary(self) -> str:
+        return f"Update extra field {self.key} = {self.value}"
+
+
+@dataclass
+class TagRemoveExtra(Remove):
+    obj: 'Tag'
+    key: str
+
+    def impl_apply(self, session: MultiCallSession):
+        return session.editTag2(self.obj.name, remove_extra=[self.key])
+
+    def summary(self) -> str:
+        return f"Remove extra field {self.key}"
+
+
+@dataclass
+class TagBlockExtra(Add):
+    obj: 'Tag'
+    key: str
+
+    def impl_apply(self, session: MultiCallSession):
+        return session.editTag2(self.obj.name, block_extra=[self.key])
+
+    def summary(self) -> str:
+        return f"Block extra field {self.key}"
+
+
+@dataclass
+class TagUnblockExtra(Remove):
+    obj: 'Tag'
+    key: str
+
+    def impl_apply(self, session: MultiCallSession):
+        # we can't directly remove a block, we have to set it to a value and
+        # then remove it
+        session.editTag2(self.obj.name, extra={self.key: None})
+        return session.editTag2(self.obj.name, remove_extra=[self.key])
+
+    def summary(self) -> str:
+        return f"Unblock extra field {self.key}"
+
+
+@dataclass
 class TagAddGroup(Add):
     obj: 'Tag'
     group: 'TagGroup'
@@ -567,21 +632,56 @@ class TagChangeReport(ChangeReport):
 
         if remote.locked != self.obj.locked:
             yield TagSetLocked(self.obj, self.obj.locked)
+
         if not compare_arches(remote.arches, self.obj.arches):
             yield TagSetArches(self.obj, self.obj.arches)
+
         if remote.maven_support != self.obj.maven_support or \
            remote.maven_include_all != self.obj.maven_include_all:
             yield TagSetMaven(self.obj, self.obj.maven_support, self.obj.maven_include_all)
 
         if remote.permission != self.obj.permission:
             yield TagSetPermission(self.obj, self.obj.permission)
-        if remote.extras != self.obj.extras:
-            yield TagSetExtras(self.obj, self.obj.extras)
 
+        yield from self._compare_extras()
         yield from self._compare_packages()
         yield from self._compare_groups()
         yield from self._compare_inheritance()
         yield from self._compare_external_repos()
+
+
+    def _compare_extras(self) -> Iterable[Change]:
+        remote = self.obj.remote()
+
+        if remote.extras == self.obj.extras:
+            return
+
+        if not remote.extras:
+            yield TagSetExtras(self.obj, self.obj.extras)
+            return
+
+        exact_extras = self.obj.exact_extras
+        for key, value in self.obj.extras.items():
+            if key not in remote.extras:
+                yield TagAddExtra(self.obj, key, value)
+            elif remote.extras[key] != value:
+                yield TagUpdateExtra(self.obj, key, value)
+
+        if exact_extras:
+            for key in remote.extras:
+                if key not in self.obj.extras:
+                    yield TagRemoveExtra(self.obj, key)
+
+        for key in self.obj.block_extras:
+            if key not in remote.block_extras:
+                if key not in self.obj.extras:
+                    yield TagBlockExtra(self.obj, key)
+
+        if exact_extras:
+            for key in remote.block_extras:
+                if key not in self.obj.block_extras:
+                    if key not in self.obj.extras:
+                        yield TagUnblockExtra(self.obj, key)
 
 
     def _compare_packages(self) -> Iterable[Change]:
@@ -871,6 +971,7 @@ class TagModel(CoreModel):
     maven_support: bool = Field(alias='maven-support', default=False)
     maven_include_all: bool = Field(alias='maven-include-all', default=False)
     extras: Dict[str, Any] = Field(alias='extras', default_factory=dict)
+    block_extras: List[str] = Field(alias='blocked-extras', default_factory=list)
     groups: Dict[str, TagGroup] = Field(alias='groups', default_factory=dict)
     inheritance: List[InheritanceLink] = Field(alias='inheritance', default_factory=list)
     external_repos: List[ExternalRepoLink] = Field(alias='external-repos', default_factory=list)
@@ -898,6 +999,7 @@ class Tag(TagModel, CoreObject):
     Local tag object from YAML.
     """
 
+    exact_extras: bool = Field(alias='exact-extras', default=False)
     exact_groups: bool = Field(alias='exact-groups', default=False)
     exact_packages: bool = Field(alias='exact-packages', default=False)
 
@@ -1031,7 +1133,7 @@ class Tag(TagModel, CoreObject):
 
     @classmethod
     def query_remote(cls, session: MultiCallSession, key: BaseKey) -> 'VirtualCall[RemoteTag]':
-        return call_processor(RemoteTag.from_koji, session.getTag, key[1], strict=False)
+        return call_processor(RemoteTag.from_koji, session.getTag, key[1], strict=False, blocked=True)
 
 
 class RemoteTag(TagModel, RemoteObject):
@@ -1047,6 +1149,19 @@ class RemoteTag(TagModel, RemoteObject):
         if data is None:
             return None
 
+        blocked_extras = []
+        pure_extras = {}
+        for key, value in data.get('extra', {}).items():
+            if not isinstance(value, list) or len(value) != 2:
+                # someone invoked this with the extras field missing the blocked data
+                raise ValueError(f"Extra items must be `[blocked, value]`, got {value!r}")
+
+            blocked, val = value
+            if blocked:
+                blocked_extras.append(key)
+            else:
+                pure_extras[key] = val
+
         # Convert Koji data to Tag fields
         return cls(
             koji_id=data['id'],
@@ -1056,7 +1171,8 @@ class RemoteTag(TagModel, RemoteObject):
             arches=split_arches(data.get('arches')),
             maven_support=data.get('maven_support', False),
             maven_include_all=data.get('maven_include_all', False),
-            extras=data.get('extra', {}),
+            extras=pure_extras,
+            blocked_extras=blocked_extras,
         )
 
 
