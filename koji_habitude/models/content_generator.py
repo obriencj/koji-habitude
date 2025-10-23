@@ -117,6 +117,7 @@ class ContentGenerator(ContentGeneratorModel, CoreObject):
     @classmethod
     def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
         name = key[1]
+
         def filter_for_cg(cglist):
             dat = cglist.get(name)
             if dat is not None:

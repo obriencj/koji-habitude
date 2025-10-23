@@ -99,11 +99,13 @@ class Permission(PermissionModel, CoreObject):
     @classmethod
     def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
         name = key[1]
+
         def filter_for_perm(perms):
             for perm in perms:
                 if perm['name'] == name:
                     return RemotePermission.from_koji(perm)
             return None
+
         return call_processor(filter_for_perm, session.getAllPerms)
 
 

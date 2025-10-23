@@ -66,10 +66,12 @@ class BuildType(BuildTypeModel, CoreObject):
     @classmethod
     def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
         name = key[1]
+
         def filter_for_btype(btlist):
             if btlist:
                 return RemoteBuildType.from_koji(btlist[0])
             return None
+
         return call_processor(filter_for_btype, session.listBTypes, query={'name': name})
 
 

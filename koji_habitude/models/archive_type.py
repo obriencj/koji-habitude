@@ -94,11 +94,13 @@ class ArchiveType(ArchiveTypeModel, CoreObject):
     @classmethod
     def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
         name = key[1]
+
         def filter_for_atype(atlist):
             for at in atlist:
                 if at['name'] == name:
                     return RemoteArchiveType.from_koji(at)
             return None
+
         return call_processor(filter_for_atype, session.getArchiveTypes)
 
 
