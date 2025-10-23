@@ -19,11 +19,11 @@ import click
 
 from ..koji import session
 from ..loader import pretty_yaml_all
-from ..models import BaseKey
+from ..models import CORE_MODELS, BaseKey
 from ..namespace import Namespace
 from ..resolver import Reference, Resolver
 from . import main
-from .util import catchall, sort_objects_for_output
+from .util import catchall, sort_objects_for_output, resplit
 
 
 def parse_patterns(args: List[str], default_types: List[str]) -> List[BaseKey]:
@@ -85,7 +85,11 @@ def resolve_term(session_obj, resolver: Resolver, key: BaseKey) -> List[Referenc
         return [resolver.resolve(key)]
 
 
-def resolve_dependencies(session_obj, resolver: Resolver, max_depth: Optional[int] = None) -> None:
+def resolve_dependencies(
+        session_obj,
+        resolver: Resolver,
+        max_depth: Optional[int] = None,
+        dep_types: Optional[List[str]] = None) -> None:
 
     work = list(resolver.report().discovered.values())
     while work:
@@ -95,6 +99,8 @@ def resolve_dependencies(session_obj, resolver: Resolver, max_depth: Optional[in
             assert remote is not None
 
             for depkey in remote.dependency_keys():
+                if dep_types and depkey[0] not in dep_types:
+                    continue
                 depref = resolver.resolve(depkey)
                 if depref.remote() is None:
                     new_work.append(depref)
@@ -125,6 +131,9 @@ def resolve_dependencies(session_obj, resolver: Resolver, max_depth: Optional[in
     "--with-deps", default=False, is_flag=True,
     help="Include dependencies (default: False)")
 @click.option(
+    "--with-dep-type", multiple=True, type=click.Choice(CORE_MODELS.keys()), metavar='TYPE',
+    help="Limit dependencies to specific types (default: None)")
+@click.option(
     "--max-depth", type=int, default=None, metavar='N',
     help="Maximum dependency depth (default: unlimited)")
 @click.option(
@@ -141,7 +150,7 @@ def resolve_dependencies(session_obj, resolver: Resolver, max_depth: Optional[in
     help="Search hosts by default")
 @catchall
 def dump(patterns, profile='koji', output=sys.stdout, include_defaults=False,
-         with_deps=False, max_depth=None, tags=False, targets=False,
+         with_deps=False, with_dep_type=[], max_depth=None, tags=False, targets=False,
          users=False, hosts=False):
     """
     Dump remote data from Koji instance by pattern matching.
@@ -174,6 +183,9 @@ def dump(patterns, profile='koji', output=sys.stdout, include_defaults=False,
     # Default to tags and targets if no flags specified
     if not default_types:
         default_types = ['tag', 'target']
+
+    if with_dep_type:
+        with_dep_type = resplit(with_dep_type)
 
     # Parse patterns
     search_list = parse_patterns(patterns, default_types)
