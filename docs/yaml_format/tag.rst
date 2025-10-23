@@ -35,6 +35,15 @@ Basic Structure
    # Additional tag metadata as key-value pairs
    extras:
      description: "My tag description"
+     build_requires: "special-build-requirements"
+
+   # List of extra fields that should be blocked from inheritance
+   blocked-extras:
+     - sensitive-data
+     - internal-notes
+
+   # Whether to enforce exact extras matching (removes undeclared extras)
+   exact-extras: false
 
    # Package groups and their package lists. This is used to generate
    # the yum groups if this tag or one of its children is used as a
@@ -100,7 +109,13 @@ Optional Fields
    Whether to include all Maven artifacts in this tag
 
 ``extras`` (dictionary of str to Any)
-   Additional tag metadata as key-value pairs
+   Additional tag metadata as key-value pairs. These fields are inherited by child tags unless blocked.
+
+``blocked-extras`` (list of str)
+   List of extra field names that should be blocked from inheritance to child tags. These fields will not be passed down to tags that inherit from this tag.
+
+``exact-extras`` (boolean) - Default: False
+   Whether to enforce exact extras matching. When True, any extra fields present in the remote tag that are not declared in the YAML will be removed.
 
 ``groups`` (dict of str to TagGroup)
    Package groups and their package lists
