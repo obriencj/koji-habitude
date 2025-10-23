@@ -92,10 +92,12 @@ glob_like = re.compile(r'[*?[]').match
 def resolve_term(session, resolver: Resolver, key: BaseKey) -> List[Reference]:
     typename, name = key
 
+    print(f"Resolving {key}")
     if glob_like(name):
         search_fn = SEARCH_FUNCTIONS.get(typename)
         if search_fn is None:
             raise ValueError(f"No search function for type {typename}")
+        print(f"Searching {name} for {typename}")
         return [resolver.resolve(key) for key in search_fn(session, name)]
     else:
         return [resolver.resolve(key)]
@@ -177,7 +179,9 @@ def dump(patterns, profile='koji', output=sys.stdout, include_defaults=False,
 
     # performs searches and resolves individual units to References
     for key in search_list:
-        resolve_term(session, resolver, key)
+        refs = resolve_term(session, resolver, key)
+        for ref in refs:
+            print(f"Resolved {ref!r}")
 
     resolver.load_remote_references(session_obj, full=True)
 
@@ -185,7 +189,7 @@ def dump(patterns, profile='koji', output=sys.stdout, include_defaults=False,
     # if with_deps:
     #     resolve_dependencies(session_obj, resolver, dep_depth)
 
-    remotes = resolver.report().discovered.values()
+    remotes = [ref.remote() for ref in resolver.report().discovered.values()]
     sorted_objects = sort_objects_for_output(remotes)
 
     # Convert to dicts and output YAML
