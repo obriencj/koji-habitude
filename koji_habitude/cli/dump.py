@@ -97,7 +97,7 @@ def resolve_dependencies(session_obj, resolver: Resolver, max_depth: Optional[in
             for depkey in remote.dependency_keys():
                 depref = resolver.resolve(depkey)
                 if depref.remote() is None:
-                    new_work.append(depkey)
+                    new_work.append(depref)
 
         work = new_work
         if not work:
