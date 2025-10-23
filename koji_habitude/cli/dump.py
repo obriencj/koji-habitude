@@ -131,7 +131,7 @@ def resolve_dependencies(
     "--with-deps", default=False, is_flag=True,
     help="Include dependencies (default: False)")
 @click.option(
-    "--with-dep-type", multiple=True, type=click.Choice(CORE_MODELS.keys()), metavar='TYPE',
+    "--with-dep-type", multiple=True, metavar='TYPE',
     help="Limit dependencies to specific types (default: None)")
 @click.option(
     "--max-depth", type=int, default=None, metavar='N',
