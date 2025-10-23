@@ -90,7 +90,7 @@ class Reference(CoreModel, ResolvableMixin):
 
 
     def split(self) -> 'Reference':
-        assert False, "References cannot be split"
+        raise TypeError("References cannot be split")
 
 
     @property
@@ -235,7 +235,7 @@ class Resolver:
         self._references.clear()
 
 
-    def load_remote_references(self, session: Union[MultiCallSession, ClientSession]) -> None:
+    def load_remote_references(self, session: ClientSession, full=False) -> None:
         """
         creates a multicall for session, and queries for the existence of all
         current reference objects.
@@ -244,13 +244,18 @@ class Resolver:
         if not self._references:
             return
 
-        if isinstance(session, MultiCallSession):
+        with multicall(session) as mc:
             for ref in self._references.values():
-                ref.load_remote(session)
-        else:
-            with multicall(session) as mc:
-                for ref in self._references.values():
-                    ref.load_remote(mc)
+                ref.load_remote(mc)
+
+        if not full:
+            return
+
+        with multicall(session) as mc:
+            for ref in self._references.values():
+                remote = ref.remote()
+                if remote:
+                    remote.load_additional_data(mc)
 
 
     def report(self) -> ResolverReport:

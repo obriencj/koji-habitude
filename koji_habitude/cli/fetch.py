@@ -17,7 +17,7 @@ from ..loader import pretty_yaml_all
 from ..resolver import Reference
 from ..workflow import CompareWorkflow
 from . import main
-from .util import catchall
+from .util import catchall, sort_objects_for_output
 
 
 @main.command()
@@ -45,7 +45,11 @@ def fetch(data, templates, profile='koji', output=sys.stdout,
 
     Loads templates and data files, resolves dependencies, connects to
     Koji, and outputs YAML documents representing the remote state of
-    all objects that exist on the Koji instance.
+    all objects that exist on the Koji instance which have fields that
+    differ from the local definitions.
+
+    The `--show-unchanged` option will show all objects from the dataseries,
+    regardless of whether they differ.
 
     DATA can be directories or files containing YAML object definitions.
     """
@@ -78,8 +82,11 @@ def fetch(data, templates, profile='koji', output=sys.stdout,
 
         remote_objects.append(remote)
 
+    # Sort objects by type, then by name
+    sorted_objects = sort_objects_for_output(remote_objects)
+
     # Output all remote objects as YAML
-    series = (remote.to_dict(exclude_defaults=exclude_defaults) for remote in remote_objects)
+    series = (remote.to_dict(exclude_defaults=exclude_defaults) for remote in sorted_objects)
     pretty_yaml_all(series, out=output)
 
     return 0

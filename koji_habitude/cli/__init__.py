@@ -26,6 +26,7 @@ class MagicGroup(click.Group):
         from . import templates
         from . import expand
         from . import fetch
+        from . import dump
 
     def get_command(self, ctx, cmd_name):
         self._load_commands()
