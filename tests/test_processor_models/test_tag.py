@@ -134,8 +134,8 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         self.assertTrue(result)  # Should process 1 object
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_tag_mock.assert_called_once_with('new-tag', strict=False)
-        get_tag_post_mock.assert_called_once_with('new-tag', strict=False)
+        get_tag_mock.assert_called_once_with('new-tag', strict=False, blocked=True)
+        get_tag_post_mock.assert_called_once_with('new-tag', strict=False, blocked=True)
         # When tag doesn't exist, deferred calls are not made
         list_packages_mock.assert_not_called()
         get_groups_mock.assert_not_called()
@@ -235,8 +235,8 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
         # Verify all calls were made
-        get_tag_mock.assert_called_once_with('complex-tag', strict=False)
-        get_tag_post_mock.assert_called_once_with('complex-tag', strict=False)
+        get_tag_mock.assert_called_once_with('complex-tag', strict=False, blocked=True)
+        get_tag_post_mock.assert_called_once_with('complex-tag', strict=False, blocked=True)
         # When tag doesn't exist, deferred calls are not made
         list_packages_mock.assert_not_called()
         get_groups_mock.assert_not_called()
@@ -315,7 +315,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
         list_packages_mock.assert_called_once_with(tagID='existing-tag')
-        get_tag_mock.assert_called_once_with('existing-tag', strict=False)
+        get_tag_mock.assert_called_once_with('existing-tag', strict=False, blocked=True)
         set_locked_mock.assert_called_once_with('existing-tag', locked=True)
 
     def test_update_permission(self):
@@ -371,7 +371,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
         list_packages_mock.assert_called_once_with(tagID='existing-tag')
-        get_tag_mock.assert_called_once_with('existing-tag', strict=False)
+        get_tag_mock.assert_called_once_with('existing-tag', strict=False, blocked=True)
         set_permission_mock.assert_called_once_with('existing-tag', perm='admin')
 
     def test_update_arches(self):
@@ -427,7 +427,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
         list_packages_mock.assert_called_once_with(tagID='existing-tag')
-        get_tag_mock.assert_called_once_with('existing-tag', strict=False)
+        get_tag_mock.assert_called_once_with('existing-tag', strict=False, blocked=True)
         set_arches_mock.assert_called_once_with('existing-tag', arches='x86_64 aarch64')
 
     def test_update_maven_settings(self):
@@ -483,7 +483,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
         list_packages_mock.assert_called_once_with(tagID='existing-tag')
-        get_tag_mock.assert_called_once_with('existing-tag', strict=False)
+        get_tag_mock.assert_called_once_with('existing-tag', strict=False, blocked=True)
         set_maven_mock.assert_called_once_with('existing-tag', maven_support=True, maven_include_all=True)
 
     def test_no_changes_needed(self):
@@ -534,7 +534,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         self.assertTrue(result)  # Should process 1 object
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_tag_mock.assert_called_once_with('existing-tag', strict=False)
+        get_tag_mock.assert_called_once_with('existing-tag', strict=False, blocked=True)
         list_packages_mock.assert_called_once_with(tagID='existing-tag')
         get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
         get_inheritance_mock.assert_called_once_with('existing-tag')
@@ -622,12 +622,12 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
         self.assertEqual(summary.state, ProcessorState.EXHAUSTED)
 
         # Verify all calls were made
-        get_tag1_mock.assert_called_once_with('tag1', strict=False)
-        get_tag2_mock.assert_called_once_with('tag2', strict=False)
+        get_tag1_mock.assert_called_once_with('tag1', strict=False, blocked=True)
+        get_tag2_mock.assert_called_once_with('tag2', strict=False, blocked=True)
         create1_mock.assert_called_once()
         create2_mock.assert_called_once()
-        get_tag_post1_mock.assert_called_once_with('tag1', strict=False)
-        get_tag_post2_mock.assert_called_once_with('tag2', strict=False)
+        get_tag_post1_mock.assert_called_once_with('tag1', strict=False, blocked=True)
+        get_tag_post2_mock.assert_called_once_with('tag2', strict=False, blocked=True)
         set_permission2_mock.assert_called_once_with('tag2', perm='admin')
 
 
@@ -695,7 +695,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         self.assertTrue(result)  # Should process 1 object
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_tag_mock.assert_called_once_with('existing-tag', strict=False)
+        get_tag_mock.assert_called_once_with('existing-tag', strict=False, blocked=True)
         list_packages_mock.assert_called_once_with(tagID='existing-tag')
         get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
         add_group_mock.assert_called_once_with('existing-tag', 'build', description=None, block=False, force=True)
@@ -760,7 +760,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         self.assertTrue(result)
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_tag_mock.assert_called_once_with('existing-tag', strict=False)
+        get_tag_mock.assert_called_once_with('existing-tag', strict=False, blocked=True)
         list_packages_mock.assert_called_once_with(tagID='existing-tag')
         get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
         # Should update group because block status differs
@@ -827,7 +827,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         self.assertTrue(result)
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_tag_mock.assert_called_once_with('existing-tag', strict=False)
+        get_tag_mock.assert_called_once_with('existing-tag', strict=False, blocked=True)
         list_packages_mock.assert_called_once_with(tagID='existing-tag')
         get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
         # Should remove the group because exact_groups=True and group not in desired state
@@ -892,7 +892,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         self.assertTrue(result)
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_tag_mock.assert_called_once_with('existing-tag', strict=False)
+        get_tag_mock.assert_called_once_with('existing-tag', strict=False, blocked=True)
         list_packages_mock.assert_called_once_with(tagID='existing-tag')
         get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
         # Should add the missing package
@@ -957,7 +957,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         self.assertTrue(result)
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_tag_mock.assert_called_once_with('existing-tag', strict=False)
+        get_tag_mock.assert_called_once_with('existing-tag', strict=False, blocked=True)
         list_packages_mock.assert_called_once_with(tagID='existing-tag')
         get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
         # Should update the package because block status differs
@@ -1027,7 +1027,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         self.assertTrue(result)
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_tag_mock.assert_called_once_with('existing-tag', strict=False)
+        get_tag_mock.assert_called_once_with('existing-tag', strict=False, blocked=True)
         list_packages_mock.assert_called_once_with(tagID='existing-tag')
         get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
         # Should remove the extra package because exact_packages=True
@@ -1112,7 +1112,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
         self.assertTrue(result)
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_tag_mock.assert_called_once_with('existing-tag', strict=False)
+        get_tag_mock.assert_called_once_with('existing-tag', strict=False, blocked=True)
         list_packages_mock.assert_called_once_with(tagID='existing-tag')
         get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
 
@@ -1188,7 +1188,7 @@ class TestProcessorTagDependencies(MulticallMocking, TestCase):
         self.assertTrue(result)  # Should process 1 object
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_tag_mock.assert_called_once_with('existing-tag', strict=False)
+        get_tag_mock.assert_called_once_with('existing-tag', strict=False, blocked=True)
         add_inheritance_mock.assert_called_once()
 
     def test_add_external_repo(self):
@@ -1244,7 +1244,7 @@ class TestProcessorTagDependencies(MulticallMocking, TestCase):
         self.assertTrue(result)  # Should process 1 object
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_tag_mock.assert_called_once_with('existing-tag', strict=False)
+        get_tag_mock.assert_called_once_with('existing-tag', strict=False, blocked=True)
         add_external_repo_mock.assert_called_once_with('existing-tag', 'external-repo', priority=5, merge_mode='koji', arches=None)
 
     def test_simultaneous_tag_creation_with_inheritance(self):
@@ -1448,7 +1448,7 @@ class TestProcessorTagPackages(MulticallMocking, TestCase):
         self.assertTrue(result)
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_tag_mock.assert_called_once_with('existing-tag', strict=False)
+        get_tag_mock.assert_called_once_with('existing-tag', strict=False, blocked=True)
         list_packages_mock.assert_called_once_with(tagID='existing-tag')
         add_package_mock.assert_called_once_with(
             'existing-tag',
@@ -2071,7 +2071,7 @@ class TestProcessorTagPackages(MulticallMocking, TestCase):
         self.assertTrue(result)
         self.assertEqual(processor.state, ProcessorState.READY_CHUNK)
 
-        get_tag_mock.assert_called_once_with('new-tag', strict=False)
+        get_tag_mock.assert_called_once_with('new-tag', strict=False, blocked=True)
         create_mock.assert_called_once()
         # Verify both packages were added during creation
         add_package1_mock.assert_called_once_with(
