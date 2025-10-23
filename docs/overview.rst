@@ -53,7 +53,7 @@ CLI Commands
 ------------
 
 koji-habitude is built using
-`Click <https://click.palletsprojects.com/>`__ and provides four main
+`Click <https://click.palletsprojects.com/>`__ and provides six main
 commands plus a template subcommand group for working with individual
 templates.
 
@@ -102,6 +102,19 @@ Main Commands
 - Shows objects that differ from local definitions (or all with ``--show-unchanged``)
 - Options: ``--templates PATH``, ``--profile PROFILE``, ``--output PATH``,
   ``--include-defaults``, ``--show-unchanged``
+
+**``dump``** - Bootstrap local definitions from remote Koji state
+
+.. code:: bash
+
+   koji-habitude dump [OPTIONS] PATTERNS...
+
+- Searches koji for objects matching patterns and outputs as YAML
+- Supports pattern matching for searchable types (tags, targets, users, hosts)
+- No local YAML definitions required - operates entirely on remote data
+- Options: ``--profile PROFILE``, ``--output PATH``, ``--include-defaults``,
+  ``--with-deps``, ``--max-depth``, ``--with-dep-type``, type flags
+  (``--tags``, ``--users``, etc.)
 
 **``list-templates``** - List available templates
 
