@@ -8,6 +8,8 @@ License: GNU General Public License v3
 AI-Assistant: Claude 4.5 Sonnet via Cursor
 """
 
+# Vibe-Coding State: AI Assisted, Mostly Human
+
 
 import re
 import sys
@@ -24,25 +26,20 @@ from . import main
 from .util import catchall, sort_objects_for_output
 
 
-def parse_patterns(args: List[str], default_types: List[str]) -> List[Tuple[str, str]]:
+def parse_patterns(args: List[str], default_types: List[str]) -> List[BaseKey]:
     """
     Parse command line arguments into (type, pattern) tuples.
 
     Args:
         args: List of arguments like ['tag:foo', '*-build', 'user:bob']
         default_types: List of types to use for untyped patterns
-
-    Returns:
-        List of (type, pattern) tuples
     """
     result = []
     for arg in args:
         if ':' in arg:
-            # Typed pattern: type:pattern
             type_part, pattern = arg.split(':', 1)
             result.append((type_part, pattern))
         else:
-            # Untyped pattern: apply to all default types
             for typename in default_types:
                 result.append((typename, arg))
     return result
