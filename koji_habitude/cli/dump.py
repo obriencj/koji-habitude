@@ -79,7 +79,7 @@ def resolve_term(session_obj, resolver: Resolver, key: BaseKey):
     if glob_like(name):
         search_fn = SEARCH_FUNCTIONS.get(typename)
         if search_fn is None:
-            raise ValueError(f"No search function for type {typename}")
+            raise ValueError(f"No search function for type in key, {key}")
         return [resolver.resolve(key) for key in search_fn(session_obj, name)]
     else:
         return [resolver.resolve(key)]
@@ -187,9 +187,17 @@ def dump(patterns, profile='koji', output=sys.stdout, include_defaults=False,
     if with_dep_type:
         with_deps = True
         with_dep_type = resplit(with_dep_type)
+        for dep_type in with_dep_type:
+            if dep_type not in SEARCH_FUNCTIONS:
+                click.echo(f"Invalid dependency type: {dep_type}", err=True)
+                return 1
 
     # Parse patterns
     search_list = parse_patterns(patterns, default_types)
+    for key in search_list:
+        if key[0] not in CORE_MODELS:
+            click.echo(f"Invalid type in key: {key}", err=True)
+            return 1
 
     # Connect to koji (no auth, read-only)
     session_obj = session(profile, authenticate=False)
@@ -198,8 +206,12 @@ def dump(patterns, profile='koji', output=sys.stdout, include_defaults=False,
     resolver = Resolver(Namespace())
 
     # performs searches and resolves individual units to References
-    for key in search_list:
-        resolve_term(session_obj, resolver, key)
+    try:
+        for key in search_list:
+            resolve_term(session_obj, resolver, key)
+    except ValueError as e:
+        click.echo(e.message, err=True)
+        return 1
 
     resolver.load_remote_references(session_obj, full=True)
 
