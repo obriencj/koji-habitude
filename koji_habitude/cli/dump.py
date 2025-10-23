@@ -185,6 +185,7 @@ def dump(patterns, profile='koji', output=sys.stdout, include_defaults=False,
         default_types = ['tag', 'target']
 
     if with_dep_type:
+        with_deps = True
         with_dep_type = resplit(with_dep_type)
 
     # Parse patterns
@@ -204,7 +205,7 @@ def dump(patterns, profile='koji', output=sys.stdout, include_defaults=False,
 
     # Resolve dependencies if requested
     if with_deps:
-        resolve_dependencies(session_obj, resolver, max_depth)
+        resolve_dependencies(session_obj, resolver, max_depth, with_dep_type)
 
     remotes = [ref.remote() for ref in resolver.report().discovered.values()]
     sorted_objects = sort_objects_for_output(remotes)
