@@ -16,7 +16,7 @@ from typing import (TYPE_CHECKING, Any, ClassVar, Dict, Iterable, List,
 
 from koji import MultiCallSession, VirtualCall
 
-from ..koji import call_processor, VirtualPromise
+from ..koji import call_processor, promise_call, VirtualPromise
 from .base import BaseKey, CoreModel, CoreObject, RemoteObject, SubModel
 from .change import Add, Change, ChangeReport, Create, Modify, Remove, Update
 from .compat import Field, field_validator
@@ -1030,7 +1030,7 @@ class Tag(TagModel, CoreObject):
 
 
     @classmethod
-    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall['RemoteTag']:
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> 'VirtualCall[RemoteTag]':
         return call_processor(RemoteTag.from_koji, session.getTag, key[1], strict=False)
 
 
@@ -1110,10 +1110,10 @@ class RemoteTag(TagModel, RemoteObject):
         # Load additional data like inheritance, external repos, packages, etc.
         # This would require multiple API calls
 
-        session.listPackages(tagID=self.name).into(self.set_koji_packages)
-        session.getTagGroups(self.name, inherit=False, incl_blocked=True).into(self.set_koji_groups)
-        session.getInheritanceData(self.name).into(self.set_koji_inheritance)
-        session.getTagExternalRepos(tag_info=self.name).into(self.set_koji_external_repos)
+        promise_call(self.set_koji_packages, session.listPackages, tagID=self.name)
+        promise_call(self.set_koji_groups, session.getTagGroups, self.name, inherit=False, incl_blocked=True)
+        promise_call(self.set_koji_inheritance, session.getInheritanceData, self.name)
+        promise_call(self.set_koji_external_repos, session.getTagExternalRepos, tag_info=self.name)
 
 
 # The end.

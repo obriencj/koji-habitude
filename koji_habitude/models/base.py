@@ -174,7 +174,7 @@ class LocalMixin(Mixin):
         return self._data
 
 
-class ResolvableMixin(Identifiable, Mixin):
+class ResolvableMixin(IdentifiableMixin):
 
     # We cannot make this a PrivateAttr because doing so breaks Pydantic v1.10
     # compatibility. This is because v1.10 creates a __slots__ attribute for the
@@ -231,7 +231,7 @@ class CoreModel(IdentifiableMixin, BaseModel):
 CoreT = TypeVar('CoreT', bound='CoreObject')
 
 
-class CoreObject(IdentifiableMixin, LocalMixin, ResolvableMixin, BaseModel):
+class CoreObject(LocalMixin, ResolvableMixin, BaseModel):
     """
     Core models that load from YAML and have full functionality through
     the Resolver, Processor, and Solver.

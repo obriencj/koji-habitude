@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Optional
 
 from koji import MultiCallSession, VirtualCall
 
-from ..koji import call_processor
+from ..koji import call_processor, promise_call
 from .base import BaseKey, CoreModel, CoreObject, RemoteObject
 from .change import Add, ChangeReport, Create, Remove, Update
 from .compat import Field
@@ -202,7 +202,7 @@ class Group(GroupModel, CoreObject):
 
 
     @classmethod
-    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall['RemoteGroup']:
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> 'VirtualCall[RemoteGroup]':
         return call_processor(RemoteGroup.from_koji, session.getUser, key[1], strict=False)
 
 
@@ -232,8 +232,8 @@ class RemoteGroup(GroupModel, RemoteObject):
 
 
     def load_additional_data(self, session: MultiCallSession):
-        session.getGroupMembers(self.name).into(self.set_koji_members)
-        session.getUserPerms(self.name).into(self.set_koji_permissions)
+        promise_call(self.set_koji_members, session.getGroupMembers, self.name)
+        promise_call(self.set_koji_permissions, session.getUserPerms, self.name)
 
 
 # The end.

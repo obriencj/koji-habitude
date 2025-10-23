@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Optional
 
 from koji import MultiCallSession, VirtualCall
 
-from ..koji import call_processor
+from ..koji import call_processor, promise_call
 from .base import BaseKey, CoreModel, CoreObject, RemoteObject
 from .change import Add, ChangeReport, Create, Remove, Update
 from .compat import Field
@@ -149,7 +149,7 @@ class Channel(ChannelModel, CoreObject):
 
 
     @classmethod
-    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall['RemoteChannel']:
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> 'VirtualCall[RemoteChannel]':
         return call_processor(RemoteChannel.from_koji, session.getChannel, key[1], strict=False)
 
 
@@ -175,7 +175,7 @@ class RemoteChannel(ChannelModel, RemoteObject):
 
 
     def load_additional_data(self, session: MultiCallSession):
-        session.listHosts(channelID=self.name).into(self.set_koji_hosts)
+        promise_call(self.set_koji_hosts, session.listHosts, channelID=self.name)
 
 
 # The end.

@@ -97,7 +97,7 @@ class Permission(PermissionModel, CoreObject):
 
 
     @classmethod
-    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall['RemotePermission']:
+    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> 'VirtualCall[RemotePermission]':
         name = key[1]
 
         def filter_for_perm(perms):

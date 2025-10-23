@@ -19,14 +19,14 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 
 import logging
 from dataclasses import dataclass
-from typing import (TYPE_CHECKING, cast, Any, ClassVar, Dict, Iterable, List,
+from typing import (TYPE_CHECKING, Any, ClassVar, Dict, Iterable, List,
                     Optional, Sequence, Tuple, Type, Union, cast)
 
 from koji import (ClientSession, MultiCallNotReady, MultiCallSession,
                   VirtualCall)
 from typing_extensions import TypeAlias
 
-from .koji import multicall, VirtualPromise
+from .koji import VirtualPromise, multicall
 from .models import (BaseKey, BaseStatus, ChangeReport, CoreModel, CoreObject,
                      Field, PrivateAttr, ResolvableMixin)
 

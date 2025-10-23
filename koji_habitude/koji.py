@@ -118,6 +118,17 @@ def call_processor(post_process, sessionmethod, *args, **kwargs):
         return post_process(result)
 
 
+def promise_call(
+        intofn: Callable[['VirtualPromise'], Any],
+        sessionmethod, *args, **kwargs) -> None:
+
+    promise = sessionmethod(*args, **kwargs)
+    if isinstance(promise, VirtualPromise):
+        promise.into(intofn)
+    else:
+        raise TypeError(f"sessionmethod must return a VirtualPromise, got {type(promise)}")
+
+
 class PromiseMultiCallSession(MultiCallSession):
 
     def _callMethod(self, name: str, args, kwargs=None, retry=True) -> VirtualPromise:

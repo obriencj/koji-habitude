@@ -38,8 +38,8 @@ from .util import catchall
     "--show-unchanged", "-u", default=False, is_flag=True,
     help="Whether to show unchanged objects (bool default: False)")
 @catchall
-def fetch(data, templates, profile = 'koji', output = sys.stdout,
-          include_defaults = False, show_unchanged = False):
+def fetch(data, templates, profile='koji', output=sys.stdout,
+          include_defaults=False, show_unchanged=False):
     """
     Fetch remote data from Koji instance and output as YAML.
 
