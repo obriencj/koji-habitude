@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 import click
 
-from ..koji import session, multicall
+from ..koji import session
 from ..loader import pretty_yaml_all
 from ..models import BaseKey
 from ..namespace import Namespace
@@ -46,22 +46,18 @@ def parse_patterns(args: List[str], default_types: List[str]) -> List[BaseKey]:
 
 
 def search_tags(session_obj, pattern: str) -> List[BaseKey]:
-    """Search for tags using koji search API."""
     return [('tag', v['name']) for v in session_obj.search(pattern, 'tag', 'glob')]
 
 
 def search_targets(session_obj, pattern: str) -> List[BaseKey]:
-    """Search for targets using koji search API."""
     return [('target', v['name']) for v in session_obj.search(pattern, 'target', 'glob')]
 
 
 def search_users(session_obj, pattern: str) -> List[BaseKey]:
-    """Search for users using koji search API."""
     return [('user', v['name']) for v in session_obj.search(pattern, 'user', 'glob')]
 
 
 def search_hosts(session_obj, pattern: str) -> List[BaseKey]:
-    """Search for hosts using koji search API."""
     return [('host', v['name']) for v in session_obj.search(pattern, 'host', 'glob')]
 
 
@@ -77,18 +73,41 @@ SEARCH_FUNCTIONS = {
 glob_like = re.compile(r'[\*\?\[\]]').search
 
 
-def resolve_term(session, resolver: Resolver, key: BaseKey) -> List[Reference]:
+def resolve_term(session_obj, resolver: Resolver, key: BaseKey) -> List[Reference]:
     typename, name = key
 
-    print(f"Resolving {key}")
     if glob_like(name):
         search_fn = SEARCH_FUNCTIONS.get(typename)
         if search_fn is None:
             raise ValueError(f"No search function for type {typename}")
-        print(f"Searching {search_fn!r} for {name!r}")
-        return [resolver.resolve(key) for key in search_fn(session, name)]
+        return [resolver.resolve(key) for key in search_fn(session_obj, name)]
     else:
         return [resolver.resolve(key)]
+
+
+def resolve_dependencies(session_obj, resolver: Resolver, max_depth: Optional[int] = None) -> None:
+
+    work = list(resolver.report().discovered.values())
+    while work:
+        new_work = []
+        for ref in work:
+            remote = ref.remote()
+            assert remote is not None
+
+            for depkey in remote.dependency_keys():
+                depref = resolver.resolve(depkey)
+                if depref.remote() is None:
+                    new_work.append(depkey)
+
+        work = new_work
+        if not work:
+            break
+
+        resolver.load_remote_references(session_obj, full=True)
+        if max_depth is not None:
+            if max_depth <= 1:
+                break
+            max_depth -= 1
 
 
 @main.command()
@@ -106,7 +125,7 @@ def resolve_term(session, resolver: Resolver, key: BaseKey) -> List[Reference]:
     "--with-deps", default=False, is_flag=True,
     help="Include dependencies (default: False)")
 @click.option(
-    "--dep-depth", type=int, default=None, metavar='N',
+    "--max-depth", type=int, default=None, metavar='N',
     help="Maximum dependency depth (default: unlimited)")
 @click.option(
     "--tags", default=False, is_flag=True,
@@ -122,7 +141,7 @@ def resolve_term(session, resolver: Resolver, key: BaseKey) -> List[Reference]:
     help="Search hosts by default")
 @catchall
 def dump(patterns, profile='koji', output=sys.stdout, include_defaults=False,
-         with_deps=False, dep_depth=None, tags=False, targets=False,
+         with_deps=False, max_depth=None, tags=False, targets=False,
          users=False, hosts=False):
     """
     Dump remote data from Koji instance by pattern matching.
@@ -167,15 +186,13 @@ def dump(patterns, profile='koji', output=sys.stdout, include_defaults=False,
 
     # performs searches and resolves individual units to References
     for key in search_list:
-        refs = resolve_term(session_obj, resolver, key)
-        for ref in refs:
-            print(f"Resolved {ref!r}")
+        resolve_term(session_obj, resolver, key)
 
     resolver.load_remote_references(session_obj, full=True)
 
     # Resolve dependencies if requested
-    # if with_deps:
-    #     resolve_dependencies(session_obj, resolver, dep_depth)
+    if with_deps:
+        resolve_dependencies(session_obj, resolver, max_depth)
 
     remotes = [ref.remote() for ref in resolver.report().discovered.values()]
     sorted_objects = sort_objects_for_output(remotes)
