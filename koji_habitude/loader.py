@@ -32,7 +32,9 @@ __all__ = (
 )
 
 
-def load_yaml_files(paths: List[Union[str, Path]]) -> List[Dict[str, Any]]:
+def load_yaml_files(
+        paths: List[Union[str, Path]],
+        recursive: bool = False) -> List[Dict[str, Any]]:
     """
     Load YAML file content from the given paths, in order, and return the
     resulting documents as a list.
@@ -41,7 +43,7 @@ def load_yaml_files(paths: List[Union[str, Path]]) -> List[Dict[str, Any]]:
     using it to load the given paths.
     """
 
-    return list(MultiLoader([YAMLLoader]).load(paths))
+    return list(MultiLoader([YAMLLoader]).load(paths, recursive=recursive))
 
 
 class PrettyYAML(yaml.Dumper):
@@ -246,18 +248,22 @@ class MultiLoader:
         return cls(filename)
 
 
-    def load(self, paths: List[Union[str, Path]]) -> Iterator[Dict[str, Any]]:
+    def load(
+            self,
+            paths: List[Union[str, Path]],
+            recursive: bool = False) -> Iterator[Dict[str, Any]]:
 
         # the extmap is just going to be used to loop over, and to
         # check whether a file suffix is 'in' it, both behaviours are
         # suppoted by dict, so don't bother converting via .keys()
-        filepaths = combine_find_files(paths, self.extmap, strict=True)
+        filepaths = combine_find_files(paths, self.extmap, recursive=recursive, strict=True)
         return chain(*(self.loader(f).load() for f in filepaths))
 
 
 def find_files(
         pathname: Union[str, Path],
         extensions: Iterable[str] = (".yml", ".yaml"),
+        recursive: bool = False,
         strict: bool = True) -> List[Path]:
 
     if not pathname:
@@ -271,9 +277,11 @@ def find_files(
     if path and path.is_file() and path.suffix in extensions:
         return [path]
 
+    pglob = path.rglob if recursive else path.glob
+
     found: List[Path] = []
     for ext in extensions:
-        found.extend(path.rglob(f"*{ext}"))
+        found.extend(pglob(f"*{ext}"))
 
     return sorted(found)
 
@@ -281,11 +289,12 @@ def find_files(
 def combine_find_files(
         pathlist: Iterable[Union[str, Path]],
         extensions: Iterable[str] = (".yml", ".yaml"),
+        recursive: bool = False,
         strict: bool = True) -> List[Path]:
 
     found: List[Path] = []
     for path in pathlist:
-        found.extend(find_files(path, extensions, strict))
+        found.extend(find_files(path, extensions, recursive=recursive, strict=strict))
     return found
 
 

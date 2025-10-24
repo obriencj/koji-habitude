@@ -23,13 +23,17 @@ from .util import catchall, resplit
     '--templates', 'templates', metavar='PATH', multiple=True,
     help="Location to find templates that are not available in DATA")
 @click.option(
+    '--recursive', '-r', is_flag=True, default=False,
+    help="Search template and data directories recursively")
+@click.option(
     '--validate', 'validate', is_flag=True, default=False,
     help="Validate the expanded templates and data files")
 @click.option(
     "--select", "-S", "select", metavar="NAME", multiple=True,
     help="Filter results to only include types")
 @catchall
-def expand(data, templates=None, validate=False, select=[]):
+def expand(data, templates=None, recursive=False,
+           validate=False, select=[]):
     """
     Expand templates and data files into YAML output.
 
@@ -49,13 +53,13 @@ def expand(data, templates=None, validate=False, select=[]):
     # Load templates into TemplateNamespace
     template_ns = TemplateNamespace()
     if templates:
-        template_ns.feedall_raw(load_yaml_files(templates))
+        template_ns.feedall_raw(load_yaml_files(templates, recursive=recursive))
         template_ns.expand()
 
     namespace.merge_templates(template_ns)
 
     # Load and process data files
-    namespace.feedall_raw(load_yaml_files(data))
+    namespace.feedall_raw(load_yaml_files(data, recursive=recursive))
     namespace.expand()
 
     select = resplit(select)

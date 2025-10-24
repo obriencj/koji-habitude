@@ -85,6 +85,7 @@ class Workflow:
 
     paths: List[Union[str, Path]] = None
     template_paths: List[Union[str, Path]] = None
+    recursive: bool = False
     profile: str = 'koji'
     chunk_size: int = 100
     skip_phantoms: bool = False
@@ -113,7 +114,7 @@ class Workflow:
 
     def load_yaml(self, paths: List[Union[str, Path]]) -> Iterator[Dict[str, Any]]:
         ml = self.cls_multiloader([self.cls_yamlloader])
-        return ml.load(paths)
+        return ml.load(paths, recursive=self.recursive)
 
 
     def load_templates(self, paths: List[Union[str, Path]]) -> TemplateNamespace:
@@ -348,6 +349,7 @@ class ApplyWorkflow(Workflow):
             self,
             paths: List[Union[str, Path]],
             template_paths: List[Union[str, Path]] = None,
+            recursive: bool = False,
             profile: str = 'koji',
             chunk_size: int = 100,
             skip_phantoms: bool = False):
@@ -355,6 +357,7 @@ class ApplyWorkflow(Workflow):
         super().__init__(
             paths=paths,
             template_paths=template_paths,
+            recursive=recursive,
             profile=profile,
             chunk_size=chunk_size,
             skip_phantoms=skip_phantoms)
@@ -366,6 +369,7 @@ class CompareWorkflow(Workflow):
             self,
             paths: List[Union[str, Path]],
             template_paths: List[Union[str, Path]] = None,
+            recursive: bool = False,
             profile: str = 'koji',
             chunk_size: int = 100,
             skip_phantoms: bool = False):
@@ -373,6 +377,7 @@ class CompareWorkflow(Workflow):
         super().__init__(
             paths=paths,
             template_paths=template_paths,
+            recursive=recursive,
             profile=profile,
             chunk_size=chunk_size,
             skip_phantoms=skip_phantoms,
@@ -417,12 +422,14 @@ class ApplyDictWorkflow(DictWorkflow):
             self,
             objects: List[Dict[str, Any]],
             template_paths: List[Union[str, Path]] = None,
+            recursive: bool = False,
             profile: str = 'koji',
             chunk_size: int = 100,
             skip_phantoms: bool = False):
         super().__init__(
             objects=objects,
             template_paths=template_paths,
+            recursive=recursive,
             profile=profile,
             chunk_size=chunk_size,
             skip_phantoms=skip_phantoms)
@@ -433,12 +440,14 @@ class CompareDictWorkflow(DictWorkflow):
             self,
             objects: List[Dict[str, Any]],
             template_paths: List[Union[str, Path]] = None,
+            recursive: bool = False,
             profile: str = 'koji',
             chunk_size: int = 100,
             skip_phantoms: bool = False):
         super().__init__(
             objects=objects,
             template_paths=template_paths,
+            recursive=recursive,
             profile=profile,
             chunk_size=chunk_size,
             skip_phantoms=skip_phantoms,

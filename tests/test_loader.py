@@ -91,13 +91,27 @@ class TestFindFiles(unittest.TestCase):
         Test finding YAML files recursively in nested directories.
         """
 
-        result = find_files(self.samples_dir)
+        result = find_files(self.samples_dir, recursive=True)
 
         self.assertEqual(len(result), SAMPLES_YAML_COUNT, "Should find YAML files recursively")
 
         # Check that nested file is included
         nested_file = self.samples_dir / 'nested' / 'deep.yml'
         self.assertIn(nested_file, result, "Should include files from nested directories")
+
+    def test_find_files_non_recursive(self):
+        """
+        Test finding YAML files non-recursively (default behavior).
+        """
+
+        result = find_files(self.samples_dir, recursive=False)
+
+        # Should only find files in the top-level directory, not nested
+        self.assertEqual(len(result), 1, "Should find only top-level YAML files when non-recursive")
+
+        # Check that nested file is NOT included
+        nested_file = self.samples_dir / 'nested' / 'deep.yml'
+        self.assertNotIn(nested_file, result, "Should not include files from nested directories when non-recursive")
 
     def test_find_files_ignores_non_yaml(self):
         """
@@ -191,14 +205,14 @@ class TestCombineFindFiles(unittest.TestCase):
 
         self.assertEqual(len(result), TEMPLATES_YAML_COUNT, "Should find all files in templates directory")
 
-    def test_combine_multiple_directories(self):
+    def test_combine_multiple_directories_recursive(self):
         """
-        Test combining files from multiple directories.
+        Test combining files from multiple directories with recursive search.
         """
 
-        result = combine_find_files([self.templates_dir, self.samples_dir])
+        result = combine_find_files([self.templates_dir, self.samples_dir], recursive=True)
 
-        self.assertEqual(len(result), TEMPLATES_YAML_COUNT + SAMPLES_YAML_COUNT, "Should find files from both directories")
+        self.assertEqual(len(result), TEMPLATES_YAML_COUNT + SAMPLES_YAML_COUNT, "Should find files from both directories when recursive")
 
         # Check that files from both directories are included
         template_files = [f for f in result if 'templates' in str(f)]
@@ -207,17 +221,48 @@ class TestCombineFindFiles(unittest.TestCase):
         self.assertEqual(len(template_files), TEMPLATES_YAML_COUNT, "Should include all template files")
         self.assertEqual(len(sample_files), SAMPLES_YAML_COUNT, "Should include all sample files")
 
-    def test_combine_mixed_paths(self):
+    def test_combine_multiple_directories_non_recursive(self):
         """
-        Test combining specific files and directories.
+        Test combining files from multiple directories with non-recursive search (default).
+        """
+
+        result = combine_find_files([self.templates_dir, self.samples_dir], recursive=False)
+
+        # Should find 9 template files + 1 sample file (top-level only)
+        expected_count = TEMPLATES_YAML_COUNT + 1
+        self.assertEqual(len(result), expected_count, "Should find files from both directories when non-recursive")
+
+        # Check that files from both directories are included
+        template_files = [f for f in result if 'templates' in str(f)]
+        sample_files = [f for f in result if 'samples' in str(f)]
+
+        self.assertEqual(len(template_files), TEMPLATES_YAML_COUNT, "Should include all template files")
+        self.assertEqual(len(sample_files), 1, "Should include only top-level sample files when non-recursive")
+
+    def test_combine_mixed_paths_recursive(self):
+        """
+        Test combining specific files and directories with recursive search.
         """
 
         specific_file = self.templates_dir / 'simple.yaml'
         paths = [specific_file, self.samples_dir]
 
-        result = combine_find_files(paths)
+        result = combine_find_files(paths, recursive=True)
 
-        self.assertEqual(len(result), 3, "Should find 3 files (1 specific + 2 from samples)")
+        self.assertEqual(len(result), 3, "Should find 3 files (1 specific + 2 from samples) when recursive")
+        self.assertIn(specific_file, result, "Should include specifically requested file")
+
+    def test_combine_mixed_paths_non_recursive(self):
+        """
+        Test combining specific files and directories with non-recursive search (default).
+        """
+
+        specific_file = self.templates_dir / 'simple.yaml'
+        paths = [specific_file, self.samples_dir]
+
+        result = combine_find_files(paths, recursive=False)
+
+        self.assertEqual(len(result), 2, "Should find 2 files (1 specific + 1 from samples top-level) when non-recursive")
         self.assertIn(specific_file, result, "Should include specifically requested file")
 
     def test_combine_empty_list(self):
@@ -730,9 +775,9 @@ class TestMultiLoader(unittest.TestCase):
             self.assertIn('__file__', doc, "Each document should have __file__")
             self.assertIn('__line__', doc, "Each document should have __line__")
 
-    def test_load_mixed_paths(self):
+    def test_load_mixed_paths_recursive(self):
         """
-        Test loading from mixed file and directory paths.
+        Test loading from mixed file and directory paths with recursive search.
         """
 
         multiloader = MultiLoader([YAMLLoader])
@@ -740,10 +785,28 @@ class TestMultiLoader(unittest.TestCase):
         specific_file = self.templates_dir / 'single_document.yaml'
         paths = [specific_file, self.samples_dir]
 
-        documents = list(multiloader.load(paths))
+        documents = list(multiloader.load(paths, recursive=True))
 
-        # Should include documents from both the specific file and the directory
-        self.assertGreaterEqual(len(documents), 3, "Should load from both file and directory")
+        # Should include documents from both the specific file and the directory (including nested)
+        self.assertGreaterEqual(len(documents), 3, "Should load from both file and directory when recursive")
+
+        file_sources = [doc['__file__'] for doc in documents]
+        self.assertIn(str(specific_file), file_sources, "Should include specific file")
+
+    def test_load_mixed_paths_non_recursive(self):
+        """
+        Test loading from mixed file and directory paths with non-recursive search (default).
+        """
+
+        multiloader = MultiLoader([YAMLLoader])
+
+        specific_file = self.templates_dir / 'single_document.yaml'
+        paths = [specific_file, self.samples_dir]
+
+        documents = list(multiloader.load(paths, recursive=False))
+
+        # Should include documents from the specific file and top-level directory files only
+        self.assertGreaterEqual(len(documents), 2, "Should load from both file and directory when non-recursive")
 
         file_sources = [doc['__file__'] for doc in documents]
         self.assertIn(str(specific_file), file_sources, "Should include specific file")

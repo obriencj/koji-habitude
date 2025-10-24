@@ -90,6 +90,9 @@ def print_template(tmpl: Template, full: bool = False, theme=None):
     '--templates', "-T", 'template_dirs', metavar='PATH', multiple=True,
     help="Load only templates from the given paths")
 @click.option(
+    '--recursive', '-r', is_flag=True, default=False,
+    help="Search template and data directories recursively")
+@click.option(
     '--yaml', 'yaml', is_flag=True, default=False,
     help="Show expanded templates as yaml")
 @click.option(
@@ -102,6 +105,7 @@ def print_template(tmpl: Template, full: bool = False, theme=None):
 def list_templates(
         dirs=[],
         template_dirs=[],
+        recursive=False,
         yaml=False,
         full=False,
         select=[]):
@@ -121,9 +125,9 @@ def list_templates(
 
     ns = TemplateNamespace()
     if template_dirs:
-        ns.feedall_raw(load_yaml_files(template_dirs))
+        ns.feedall_raw(load_yaml_files(template_dirs, recursive=recursive))
     if dirs:
-        ns.feedall_raw(load_yaml_files(dirs))
+        ns.feedall_raw(load_yaml_files(dirs, recursive=recursive))
     ns.expand()
 
     if select:
@@ -158,6 +162,9 @@ def template():
     '--templates', '-T', 'template_dirs', metavar='PATH', multiple=True,
     help="Load only templates from the given paths")
 @click.option(
+    '--recursive', '-r', is_flag=True, default=False,
+    help="Search template and data directories recursively")
+@click.option(
     '--yaml', 'yaml', is_flag=True, default=False,
     help="Template definition as yaml")
 @click.option(
@@ -167,6 +174,7 @@ def template():
 def template_show(
         template_name,
         template_dirs=[],
+        recursive=False,
         yaml=False,
         full=False):
     """
@@ -180,7 +188,7 @@ def template_show(
         template_dirs = list(Path.cwd().glob('*.yml'))
         template_dirs.extend(Path.cwd().glob('*.yaml'))
 
-    tns.feedall_raw(load_yaml_files(template_dirs))
+    tns.feedall_raw(load_yaml_files(template_dirs, recursive=recursive))
     tns.expand()
 
     tmpl = tns.get_template(template_name)
@@ -203,11 +211,15 @@ def template_show(
     '--templates', '-T', 'template_dirs', metavar='PATH', multiple=True,
     help="Load templates from the given paths")
 @click.option(
+    '--recursive', '-r', is_flag=True, default=False,
+    help="Search template and data directories recursively")
+@click.option(
     '--validate', 'validate', is_flag=True, default=False,
     help="Validate the expanded template")
 @catchall
 def template_expand(
         template_name,
+        recursive=False,
         variables=[],
         template_dirs=[],
         validate=False):
@@ -222,7 +234,7 @@ def template_expand(
         template_dirs = list(Path.cwd().glob('*.yml'))
         template_dirs.extend(Path.cwd().glob('*.yaml'))
 
-    tns.feedall_raw(load_yaml_files(template_dirs))
+    tns.feedall_raw(load_yaml_files(template_dirs, recursive=recursive))
     tns.expand()
 
     ns = Namespace() if validate else ExpanderNamespace()
@@ -246,6 +258,9 @@ def template_expand(
     '--templates', '-T', 'template_dirs', metavar='PATH', multiple=True,
     help="Load templates from the given paths")
 @click.option(
+    '--recursive', '-r', is_flag=True, default=False,
+    help="Search template and data directories recursively")
+@click.option(
     '--profile', "-p", default='koji',
     help="Koji profile to use for connection")
 @click.option(
@@ -256,6 +271,7 @@ def template_compare(
         template_name,
         variables=[],
         template_dirs=[],
+        recursive=False,
         profile='koji',
         show_unchanged=False):
     """
@@ -275,6 +291,7 @@ def template_compare(
     workflow = CompareDictWorkflow(
         objects=[data],
         template_paths=template_dirs,
+        recursive=recursive,
         profile=profile,
     )
     workflow.run()
@@ -292,6 +309,9 @@ def template_compare(
     '--templates', '-T', 'template_dirs', metavar='PATH', multiple=True,
     help="Load templates from the given paths")
 @click.option(
+    '--recursive', '-r', is_flag=True, default=False,
+    help="Search template and data directories recursively")
+@click.option(
     '--profile', "-p", default='koji',
     help="Koji profile to use for connection")
 @click.option(
@@ -302,6 +322,7 @@ def template_apply(
         template_name,
         variables=[],
         template_dirs=[],
+        recursive=False,
         profile='koji',
         show_unchanged=False):
     """
@@ -321,6 +342,7 @@ def template_apply(
     workflow = ApplyDictWorkflow(
         objects=[data],
         template_paths=template_dirs,
+        recursive=recursive,
         profile=profile,
     )
     workflow.run()

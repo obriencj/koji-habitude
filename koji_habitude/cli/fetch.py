@@ -26,6 +26,9 @@ from .util import catchall, sort_objects_for_output
     '--templates', 'templates', metavar='PATH', multiple=True,
     help="Location to find templates that are not available in DATA")
 @click.option(
+    '--recursive', '-r', is_flag=True, default=False,
+    help="Search template and data directories recursively")
+@click.option(
     '--profile', "-p", default='koji',
     help="Koji profile to use for connection")
 @click.option(
@@ -38,7 +41,8 @@ from .util import catchall, sort_objects_for_output
     "--show-unchanged", "-u", default=False, is_flag=True,
     help="Whether to show unchanged objects (bool default: False)")
 @catchall
-def fetch(data, templates, profile='koji', output=sys.stdout,
+def fetch(data, templates, recursive=False,
+          profile='koji', output=sys.stdout,
           include_defaults=False, show_unchanged=False):
     """
     Fetch remote data from Koji instance and output as YAML.
@@ -57,6 +61,7 @@ def fetch(data, templates, profile='koji', output=sys.stdout,
     workflow = CompareWorkflow(
         paths=data,
         template_paths=templates,
+        recursive=recursive,
         profile=profile)
     workflow.run()
 
