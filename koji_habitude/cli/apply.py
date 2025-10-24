@@ -32,6 +32,9 @@ class ApplyWorkflow(_ApplyWorkflow):
     '--templates', metavar='PATH', multiple=True,
     help="Location to find templates that are not available in DATA")
 @click.option(
+    '--recursive', '-r', is_flag=True, default=False,
+    help="Search template and data directories recursively")
+@click.option(
     '--profile', "-p", default='koji',
     help="Koji profile to use for connection")
 @click.option(
@@ -41,7 +44,9 @@ class ApplyWorkflow(_ApplyWorkflow):
     '--skip-phantoms', 'skip_phantoms', is_flag=True, default=False,
     help="Skip objects that have phantom dependencies")
 @catchall
-def apply(data, templates=None, profile='koji', show_unchanged=False, skip_phantoms=False):
+def apply(data, templates=None, recursive=False,
+          profile='koji',
+          show_unchanged=False, skip_phantoms=False):
     """
     Apply local koji data expectations onto the hub instance.
 
@@ -53,7 +58,9 @@ def apply(data, templates=None, profile='koji', show_unchanged=False, skip_phant
     """
 
     workflow = ApplyWorkflow(
-        data, templates,
+        data=data,
+        templates=templates,
+        recursive=recursive,
         profile=profile,
         skip_phantoms=skip_phantoms)
 
