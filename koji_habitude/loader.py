@@ -61,7 +61,7 @@ class PrettyYAML(yaml.Dumper):
             return super().represent_scalar(tag, value, style='')
 
 
-def pretty_yaml_all(sequence: Iterable[Dict[str, Any]], out=sys.stdout, **opts):
+def pretty_yaml_all(sequence: Iterable[Dict[str, Any]], out=sys.stdout, comments=True, **opts):
     """
     Pretty-print a sequence of YAML documents to the given output stream, with
     document separators.
@@ -73,11 +73,11 @@ def pretty_yaml_all(sequence: Iterable[Dict[str, Any]], out=sys.stdout, **opts):
 
     for doc in sequence:
         out.write('---\n')
-        pretty_yaml(doc, out, **opts)
+        pretty_yaml(doc, out, comments=comments, **opts)
         out.write('\n')
 
 
-def pretty_yaml(doc: Dict[str, Any], out=sys.stdout, **opts):
+def pretty_yaml(doc: Dict[str, Any], out=sys.stdout, comments=True, **opts):
     """
     Pretty-print a single YAML object to the given output stream.
 
@@ -95,15 +95,15 @@ def pretty_yaml(doc: Dict[str, Any], out=sys.stdout, **opts):
 
     filename = doc.pop('__file__', None)
     line = doc.pop('__line__', None)
+    trace = doc.pop('__trace__', None)
 
-    if filename:
+    if comments and filename:
         if line:
             out.write(f"# From: {filename}:{line}\n")
         else:
             out.write(f"# From: {filename}\n")
 
-    trace = doc.pop('__trace__', None)
-    if trace:
+    if comments and trace:
         out.write('# Trace:\n')
         for tr in trace:
             filename = tr.get('file')
