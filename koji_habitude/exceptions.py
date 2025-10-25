@@ -4,9 +4,9 @@ koji_habitude.exceptions
 Exception hierarchy for wrapping third-party exceptions with context about
 the YAML file, object, template, or change that caused the error.
 
-Author: Christopher O'Brien <obriencj@gmail.com>
-License: GNU General Public License v3
-AI-Assistant: Claude 3.5 Sonnet via Cursor
+:author: Christopher O'Brien <obriencj@gmail.com>
+:license: GNU General Public License v3
+:ai-assistant: Claude 3.5 Sonnet via Cursor
 """
 
 # Vibe-Coding State: AI Generated
@@ -43,16 +43,22 @@ class HabitudeError(Exception):
     Base exception for all koji-habitude exceptions.
 
     All custom exceptions include context about where the error originated.
+
+    :param message: The error message
+    :param filename: Optional filename where the error occurred
+    :param lineno: Optional line number where the error occurred
+    :param trace: Optional template trace information
+    :param original_exception: Optional original exception that caused this error
     """
 
     def __init__(
-        self,
-        message: str,
-        filename: Optional[str] = None,
-        lineno: Optional[int] = None,
-        trace: Optional[List[Dict[str, Any]]] = None,
-        original_exception: Optional[Exception] = None,
-    ):
+            self,
+            message: str,
+            filename: Optional[str] = None,
+            lineno: Optional[int] = None,
+            trace: Optional[List[Dict[str, Any]]] = None,
+            original_exception: Optional[Exception] = None):
+
         self.message = message
         self.filename = filename
         self.lineno = lineno
@@ -67,6 +73,8 @@ class HabitudeError(Exception):
     def _format_message(self) -> str:
         """
         Format the complete error message with context.
+
+        :returns: Formatted error message with location, trace, and original exception info
         """
 
         parts = [self.message]
@@ -103,13 +111,15 @@ class YAMLError(HabitudeError):
     Wraps YAML parsing errors with file context.
 
     Used when YAML files cannot be parsed due to syntax errors.
+
+    :param original_error: The original YAML error
+    :param filename: Optional filename where the error occurred
     """
 
     def __init__(
-        self,
-        original_error: yaml.YAMLError,
-        filename: Optional[str] = None,
-    ):
+            self,
+            original_error: yaml.YAMLError,
+            filename: Optional[str] = None):
         # Extract line number from YAML error if available
         lineno = None
         if hasattr(original_error, 'problem_mark'):
@@ -130,13 +140,16 @@ class ValidationError(HabitudeError):
     Wraps pydantic validation errors with object and file context.
 
     Used when object data fails pydantic schema validation.
+
+    :param original_error: The original pydantic validation error
+    :param objdict: The object data that failed validation
     """
 
     def __init__(
-        self,
-        original_error: PydanticValidationError,
-        objdict: Dict[str, Any],
-    ):
+            self,
+            original_error: PydanticValidationError,
+            objdict: Dict[str, Any]):
+
         self.data = objdict
 
         typename = objdict.get('type')
@@ -171,15 +184,20 @@ class TemplateError(HabitudeError):
     Wraps Jinja2 template errors with template context.
 
     Base class for all template-related errors.
+
+    :param original_error: The original exception
+    :param template: Optional template object
+    :param data: Optional call data
+    :param template_file: Optional template filename
     """
 
     def __init__(
-        self,
-        original_error: Exception,
-        template: Any = None,  # Template object
-        data: Optional[Dict[str, Any]] = None,  # Call data
-        template_file: Optional[str] = None,
-    ):
+            self,
+            original_error: Exception,
+            template: Any = None,  # Template object
+            data: Optional[Dict[str, Any]] = None,  # Call data
+            template_file: Optional[str] = None):
+
         # Extract context from template if provided
         if template:
             self.template_name = template.name
@@ -229,14 +247,18 @@ class TemplateSyntaxError(TemplateError):
     Wraps Jinja2 syntax errors.
 
     Used when template content has invalid Jinja2 syntax.
+
+    :param original_error: The original Jinja2 syntax error
+    :param template: The template object
+    :param template_file: Optional template filename
     """
 
     def __init__(
-        self,
-        original_error: Exception,
-        template: Any,  # Template object
-        template_file: Optional[str] = None,
-    ):
+            self,
+            original_error: Exception,
+            template: Any,  # Template object
+            template_file: Optional[str] = None):
+
         super().__init__(
             original_error=original_error,
             template=template,
@@ -258,14 +280,18 @@ class TemplateRenderError(TemplateError):
 
     Used when template rendering fails due to missing variables or other
     runtime issues.
+
+    :param original_error: The original rendering error
+    :param template: The template object
+    :param data: The call data
     """
 
     def __init__(
-        self,
-        original_error: Exception,
-        template: Any,  # Template object
-        data: Dict[str, Any],
-    ):
+            self,
+            original_error: Exception,
+            template: Any,  # Template object
+            data: Dict[str, Any]):
+
         super().__init__(
             original_error=original_error,
             template=template,
@@ -278,16 +304,22 @@ class TemplateOutputError(HabitudeError):
     Used when template renders successfully but produces invalid output.
 
     This can be either invalid YAML or valid YAML that fails validation.
+
+    :param message: Error message describing the problem
+    :param template: The template object
+    :param data: The call data
+    :param rendered_content: Optional rendered content
+    :param original_exception: Optional original exception
     """
 
     def __init__(
-        self,
-        message: str,
-        template: Any,  # Template object
-        data: Dict[str, Any],
-        rendered_content: Optional[str] = None,
-        original_exception: Optional[Exception] = None,
-    ):
+            self,
+            message: str,
+            template: Any,  # Template object
+            data: Dict[str, Any],
+            rendered_content: Optional[str] = None,
+            original_exception: Optional[Exception] = None):
+
         self.template_name = template.name
         self.rendered_content = rendered_content
 
@@ -309,20 +341,30 @@ class KojiError(HabitudeError):
     Wraps generic koji exceptions with object context.
 
     Used when koji API calls fail.
+
+    :param original_error: The original koji error
+    :param typename: Optional type name of the object
+    :param name: Optional name of the object
+    :param filename: Optional filename
+    :param lineno: Optional line number
+    :param trace: Optional template trace
+    :param operation: Optional operation description
+    :param method_name: Optional koji method name
+    :param parameters: Optional parameters passed to the method
     """
 
     def __init__(
-        self,
-        original_error: Exception,
-        typename: Optional[str] = None,
-        name: Optional[str] = None,
-        filename: Optional[str] = None,
-        lineno: Optional[int] = None,
-        trace: Optional[List[Dict[str, Any]]] = None,
-        operation: Optional[str] = None,
-        method_name: Optional[str] = None,
-        parameters: Optional[Dict[str, Any]] = None,
-    ):
+            self,
+            original_error: Exception,
+            typename: Optional[str] = None,
+            name: Optional[str] = None,
+            filename: Optional[str] = None,
+            lineno: Optional[int] = None,
+            trace: Optional[List[Dict[str, Any]]] = None,
+            operation: Optional[str] = None,
+            method_name: Optional[str] = None,
+            parameters: Optional[Dict[str, Any]] = None):
+
         self.typename = typename
         self.name = name
         self.operation = operation
@@ -356,13 +398,16 @@ class KojiError(HabitudeError):
 class ChangeReadError(KojiError):
     """
     Wraps koji exceptions that occur during the query/read phase.
+
+    :param original_error: The original koji error
+    :param obj: The object being queried
     """
 
     def __init__(
-        self,
-        original_error: Exception,
-        obj: Any,  # Base object
-    ):
+            self,
+            original_error: Exception,
+            obj: Any):
+
         super().__init__(
             original_error=original_error,
             typename=obj.typename,
@@ -377,16 +422,22 @@ class ChangeReadError(KojiError):
 class ChangeApplyError(KojiError):
     """
     Wraps koji exceptions that occur during the apply/write phase.
+
+    :param original_error: The original koji error
+    :param obj: The object being modified
+    :param change_description: Optional description of the change
+    :param method_name: Optional koji method name
+    :param parameters: Optional parameters passed to the method
     """
 
     def __init__(
-        self,
-        original_error: Exception,
-        obj: Any,  # Base object
-        change_description: Optional[str] = None,
-        method_name: Optional[str] = None,
-        parameters: Optional[Dict[str, Any]] = None,
-    ):
+            self,
+            original_error: Exception,
+            obj: Any,  # Base object
+            change_description: Optional[str] = None,
+            method_name: Optional[str] = None,
+            parameters: Optional[Dict[str, Any]] = None):
+
         self.change_description = change_description
 
         super().__init__(
@@ -408,13 +459,16 @@ class ChangeApplyError(KojiError):
 class ExpansionError(HabitudeError):
     """
     Indicates an error during the template expansion process.
+
+    :param call: Either a `:class:TemplateCall` object or a plain string message
+    :param available_templates: Optional list of available template names
     """
 
     def __init__(
-        self,
-        call: Any,  # TemplateCall object or string message
-        available_templates: Optional[List[str]] = None,
-    ):
+            self,
+            call: Any,  # TemplateCall object or string message
+            available_templates: Optional[List[str]] = None):
+
         # Handle both TemplateCall objects and plain string messages
         if isinstance(call, str):
             # Plain message (e.g., "Maximum depth reached")
@@ -446,14 +500,17 @@ class ExpansionError(HabitudeError):
 class RedefineError(HabitudeError):
     """
     Indicates a redefinition of an object in the namespace.
+
+    :param key: Either a `BaseKey` (tuple) or string (for templates)
+    :param original_obj: The original object
+    :param new_obj: The new object attempting to redefine
     """
 
     def __init__(
-        self,
-        key: Any,  # BaseKey (tuple) or string (for templates)
-        original_obj: Any,  # Base
-        new_obj: Any,  # Base
-    ):
+            self,
+            key: Any,  # BaseKey (tuple) or string (for templates)
+            original_obj: Any,  # Base
+            new_obj: Any):
         self.key = key
         self.original_obj = original_obj
         self.new_obj = new_obj

@@ -9,9 +9,9 @@ to be able to perform depsolving, it must have some way to identify
 that parent tag. Therefore an Resolver creates a simple ReferenceObject
 placeholder for that parent tag.
 
-Author: Christopher O'Brien  <obriencj@gmail.com>
-License: GNU General Public License v3
-AI-Assistant: Claude 3.5 Sonnet via Cursor
+:author: Christopher O'Brien  <obriencj@gmail.com>
+:license: GNU General Public License v3
+:ai-assistant: Claude 3.5 Sonnet via Cursor
 """
 
 # Vibe-Coding State: AI Assisted, Mostly Human
@@ -210,7 +210,9 @@ class Resolver:
         a Reference placeholder. If that object has dependencies,
         resolve them recursively as well.
 
-        Returns a dictionary of all resolved objects by their keys.
+        :param key: The key to resolve
+        :param into: The dictionary to store the resolved objects
+        :returns: A dictionary of all resolved objects by their keys
         """
 
         into = into if into is not None else {}
@@ -260,7 +262,9 @@ class Resolver:
 
     def report(self) -> ResolverReport:
         """
-        Return a ResolverReport containing a snapshot of the current references
+        Creates a ResolverReport containing a snapshot of the current references
+
+        :returns: the newly created report
         """
 
         discovered = {}

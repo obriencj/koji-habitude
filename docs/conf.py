@@ -38,7 +38,10 @@ extensions = [
 
 intersphinx_mapping = {
     "python": ('https://docs.python.org/3', None),
-    "dnf": ('https://dnf.readthedocs.io/en/latest', None),
+
+    'click': ('https://click.palletsprojects.com/en/stable/', None),
+    'jinja2': ('https://jinja.palletsprojects.com/en/stable/', None),
+    'pydantic': ('https://docs.pydantic.dev/latest', None),
 
     # koji currently doesn't offer autodoc output as objects.inv, but
     # maybe one day...
@@ -96,7 +99,7 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'python_docs_theme'
+html_theme = 'sphinxdoc'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the

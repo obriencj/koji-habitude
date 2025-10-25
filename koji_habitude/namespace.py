@@ -5,9 +5,9 @@ A Namespace is a platform for converting YAML documents into instances
 of core types. It controls the direct unmarshaling, as well as the
 resolution logic for defining and expanding templates.
 
-Author: Christopher O'Brien <obriencj@gmail.com>
-License: GNU General Public License v3
-AI-Assistant: Claude 3.5 Sonnet via Cursor
+:author: Christopher O'Brien <obriencj@gmail.com>
+:license: GNU General Public License v3
+:ai-assistant: Claude 3.5 Sonnet via Cursor
 """
 
 # Vibe-Coding State: AI Assisted, Mostly Human
@@ -79,16 +79,14 @@ def add_into(
     """
     Add an object into a dictionary, handling redefinition.
 
-    Args:
-        into: The dictionary to add the object into
-        key: The key to add the object under
-        obj: The object to add
-        redefine: The redefine setting
-        logger: The logger to use when redefine is IGNORE_WARN or ALLOW_WARN
+    :param into: The dictionary to add the object into
+    :param key: The key to add the object under
+    :param obj: The object to add
+    :param redefine: The redefine setting
+    :param logger: The logger to use when redefine is IGNORE_WARN or ALLOW_WARN
 
-    Raises:
-        RedefineError: If the object is being redefined and the redefine setting is ERROR
-        AssertionError: If the redefine setting is unknown
+    :raises RedefineError: If the object is being redefined and the redefine setting is ERROR
+    :raises AssertionError: If the redefine setting is unknown
     """
 
     orig = into.get(key)
@@ -135,8 +133,12 @@ def merge_into(
         redefine: Redefine = Redefine.ERROR,
         logger: Optional[logging.Logger] = None) -> None:
     """
-    Merge a dictionary into another dictionary, following the redefine
-    semantics.
+    Merge a dictionary into another dictionary, following the redefine semantics.
+
+    :param into: The target dictionary
+    :param other: The source dictionary to merge from
+    :param redefine: The redefine setting
+    :param logger: The logger to use for warnings
     """
 
     for key, obj in other.items():
@@ -191,6 +193,8 @@ class Namespace:
     def keys(self) -> Iterable[BaseKey]:
         """
         Return an iterator over the keys in the namespace.
+
+        :returns: Iterator over base keys
         """
 
         return self._ns.keys()
@@ -199,6 +203,8 @@ class Namespace:
     def items(self) -> Iterable[Tuple[BaseKey, BaseObject]]:
         """
         Return an iterator over the items in the namespace.
+
+        :returns: Iterator over (key, object) tuples
         """
 
         return self._ns.items()
@@ -207,6 +213,8 @@ class Namespace:
     def values(self) -> Iterable[BaseObject]:
         """
         Return an iterator over the values in the namespace.
+
+        :returns: Iterator over base objects
         """
 
         return self._ns.values()
@@ -215,6 +223,10 @@ class Namespace:
     def get(self, key: BaseKey, default: Any = None) -> Optional[BaseObject]:
         """
         Return the object in the namespace with the given key.
+
+        :param key: The base key to look up
+        :param default: Default value to return if key not found
+        :returns: The base object or default value
         """
 
         return self._ns.get(key, default)
@@ -223,6 +235,8 @@ class Namespace:
     def templates(self) -> Iterable[Template]:
         """
         Return an iterator over the templates in the namespace.
+
+        :returns: Iterator over template objects
         """
 
         return self._templates.values()
@@ -231,6 +245,9 @@ class Namespace:
     def get_template(self, name: str) -> Optional[Template]:
         """
         Return the template in the namespace with the given name.
+
+        :param name: The template name
+        :returns: The template object or None
         """
         return self._templates.get(name)
 
@@ -243,6 +260,9 @@ class Namespace:
         Merge the templates from another namespace into this one, following the
         redefine semantics of this namespace. If redefine is provided, use those
         rules instead.
+
+        :param other: The namespace to merge templates from
+        :param redefine: Optional redefine setting to override the instance setting
         """
         redefine = redefine or self.redefine
         merge_into(self._templates, other._templates, redefine, self.logger)
@@ -254,6 +274,10 @@ class Namespace:
         default), will return a TemplateCall for missing type names. If or_call
         is False, or if the Namespace was not created with templates enabled,
         then this will return None for missing type names.
+
+        :param typename: The type name to look up
+        :param or_call: Whether to return a TemplateCall for missing types
+        :returns: The type class or None
         """
         if or_call:
             return self.typemap.get(typename) or self.typemap.get(None)
@@ -272,10 +296,10 @@ class Namespace:
 
         If templates are not enabled, then any unknown type is an error.
 
-        Raises:
-            ValueError: If no type key is present, or if no type handler is
-            found for the type
-            ValidationError: If pydantic validation fails for the object
+        :param objdict: The dictionary to convert
+        :returns: A resolvable object instance
+        :raises ValueError: If no type key is present, or if no type handler is found for the type
+        :raises ValidationError: If pydantic validation fails for the object
         """
 
         objtype = objdict.get('type')
@@ -299,6 +323,9 @@ class Namespace:
         """
         Convert a sequence of dictionaries into a sequence of Resolvable object
         instances, via the `to_object` method.
+
+        :param objseq: The sequence of dictionaries to convert
+        :returns: Sequence of resolvable object instances
         """
 
         return map(self.to_object, objseq)
@@ -309,8 +336,8 @@ class Namespace:
         Add an object to the namespace. This is called during the `expand`
         method as objects are loaded from the feed queue.
 
-        Raises:
-            TypeError: If the object is a Template or TemplateCall
+        :param obj: The base object to add
+        :raises TypeError: If the object is a Template or TemplateCall
         """
 
         if isinstance(obj, (Template, TemplateCall)):
@@ -326,8 +353,8 @@ class Namespace:
         Add a template to the namespace. This is called during the `expand`
         method as templates are loaded from the feed queue.
 
-        Raises:
-            TypeError: If the object is not a Template
+        :param template: The template to add
+        :raises TypeError: If the object is not a Template
         """
         if not isinstance(template, Template):
             raise TypeError("add_template requires a Template instance")
@@ -341,6 +368,8 @@ class Namespace:
         Add raw data to the queue of objects to be added to this namespace. The
         data will be converted to an object via the `to_object` method. This
         queue is processed via the `expand()` method.
+
+        :param data: The raw data dictionary to add
         """
 
         return self.feed(self.to_object(data))
@@ -351,6 +380,8 @@ class Namespace:
         Add a sequence of raw data to the queue of objects to be added to this
         namespace. The data will be converted to an object via the `to_object`
         method. This queue is processed via the `expand()` method.
+
+        :param datasequence: The sequence of raw data dictionaries to add
         """
 
         return self.feedall(self.to_objects(datasequence))
@@ -360,6 +391,8 @@ class Namespace:
         """
         Appends an object to the queue of objects to be added to this
         namespace. This queue is processed via the `expand()` method.
+
+        :param obj: The core object to add to the queue
         """
 
         return self._feedline.append(obj)
@@ -370,6 +403,8 @@ class Namespace:
         Appends all objects in sequence into the queue of objects
         to be added to this namespace. This queue is processed via the
         `expand()` method.
+
+        :param sequence: The sequence of core objects to add to the queue
         """
 
         return self._feedline.extend(sequence)
@@ -386,11 +421,9 @@ class Namespace:
         method will raise an exception if a redefinition is encountered and the
         redefine setting is `ERROR`.
 
-        Raises:
-            ExpansionError: If the maximum depth is reached when attempting to
+        :raises ExpansionError: If the maximum depth is reached when attempting to
             expand a recursively expanding template
-
-            AssertionError: If the first deferal is not a TemplateCall when
+        :raises AssertionError: If the first deferal is not a TemplateCall when
             no further objects can be added to the namespace (indicates a bug)
         """
 

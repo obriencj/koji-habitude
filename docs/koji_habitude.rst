@@ -6,10 +6,6 @@ API Reference
     :undoc-members:
     :show-inheritance:
 
-
-Sub Packages
-------------
-
 .. toctree::
    :maxdepth: 1
 

@@ -3,9 +3,9 @@ koji_habitude.cli.theme
 
 Color theme system for CLI output.
 
-Author: Christopher O'Brien <obriencj@gmail.com>
-License: GNU General Public License v3
-AI-Assistant: Claude 4.5 Sonnet via Cursor
+:author: Christopher O'Brien <obriencj@gmail.com>
+:license: GNU General Public License v3
+:ai-assistant: Claude 4.5 Sonnet via Cursor
 """
 
 # Vibe-Coding State: AI Generated, Human Rework

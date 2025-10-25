@@ -3,9 +3,9 @@ koji_habitude.cli.expand
 
 Expand templates and data files into YAML output.
 
-Author: Christopher O'Brien <obriencj@gmail.com>
-License: GNU General Public License v3
-AI-Assistant: Claude 3.5 Sonnet via Cursor
+:author: Christopher O'Brien <obriencj@gmail.com>
+:license: GNU General Public License v3
+:ai-assistant: Claude 3.5 Sonnet via Cursor
 """
 
 
@@ -14,7 +14,7 @@ import click
 from . import main
 from ..loader import load_yaml_files, pretty_yaml_all
 from ..namespace import ExpanderNamespace, Namespace, TemplateNamespace
-from .util import catchall, resplit
+from .util import catchall, resplit, sort_objects_for_output
 
 
 @main.command()
@@ -29,11 +29,18 @@ from .util import catchall, resplit
     '--validate', 'validate', is_flag=True, default=False,
     help="Validate the expanded templates and data files")
 @click.option(
+    "--include-defaults", "-d", default=False, is_flag=True,
+    help="Whether to include default values (bool default: False)")
+@click.option(
+    "--no-comments", is_flag=True, default=False,
+    help="Do not include comments in the output")
+@click.option(
     "--select", "-S", "select", metavar="NAME", multiple=True,
     help="Filter results to only include types")
 @catchall
 def expand(data, templates=None, recursive=False,
-           validate=False, select=[]):
+           validate=False, include_defaults=False, no_comments=False,
+           select=[]):
     """
     Expand templates and data files into YAML output.
 
@@ -69,16 +76,19 @@ def expand(data, templates=None, recursive=False,
     else:
         results = namespace.values()
 
+    results = sort_objects_for_output(results)
+
     # Output all objects as YAML
     if validate:
+        exclude_defaults = not include_defaults
         # if we're validating, let pydantic provide the fully
         # validated objects
-        results = (obj.to_dict() for obj in results)
+        results = (obj.to_dict(exclude_defaults=exclude_defaults) for obj in results)
     else:
         # if we're not validating, use the raw data
         results = (obj.data for obj in results)
 
-    pretty_yaml_all(results)
+    pretty_yaml_all(results, comments=not no_comments)
 
 
 # The end.
