@@ -57,8 +57,7 @@ class HabitudeError(Exception):
         filename: Optional[str] = None,
         lineno: Optional[int] = None,
         trace: Optional[List[Dict[str, Any]]] = None,
-        original_exception: Optional[Exception] = None,
-    ):
+        original_exception: Optional[Exception] = None):
         self.message = message
         self.filename = filename
         self.lineno = lineno
@@ -149,8 +148,8 @@ class ValidationError(HabitudeError):
     def __init__(
         self,
         original_error: PydanticValidationError,
-        objdict: Dict[str, Any],
-    ):
+        objdict: Dict[str, Any]):
+
         self.data = objdict
 
         typename = objdict.get('type')
@@ -197,8 +196,8 @@ class TemplateError(HabitudeError):
         original_error: Exception,
         template: Any = None,  # Template object
         data: Optional[Dict[str, Any]] = None,  # Call data
-        template_file: Optional[str] = None,
-    ):
+        template_file: Optional[str] = None):
+
         # Extract context from template if provided
         if template:
             self.template_name = template.name
@@ -258,8 +257,8 @@ class TemplateSyntaxError(TemplateError):
         self,
         original_error: Exception,
         template: Any,  # Template object
-        template_file: Optional[str] = None,
-    ):
+        template_file: Optional[str] = None):
+
         super().__init__(
             original_error=original_error,
             template=template,
@@ -291,8 +290,8 @@ class TemplateRenderError(TemplateError):
         self,
         original_error: Exception,
         template: Any,  # Template object
-        data: Dict[str, Any],
-    ):
+        data: Dict[str, Any]):
+
         super().__init__(
             original_error=original_error,
             template=template,
@@ -319,8 +318,8 @@ class TemplateOutputError(HabitudeError):
         template: Any,  # Template object
         data: Dict[str, Any],
         rendered_content: Optional[str] = None,
-        original_exception: Optional[Exception] = None,
-    ):
+        original_exception: Optional[Exception] = None):
+
         self.template_name = template.name
         self.rendered_content = rendered_content
 
@@ -364,8 +363,8 @@ class KojiError(HabitudeError):
         trace: Optional[List[Dict[str, Any]]] = None,
         operation: Optional[str] = None,
         method_name: Optional[str] = None,
-        parameters: Optional[Dict[str, Any]] = None,
-    ):
+        parameters: Optional[Dict[str, Any]] = None):
+
         self.typename = typename
         self.name = name
         self.operation = operation
@@ -407,8 +406,8 @@ class ChangeReadError(KojiError):
     def __init__(
         self,
         original_error: Exception,
-        obj: Any,  # Base object
-    ):
+        obj: Any):
+
         super().__init__(
             original_error=original_error,
             typename=obj.typename,
@@ -437,8 +436,8 @@ class ChangeApplyError(KojiError):
         obj: Any,  # Base object
         change_description: Optional[str] = None,
         method_name: Optional[str] = None,
-        parameters: Optional[Dict[str, Any]] = None,
-    ):
+        parameters: Optional[Dict[str, Any]] = None):
+
         self.change_description = change_description
 
         super().__init__(
@@ -461,7 +460,7 @@ class ExpansionError(HabitudeError):
     """
     Indicates an error during the template expansion process.
 
-    :param call: Either a `:class:\`TemplateCall\`` object or a plain string message
+    :param call: Either a `:class:TemplateCall` object or a plain string message
     :param available_templates: Optional list of available template names
     """
 

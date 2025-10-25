@@ -13,10 +13,10 @@ from the Koji API, enabling bidirectional synchronization between local
 configuration files and the remote Koji instance.
 
 Architecture
------------
+------------
 
 Remote Models
-~~~~~~~~~~~~
+~~~~~~~~~~~~~
 
 Each core model has a corresponding remote model that inherits from both
 the shared model and the ``RemoteObject`` base class:
@@ -34,7 +34,7 @@ the shared model and the ``RemoteObject`` base class:
 - ``RemoteArchiveType`` - Remote archive type definitions
 
 Base Classes
-~~~~~~~~~~~
+~~~~~~~~~~~~
 
 - ``RemoteObject`` - Base class for all remote models
   - Includes ``koji_id`` field for Koji database ID
@@ -52,7 +52,7 @@ Base Classes
   - Enables consistent data structures across local and remote representations
 
 Mixin Classes
-~~~~~~~~~~~~
+~~~~~~~~~~~~~
 
 - ``IdentifiableMixin`` - Provides object identification and key generation
 - ``LocalMixin`` - Handles local data storage and YAML loading
@@ -127,5 +127,3 @@ system for efficient batch operations:
 
 This architecture provides a robust foundation for bidirectional
 synchronization between local configurations and Koji instances.
-
-# The end.
