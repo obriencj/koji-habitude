@@ -4,9 +4,9 @@ koji_habitude.exceptions
 Exception hierarchy for wrapping third-party exceptions with context about
 the YAML file, object, template, or change that caused the error.
 
-Author: Christopher O'Brien <obriencj@gmail.com>
-License: GNU General Public License v3
-AI-Assistant: Claude 3.5 Sonnet via Cursor
+:author: Christopher O'Brien <obriencj@gmail.com>
+:license: GNU General Public License v3
+:ai-assistant: Claude 3.5 Sonnet via Cursor
 """
 
 # Vibe-Coding State: AI Generated
@@ -43,6 +43,12 @@ class HabitudeError(Exception):
     Base exception for all koji-habitude exceptions.
 
     All custom exceptions include context about where the error originated.
+
+    :param message: The error message
+    :param filename: Optional filename where the error occurred
+    :param lineno: Optional line number where the error occurred
+    :param trace: Optional template trace information
+    :param original_exception: Optional original exception that caused this error
     """
 
     def __init__(
@@ -67,6 +73,8 @@ class HabitudeError(Exception):
     def _format_message(self) -> str:
         """
         Format the complete error message with context.
+
+        :returns: Formatted error message with location, trace, and original exception info
         """
 
         parts = [self.message]
@@ -103,6 +111,9 @@ class YAMLError(HabitudeError):
     Wraps YAML parsing errors with file context.
 
     Used when YAML files cannot be parsed due to syntax errors.
+
+    :param original_error: The original YAML error
+    :param filename: Optional filename where the error occurred
     """
 
     def __init__(
@@ -130,6 +141,9 @@ class ValidationError(HabitudeError):
     Wraps pydantic validation errors with object and file context.
 
     Used when object data fails pydantic schema validation.
+
+    :param original_error: The original pydantic validation error
+    :param objdict: The object data that failed validation
     """
 
     def __init__(
@@ -171,6 +185,11 @@ class TemplateError(HabitudeError):
     Wraps Jinja2 template errors with template context.
 
     Base class for all template-related errors.
+
+    :param original_error: The original exception
+    :param template: Optional template object
+    :param data: Optional call data
+    :param template_file: Optional template filename
     """
 
     def __init__(
@@ -229,6 +248,10 @@ class TemplateSyntaxError(TemplateError):
     Wraps Jinja2 syntax errors.
 
     Used when template content has invalid Jinja2 syntax.
+
+    :param original_error: The original Jinja2 syntax error
+    :param template: The template object
+    :param template_file: Optional template filename
     """
 
     def __init__(
@@ -258,6 +281,10 @@ class TemplateRenderError(TemplateError):
 
     Used when template rendering fails due to missing variables or other
     runtime issues.
+
+    :param original_error: The original rendering error
+    :param template: The template object
+    :param data: The call data
     """
 
     def __init__(
@@ -278,6 +305,12 @@ class TemplateOutputError(HabitudeError):
     Used when template renders successfully but produces invalid output.
 
     This can be either invalid YAML or valid YAML that fails validation.
+
+    :param message: Error message describing the problem
+    :param template: The template object
+    :param data: The call data
+    :param rendered_content: Optional rendered content
+    :param original_exception: Optional original exception
     """
 
     def __init__(
@@ -309,6 +342,16 @@ class KojiError(HabitudeError):
     Wraps generic koji exceptions with object context.
 
     Used when koji API calls fail.
+
+    :param original_error: The original koji error
+    :param typename: Optional type name of the object
+    :param name: Optional name of the object
+    :param filename: Optional filename
+    :param lineno: Optional line number
+    :param trace: Optional template trace
+    :param operation: Optional operation description
+    :param method_name: Optional koji method name
+    :param parameters: Optional parameters passed to the method
     """
 
     def __init__(
@@ -356,6 +399,9 @@ class KojiError(HabitudeError):
 class ChangeReadError(KojiError):
     """
     Wraps koji exceptions that occur during the query/read phase.
+
+    :param original_error: The original koji error
+    :param obj: The object being queried
     """
 
     def __init__(
@@ -377,6 +423,12 @@ class ChangeReadError(KojiError):
 class ChangeApplyError(KojiError):
     """
     Wraps koji exceptions that occur during the apply/write phase.
+
+    :param original_error: The original koji error
+    :param obj: The object being modified
+    :param change_description: Optional description of the change
+    :param method_name: Optional koji method name
+    :param parameters: Optional parameters passed to the method
     """
 
     def __init__(
@@ -408,6 +460,9 @@ class ChangeApplyError(KojiError):
 class ExpansionError(HabitudeError):
     """
     Indicates an error during the template expansion process.
+
+    :param call: Either a `:class:\`TemplateCall\`` object or a plain string message
+    :param available_templates: Optional list of available template names
     """
 
     def __init__(
@@ -446,6 +501,10 @@ class ExpansionError(HabitudeError):
 class RedefineError(HabitudeError):
     """
     Indicates a redefinition of an object in the namespace.
+
+    :param key: Either a `BaseKey` (tuple) or string (for templates)
+    :param original_obj: The original object
+    :param new_obj: The new object attempting to redefine
     """
 
     def __init__(

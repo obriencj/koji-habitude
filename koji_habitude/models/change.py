@@ -6,9 +6,9 @@ Base classes for Change and ChangeReport
 Each model needs to be able to provide subclasses of these in order to fully
 represent their changes when comparing to the data in a koji instance.
 
-Author: Christopher O'Brien <obriencj@gmail.com>
-License: GNU General Public License v3
-AI-Assistant: Claude 3.5 Sonnet via Cursor
+:author: Christopher O'Brien <obriencj@gmail.com>
+:license: GNU General Public License v3
+:ai-assistant: Claude 3.5 Sonnet via Cursor
 """
 
 # Vibe-Coding State: AI Assisted, Mostly Human
@@ -97,7 +97,8 @@ class Change:
         Records the result of the change call, which can be accessed via the
         `result` method.
 
-        Raises a ChangeError if the change has already been applied.
+        :param session: The Koji multicall session
+        :raises ChangeError: If the change has already been applied
         """
 
         if self._state == ChangeState.SKIPPED:
@@ -118,8 +119,8 @@ class Change:
         Subclasses of Change must implement this method to perform the actual
         work of applying the change to the Koji instance.
 
-        Returns the result of the change call, to be recorded by this instance
-        via the invoking `apply` method.
+        :param session: The Koji multicall session
+        :returns: The result of the change call, to be recorded by this instance via the invoking `apply` method
         """
 
         raise NotImplementedError("Subclasses of Change must implement impl_apply")
@@ -130,6 +131,9 @@ class Change:
         Returns True if the change is skippable, and needs skipping, False
         otherwise. This is used in situations where the change depends on a
         phantom object (ie. is a Reference, and does not exist on the Koji instance)
+
+        :param resolver: The resolver instance
+        :returns: True if the change should be skipped, False otherwise
         """
 
         if self._skippable:
@@ -141,6 +145,9 @@ class Change:
         """
         This method is called by the `skip_check` method to perform the skip determination,
         and should not be called directly.
+
+        :param resolver: The resolver instance
+        :returns: True if the change should be skipped, False otherwise
         """
         raise NotImplementedError("Skippable Subclasses of Change must implement skip_impl")
 
@@ -155,6 +162,9 @@ class Change:
         Note that this method is what allows a Change to determine whether it
         has failed or not. It's possible that going into this, the state will be
         APPLIED, but if the call fails, the state will be FAILED.
+
+        :returns: The result of the change call
+        :raises ChangeError: If the change has not been applied
         """
 
         if self._state == ChangeState.SKIPPED:
@@ -173,6 +183,8 @@ class Change:
         """
         Mark the change as skipped. This will prevent the apply method from being
         called, and will cause the result method to return None.
+
+        :raises ChangeError: If the change is not in PENDING state
         """
 
         # note, we don't call the skip_check or skip_check_impl again. If
@@ -192,6 +204,8 @@ class Change:
         Return a human-readable explanation of what this change will do.
 
         Subclasses should override this method to provide specific explanations.
+
+        :returns: Human-readable explanation of the change
         """
 
         return f"Apply {self.__class__.__name__} for {self.obj.typename} {self.obj.name}"
@@ -210,6 +224,9 @@ class Change:
         If the Koji API ever allows for the `setInheritanceData` call to operate
         on parent tags by name rather than by ID, then this method can be
         removed and the process for applying changes can be greatly simplified.
+
+        :param resolver: The resolver instance
+        :returns: True if this change should break out of the current multicall
         """
 
         return False
@@ -246,6 +263,8 @@ class Create(Change):
 
         Override this method to provide a summary, or override explain() directly
         for complex formatting needs.
+
+        :returns: Minimal description without the "Create" verb
         """
 
         return f"Create {self.obj.typename} {self.obj.name}"
@@ -257,6 +276,8 @@ class Create(Change):
 
         By default, this prepends "Create" to the summary(). Override this method
         directly for complex cases where the two-stage approach doesn't fit.
+
+        :returns: Full explanation of the change
         """
 
         return self.summary()
@@ -296,6 +317,8 @@ class Update(Change):
 
         By default, this adds object context to the summary(). Override this method
         directly for complex cases where the two-stage approach doesn't fit.
+
+        :returns: Full explanation of the change
         """
 
         summary = self.summary()

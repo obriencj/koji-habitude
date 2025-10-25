@@ -3,9 +3,9 @@ koji_habitude.loader
 
 YAML file loading, path discovery, and pretty-printing.
 
-Author: Christopher O'Brien <obriencj@gmail.com>
-License: GNU General Public License v3
-AI-Assistant: Claude 3.5 Sonnet via Cursor
+:Author: Christopher O'Brien <obriencj@gmail.com>
+:License: GNU General Public License v3
+:AI-Assistant: Claude 3.5 Sonnet via Cursor
 """
 
 # Vibe-Coding State: Pure Human
@@ -39,16 +39,24 @@ def load_yaml_files(
     Load YAML file content from the given paths, in order, and return the
     resulting documents as a list.
 
-    A shortcut for creating a MultiLoader with the YAMLLoader class and
+    A shortcut for creating a :class:`MultiLoader` with the :class:`YAMLLoader` class and
     using it to load the given paths.
+
+    :param paths: List of file paths to load
+    :param recursive: Whether to recursively search directories
+    :returns: List of YAML documents
     """
 
     return list(MultiLoader([YAMLLoader]).load(paths, recursive=recursive))
 
 
 class PrettyYAML(yaml.Dumper):
-    # it's not as easy as making JSON pretty, but at least it's
-    # possible.
+    """
+    Custom YAML dumper for pretty-printing.
+
+    It's not as easy as making JSON pretty, but at least it's
+    possible.
+    """
 
     def increase_indent(self, flow=False, indentless=False):
         return super().increase_indent(flow, False)
@@ -61,14 +69,19 @@ class PrettyYAML(yaml.Dumper):
             return super().represent_scalar(tag, value, style='')
 
 
-def pretty_yaml_all(sequence: Iterable[Dict[str, Any]], out=sys.stdout, comments=True, **opts):
+def pretty_yaml_all(sequence: Iterable[Dict[str, Any]], out=sys.stdout, comments=True, **opts) -> None:
     """
     Pretty-print a sequence of YAML documents to the given output stream, with
     document separators.
 
-    Uses pretty_yaml to pretty-print each document, and so handles the
+    Uses :func:`pretty_yaml` to pretty-print each document, and so handles the
     special features of the koji-habitude YAML format, in particular the
-    __file__, __line__, and __trace__ keys.
+    `__file__`, `__line__`, and `__trace__` keys.
+
+    :param sequence: The sequence of YAML documents to pretty-print
+    :param out: The output stream to write to
+    :param comments: Whether to include comments
+    :param opts: Additional options to pass to the yaml.dump function
     """
 
     for doc in sequence:
@@ -77,17 +90,18 @@ def pretty_yaml_all(sequence: Iterable[Dict[str, Any]], out=sys.stdout, comments
         out.write('\n')
 
 
-def pretty_yaml(doc: Dict[str, Any], out=sys.stdout, comments=True, **opts):
+def pretty_yaml(doc: Dict[str, Any], out=sys.stdout, comments=True, **opts) -> None:
     """
     Pretty-print a single YAML object to the given output stream.
 
     Handles special features of the koji-habitude YAML format, in particular the
-    __file__, __line__, and __trace__ keys. These are removed from the main
+    `__file__`, `__line__`, and `__trace__` keys. These are removed from the main
     document body and represented as comments preceeding the document.
 
-    Args:
-        doc: The YAML document to pretty-print out: The output stream to write
-        to opts: Additional options to pass to the yaml.dump function
+    :param doc: The YAML document to pretty-print
+    :param out: The output stream to write to
+    :param comments: Whether to include comments
+    :param opts: Additional options to pass to the yaml.dump function
     """
 
     # we're going to make modifications, so we'll need to make a copy
@@ -129,7 +143,7 @@ class MagicSafeLoader(yaml.SafeLoader):
     A SafeLoader with slightly tweaked behavior.
 
     * allows our anchors to persist across documents
-    * adds a __line__ key to each document, representing the line number in the
+    * adds a ``__line__`` key to each document, representing the line number in the
       file that the document started on.
     """
 
@@ -164,13 +178,13 @@ class LoaderProtocol(Protocol):
 
 class YAMLLoader(LoaderProtocol):
     """
-    Wraps the invocation of `yaml.load_all` using a customized
-    `SafeLoader`, enabling the injection of a `'__file__'` and
-    `'__line__'` key into each doc on load, representing the file path
+    Wraps the invocation of ``yaml.load_all`` using a customized
+    :class:`MagicSafeLoader`, enabling the injection of a ``'__file__'`` and
+    ``'__line__'`` key into each doc on load, representing the file path
     it was loaded from, and the line number in that file that the
     document started on.
 
-    Can be added to a MultiLoader to enable handling of files with
+    Can be added to a :class:`MultiLoader` to enable handling of files with
     .yml and .yaml extensions
     """
 
@@ -178,6 +192,12 @@ class YAMLLoader(LoaderProtocol):
 
 
     def __init__(self, filename: Union[str, Path]):
+        """
+        Initialize the YAML loader.
+
+        :param filename: The file path to load from
+        :raises ValueError: If the filename is not a file
+        """
 
         filename = filename and Path(filename)
         if not (filename and filename.is_file()):
@@ -187,6 +207,12 @@ class YAMLLoader(LoaderProtocol):
 
 
     def load(self):
+        """
+        Load YAML documents from the file.
+
+        :returns: Iterator of YAML documents with __file__ and __line__ keys
+        :raises YAMLError: If YAML parsing fails
+        """
         with open(self.filename, 'r') as fd:
             try:
                 for doc in yaml.load_all(fd, Loader=MagicSafeLoader):
@@ -198,12 +224,17 @@ class YAMLLoader(LoaderProtocol):
 
 class MultiLoader:
     """
-    While a YAMLLoader can load one file, a MultiLoader can be
+    While a :class:`YAMLLoader` can load one file, a MultiLoader can be
     used to load a wide range of files and yield the resulting
     documents in a predictable order
     """
 
     def __init__(self, loader_types: List[Type[LoaderProtocol]]):
+        """
+        Initialize the multi-loader.
+
+        :param loader_types: List of loader type classes to register
+        """
         self.extmap: Dict[str, Type[LoaderProtocol]] = {}
 
         for loader in loader_types:
@@ -213,6 +244,11 @@ class MultiLoader:
     def add_loader_type(
             self,
             loader_type: Type[LoaderProtocol]) -> None:
+        """
+        Add a loader type to the multi-loader.
+
+        :param loader_type: The loader type class to add
+        """
 
         for ext in loader_type.extensions:
             self.extmap[ext] = loader_type
@@ -221,6 +257,12 @@ class MultiLoader:
     def lookup_loader_type(
             self,
             filename: Union[str, Path]) -> Optional[Type[LoaderProtocol]]:
+        """
+        Lookup the loader type for the given filename.
+
+        :param filename: The filename to lookup the loader type for
+        :returns: The loader type for the given filename, or None if not found
+        """
 
         filename = filename and Path(filename)
         if not filename:
@@ -230,16 +272,11 @@ class MultiLoader:
 
     def loader(self, filename: Union[str, Path]) -> LoaderProtocol:
         """
-        Lookup the loader type for the given filename and create an instance of it
+        Lookup the loader type for the given filename and create an instance of it.
 
-        Args:
-            filename: The filename to lookup the loader type for
-
-        Returns:
-            The loader type for the given filename
-
-        Raises:
-            ValueError: If no loader type is found for the given filename
+        :param filename: The filename to lookup the loader type for
+        :returns: An instance of the loader type for the given filename
+        :raises ValueError: If no loader type is found for the given filename
         """
 
         cls = self.lookup_loader_type(filename)
@@ -252,6 +289,13 @@ class MultiLoader:
             self,
             paths: List[Union[str, Path]],
             recursive: bool = False) -> Iterator[Dict[str, Any]]:
+        """
+        Load YAML documents from the given paths.
+
+        :param paths: List of paths to load from
+        :param recursive: Whether to recursively search directories
+        :returns: Iterator of YAML documents
+        """
 
         # the extmap is just going to be used to loop over, and to
         # check whether a file suffix is 'in' it, both behaviours are
@@ -265,6 +309,17 @@ def find_files(
         extensions: Iterable[str] = (".yml", ".yaml"),
         recursive: bool = False,
         strict: bool = True) -> List[Path]:
+    """
+    Find files with the specified extensions in the given path.
+
+    :param pathname: The path to search
+    :param extensions: File extensions to search for
+    :param recursive: Whether to recursively search subdirectories
+    :param strict: Whether to raise an error if the path doesn't exist
+    :returns: List of matching file paths
+    :raises ValueError: If pathname is required but not provided
+    :raises FileNotFoundError: If strict is True and path doesn't exist
+    """
 
     if not pathname:
         raise ValueError("pathname is required")
@@ -291,6 +346,15 @@ def combine_find_files(
         extensions: Iterable[str] = (".yml", ".yaml"),
         recursive: bool = False,
         strict: bool = True) -> List[Path]:
+    """
+    Find files in multiple paths using :func:`find_files`.
+
+    :param pathlist: List of paths to search
+    :param extensions: File extensions to search for
+    :param recursive: Whether to recursively search subdirectories
+    :param strict: Whether to raise an error if paths don't exist
+    :returns: List of matching file paths
+    """
 
     found: List[Path] = []
     for path in pathlist:

@@ -4,9 +4,9 @@ koji_habitude.processor
 Core processing engine for synchronizing koji objects with a hub instance.
 Handles the read/compare/write cycle in chunks with multicall optimization.
 
-Author: Christopher O'Brien <obriencj@gmail.com>
-License: GNU General Public License v3
-AI-Assistant: Claude 3.5 Sonnet via Cursor
+:author: Christopher O'Brien <obriencj@gmail.com>
+:license: GNU General Public License v3
+:ai-assistant: Claude 3.5 Sonnet via Cursor
 """
 
 

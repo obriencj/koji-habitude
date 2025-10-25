@@ -6,9 +6,9 @@ Pydantic compatibility layer for supporting both v1.10 and v2.x
 This module provides a unified interface that works with both pydantic 1.10
 (shipped with RHEL 9) and pydantic 2.x.
 
-Author: Christopher O'Brien <obriencj@gmail.com>
-License: GNU General Public License v3
-AI-Assistant: Claude 4.5 Sonnet via Cursor
+:author: Christopher O'Brien <obriencj@gmail.com>
+:license: GNU General Public License v3
+:ai-assistant: Claude 4.5 Sonnet via Cursor
 """
 
 
