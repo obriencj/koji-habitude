@@ -52,12 +52,13 @@ class HabitudeError(Exception):
     """
 
     def __init__(
-        self,
-        message: str,
-        filename: Optional[str] = None,
-        lineno: Optional[int] = None,
-        trace: Optional[List[Dict[str, Any]]] = None,
-        original_exception: Optional[Exception] = None):
+            self,
+            message: str,
+            filename: Optional[str] = None,
+            lineno: Optional[int] = None,
+            trace: Optional[List[Dict[str, Any]]] = None,
+            original_exception: Optional[Exception] = None):
+
         self.message = message
         self.filename = filename
         self.lineno = lineno
@@ -116,10 +117,9 @@ class YAMLError(HabitudeError):
     """
 
     def __init__(
-        self,
-        original_error: yaml.YAMLError,
-        filename: Optional[str] = None,
-    ):
+            self,
+            original_error: yaml.YAMLError,
+            filename: Optional[str] = None):
         # Extract line number from YAML error if available
         lineno = None
         if hasattr(original_error, 'problem_mark'):
@@ -146,9 +146,9 @@ class ValidationError(HabitudeError):
     """
 
     def __init__(
-        self,
-        original_error: PydanticValidationError,
-        objdict: Dict[str, Any]):
+            self,
+            original_error: PydanticValidationError,
+            objdict: Dict[str, Any]):
 
         self.data = objdict
 
@@ -192,11 +192,11 @@ class TemplateError(HabitudeError):
     """
 
     def __init__(
-        self,
-        original_error: Exception,
-        template: Any = None,  # Template object
-        data: Optional[Dict[str, Any]] = None,  # Call data
-        template_file: Optional[str] = None):
+            self,
+            original_error: Exception,
+            template: Any = None,  # Template object
+            data: Optional[Dict[str, Any]] = None,  # Call data
+            template_file: Optional[str] = None):
 
         # Extract context from template if provided
         if template:
@@ -254,10 +254,10 @@ class TemplateSyntaxError(TemplateError):
     """
 
     def __init__(
-        self,
-        original_error: Exception,
-        template: Any,  # Template object
-        template_file: Optional[str] = None):
+            self,
+            original_error: Exception,
+            template: Any,  # Template object
+            template_file: Optional[str] = None):
 
         super().__init__(
             original_error=original_error,
@@ -287,10 +287,10 @@ class TemplateRenderError(TemplateError):
     """
 
     def __init__(
-        self,
-        original_error: Exception,
-        template: Any,  # Template object
-        data: Dict[str, Any]):
+            self,
+            original_error: Exception,
+            template: Any,  # Template object
+            data: Dict[str, Any]):
 
         super().__init__(
             original_error=original_error,
@@ -313,12 +313,12 @@ class TemplateOutputError(HabitudeError):
     """
 
     def __init__(
-        self,
-        message: str,
-        template: Any,  # Template object
-        data: Dict[str, Any],
-        rendered_content: Optional[str] = None,
-        original_exception: Optional[Exception] = None):
+            self,
+            message: str,
+            template: Any,  # Template object
+            data: Dict[str, Any],
+            rendered_content: Optional[str] = None,
+            original_exception: Optional[Exception] = None):
 
         self.template_name = template.name
         self.rendered_content = rendered_content
@@ -354,16 +354,16 @@ class KojiError(HabitudeError):
     """
 
     def __init__(
-        self,
-        original_error: Exception,
-        typename: Optional[str] = None,
-        name: Optional[str] = None,
-        filename: Optional[str] = None,
-        lineno: Optional[int] = None,
-        trace: Optional[List[Dict[str, Any]]] = None,
-        operation: Optional[str] = None,
-        method_name: Optional[str] = None,
-        parameters: Optional[Dict[str, Any]] = None):
+            self,
+            original_error: Exception,
+            typename: Optional[str] = None,
+            name: Optional[str] = None,
+            filename: Optional[str] = None,
+            lineno: Optional[int] = None,
+            trace: Optional[List[Dict[str, Any]]] = None,
+            operation: Optional[str] = None,
+            method_name: Optional[str] = None,
+            parameters: Optional[Dict[str, Any]] = None):
 
         self.typename = typename
         self.name = name
@@ -404,9 +404,9 @@ class ChangeReadError(KojiError):
     """
 
     def __init__(
-        self,
-        original_error: Exception,
-        obj: Any):
+            self,
+            original_error: Exception,
+            obj: Any):
 
         super().__init__(
             original_error=original_error,
@@ -431,12 +431,12 @@ class ChangeApplyError(KojiError):
     """
 
     def __init__(
-        self,
-        original_error: Exception,
-        obj: Any,  # Base object
-        change_description: Optional[str] = None,
-        method_name: Optional[str] = None,
-        parameters: Optional[Dict[str, Any]] = None):
+            self,
+            original_error: Exception,
+            obj: Any,  # Base object
+            change_description: Optional[str] = None,
+            method_name: Optional[str] = None,
+            parameters: Optional[Dict[str, Any]] = None):
 
         self.change_description = change_description
 
@@ -465,10 +465,10 @@ class ExpansionError(HabitudeError):
     """
 
     def __init__(
-        self,
-        call: Any,  # TemplateCall object or string message
-        available_templates: Optional[List[str]] = None,
-    ):
+            self,
+            call: Any,  # TemplateCall object or string message
+            available_templates: Optional[List[str]] = None):
+
         # Handle both TemplateCall objects and plain string messages
         if isinstance(call, str):
             # Plain message (e.g., "Maximum depth reached")
@@ -507,11 +507,10 @@ class RedefineError(HabitudeError):
     """
 
     def __init__(
-        self,
-        key: Any,  # BaseKey (tuple) or string (for templates)
-        original_obj: Any,  # Base
-        new_obj: Any,  # Base
-    ):
+            self,
+            key: Any,  # BaseKey (tuple) or string (for templates)
+            original_obj: Any,  # Base
+            new_obj: Any):
         self.key = key
         self.original_obj = original_obj
         self.new_obj = new_obj
