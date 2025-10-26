@@ -1,3 +1,6 @@
+Koji Habitude
+=============
+
 .. toctree::
    :maxdepth: 2
 

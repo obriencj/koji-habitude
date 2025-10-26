@@ -14,42 +14,49 @@ go and let me know!
 Overview
 --------
 
-koji-habitude is a configuration management tool for
+koji-habitude is an object management tool for
 `Koji <https://pagure.io/koji>`__ build systems. It provides a
 declarative approach to managing koji objects through YAML templates and
-data files, with intelligent dependency resolution and tiered execution.
-
-**Key Features:** - Define koji objects (tags, external repos, users,
-targets, hosts, groups, channels, permissions, build types, archive
-types) in YAML - Use Jinja2 templates for dynamic configuration
-generation - Automatically resolve dependencies between objects (tag
-inheritance) - Preview template expansion results with the ``expand``
-command - Apply changes in the correct order through tiered execution -
-Validate configurations offline before deployment
+data files.
 
 This project is an offshoot of
 `koji-box <https://github.com/obriencj/koji-box>`__, fulfilling the need
 for populating a boxed koji instance with a bunch of tags and targets.
 However it is being written such that it can be used with any koji
-instance, in the hopes that it may bring joy into the lives of those
-trying to keep projects packagers happy.
+deployment, in the hopes that it may bring joy into the lives of those
+trying to keep project packagers happy.
+
+**Key Features:**
+
+- Define koji objects (tags, external repos, users, targets, hosts,
+  groups, channels, permissions, build types, archive types) in YAML
+- Use Jinja2 templates for dynamic configuration generation
+- Automatically resolve dependencies between objects (tag inheritance)
+- Apply changes in the correct order through tiered execution
+- Validate configurations offline before deployment
 
 Current Status
 --------------
 
-**Implemented:** - Complete CLI framework with all core commands
-(``apply``, ``compare``, ``expand``, ``fetch``, ``dump``,
-``list-templates``) - All Koji object types (11 CORE_MODELS) with
-Pydantic validation - Remote object models for fetching and comparing
-against Koji state - Dependency resolution architecture (Resolver and
-Solver modules) - Processor module with state machine and multicall
-integration - Comprehensive unit testing (360+ tests, 74%+ coverage) -
-Template expansion and change tracking system - Remote state
-bootstrapping with pattern matching
+As notes before, this project is still a work-in-progress, but most of
+the core features have been implemented. Some are still being refined,
+but overall it is in an operational state.
 
-**Next Steps:** - CLI testing coverage improvements - Integration
-testing on a real koji instance - Performance optimization and error
-handling improvements
+**Implemented:**
+
+- CLI framework with the essential commands
+- 11 primary Koji object types are implemented, with both local and
+  remote representations
+- Templates and template calls are functional
+- Dependency-aware ordering works
+- Reference detection (eg. if you inherit from a tag you don’t define)
+- Middling unit testing coverage (411 tests, 67% coverage)
+
+**Next Steps:**
+
+- CLI testing coverage improvements
+- Integration testing on a real koji instance
+- Performance optimization and error handling improvements
 
 CLI Commands
 ------------

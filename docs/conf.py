@@ -12,17 +12,21 @@ AI-Assistant: Claude 3.5 Sonnet via Cursor
 def load_setup():
     from configparser import ConfigParser
 
+    global project
+    global release
+    global version
+    global author
+    global copyright
+
     conf = ConfigParser()
     conf.read(["../setup.cfg"])
-
-    glbls = globals()
     metadata = conf['metadata']
 
-    glbls['project'] = metadata['name']
-    glbls['release'] = metadata['version']
-    glbls['version'] = '.'.join(glbls['release'].split('.')[:2])
-    glbls['author'] = metadata['author']
-    glbls['copyright'] = f"{metadata['copyright_years']}, {glbls['author']}"
+    project = metadata['name']
+    release = metadata['version']
+    version = '.'.join(release.split('.')[:2])
+    author = metadata['author']
+    copyright = f"{metadata['copyright_years']}, {author}"
 
 load_setup()
 
