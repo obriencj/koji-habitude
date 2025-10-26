@@ -17,13 +17,14 @@ from typing import Any, Dict, List
 import click
 from click import echo
 
-from . import main
 from ..loader import load_yaml_files, pretty_yaml, pretty_yaml_all
 from ..namespace import ExpanderNamespace, Namespace, TemplateNamespace
 from ..templates import Template
 from ..workflow import ApplyDictWorkflow, CompareDictWorkflow
+from . import main
 from .theme import select_theme
-from .util import catchall, display_resolver_report, display_summary
+from .util import (catchall, display_resolver_report, display_summary,
+                   display_summary_as_diff)
 
 
 def call_from_args(
@@ -300,6 +301,57 @@ def template_compare(
     display_resolver_report(workflow.resolver_report)
 
     return 1 if workflow.resolver_report.phantoms else 0
+
+
+@template.command('diff')
+@click.argument('template_name', metavar='NAME')
+@click.argument('variables', metavar='KEY=VALUE', nargs=-1)
+@click.option(
+    '--templates', '-T', 'template_dirs', metavar='PATH', multiple=True,
+    help="Load templates from the given paths")
+@click.option(
+    '--recursive', '-r', is_flag=True, default=False,
+    help="Search template and data directories recursively")
+@click.option(
+    '--profile', "-p", default='koji',
+    help="Koji profile to use for connection")
+@click.option(
+    '--include-defaults', '-d', default=False, is_flag=True,
+    help="Whether to include default values (bool default: False)")
+@click.option(
+    '--context', '-c', default=3, type=int, metavar='N',
+    help="Number of context lines around each change (default: 3)")
+@catchall
+def template_diff(
+        template_name,
+        variables=[],
+        template_dirs=[],
+        recursive=False,
+        profile='koji',
+        include_defaults=False,
+        context=3):
+
+    data = call_from_args(template_name, variables)
+
+    if not template_dirs:
+        template_dirs = list(Path.cwd().glob('*.yml'))
+        template_dirs.extend(Path.cwd().glob('*.yaml'))
+
+    workflow = CompareDictWorkflow(
+        objects=[data],
+        template_paths=template_dirs,
+        recursive=recursive,
+        profile=profile,
+    )
+    workflow.run()
+
+    exclude_defaults = not include_defaults
+    diffcount = display_summary_as_diff(
+        workflow.summary,
+        context=context,
+        exclude_defaults=exclude_defaults)
+
+    return 0 if not diffcount else 1
 
 
 @template.command('apply')

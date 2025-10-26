@@ -50,6 +50,13 @@ class ColorTheme:
     template_comment: Dict[str, Any] = field(default_factory=lambda: {'fg': 'bright_black'})
     template_value: Dict[str, Any] = field(default_factory=lambda: {'fg': 'white'})
 
+    # used in diff command
+    diff_label: Dict[str, Any] = field(default_factory=lambda: {'fg': 'yellow'})
+    diff_added: Dict[str, Any] = field(default_factory=lambda: {'fg': 'green'})
+    diff_removed: Dict[str, Any] = field(default_factory=lambda: {'fg': 'red'})
+    diff_changed: Dict[str, Any] = field(default_factory=lambda: {'fg': 'magenta'})
+    diff_unchanged: Dict[str, Any] = field(default_factory=lambda: {'fg': 'bright_black'})
+
 
     def style(self, text, tp=None, **kwargs):
         """

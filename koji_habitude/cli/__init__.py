@@ -27,6 +27,7 @@ class MagicGroup(click.Group):
         from . import expand
         from . import fetch
         from . import dump
+        from . import diff
 
     def get_command(self, ctx, cmd_name):
         self._load_commands()
