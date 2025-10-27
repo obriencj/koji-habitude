@@ -310,6 +310,7 @@ def display_summary_as_diff(
         if diff_lines:
             secho("Differences:", tp='diff_label')
             for line in diff_lines:
+                line = line.rstrip()
                 if line.startswith('+'):
                     secho(line, tp='diff_added')
                 elif line.startswith('-'):
@@ -318,9 +319,6 @@ def display_summary_as_diff(
                     secho(line, tp='diff_changed')
                 else:
                     secho(line, tp='diff_unchanged')
-
-            if not diff_lines[-1].endswith('\n'):
-                echo()
 
     return len(diff_pairs)
 
