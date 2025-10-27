@@ -9,7 +9,7 @@ AI-Assistant: Claude 4.5 Sonnet via Cursor
 """
 
 from koji_habitude.cli import main
-from tests.cli import assert_click_params_match_function
+from . import assert_click_params_match_function
 
 
 class TestCLIParams:
