@@ -58,8 +58,8 @@ def apply(data, templates=None, recursive=False,
     """
 
     workflow = ApplyWorkflow(
-        data=data,
-        templates=templates,
+        paths=data,
+        template_paths=templates,
         recursive=recursive,
         profile=profile,
         skip_phantoms=skip_phantoms)
