@@ -29,7 +29,7 @@ class ApplyWorkflow(_ApplyWorkflow):
 @main.command()
 @click.argument('data', nargs=-1, required=True)
 @click.option(
-    '--templates', metavar='PATH', multiple=True,
+    '--templates', "-t", metavar='PATH', multiple=True,
     help="Location to find templates that are not available in DATA")
 @click.option(
     '--recursive', '-r', is_flag=True, default=False,

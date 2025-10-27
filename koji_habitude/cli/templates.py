@@ -30,6 +30,13 @@ from .util import (catchall, display_resolver_report, display_summary,
 def call_from_args(
         template_name: str,
         variables: List[str]) -> Dict[str, Any]:
+    """
+    Construct a TemplateCall yaml document from the given template name and variables.
+
+    :param template_name: The name of the template to call
+    :param variables: The variables to pass to the template
+    :returns: A dictionary representing the TemplateCall yaml document
+    """
 
     data = {
         '__file__': "<user-input>",
@@ -85,14 +92,26 @@ def print_template(tmpl: Template, full: bool = False, theme=None):
                  "''' " + style(f"# end content for {tmpl.name}", tp='template_comment'))
 
 
+def opt_template_path(fn):
+    fn = click.option(
+        '--templates', "-t", 'template_dirs', metavar='PATH', multiple=True,
+        help="Load only templates from the given paths")(fn)
+    fn = click.option(
+        '--recursive', '-r', is_flag=True, default=False,
+        help="Search template and data directories recursively")(fn)
+    return fn
+
+
+def opt_profile(fn):
+    fn = click.option(
+        '--profile', "-p", default='koji',
+        help="Koji profile to use for connection")(fn)
+    return fn
+
+
 @main.command()
 @click.argument('dirs', metavar='PATH', nargs=-1, required=False)
-@click.option(
-    '--templates', "-T", 'template_dirs', metavar='PATH', multiple=True,
-    help="Load only templates from the given paths")
-@click.option(
-    '--recursive', '-r', is_flag=True, default=False,
-    help="Search template and data directories recursively")
+@opt_template_path
 @click.option(
     '--yaml', 'yaml', is_flag=True, default=False,
     help="Show expanded templates as yaml")
@@ -159,12 +178,7 @@ def template():
 
 @template.command('show')
 @click.argument('template_name', metavar='NAME')
-@click.option(
-    '--templates', '-T', 'template_dirs', metavar='PATH', multiple=True,
-    help="Load only templates from the given paths")
-@click.option(
-    '--recursive', '-r', is_flag=True, default=False,
-    help="Search template and data directories recursively")
+@opt_template_path
 @click.option(
     '--yaml', 'yaml', is_flag=True, default=False,
     help="Template definition as yaml")
@@ -208,12 +222,7 @@ def template_show(
 @template.command('expand')
 @click.argument('template_name', metavar='NAME')
 @click.argument('variables', metavar='KEY=VALUE', nargs=-1)
-@click.option(
-    '--templates', '-T', 'template_dirs', metavar='PATH', multiple=True,
-    help="Load templates from the given paths")
-@click.option(
-    '--recursive', '-r', is_flag=True, default=False,
-    help="Search template and data directories recursively")
+@opt_template_path
 @click.option(
     '--validate', 'validate', is_flag=True, default=False,
     help="Validate the expanded template")
@@ -255,15 +264,8 @@ def template_expand(
 @template.command('compare')
 @click.argument('template_name', metavar='NAME')
 @click.argument('variables', metavar='KEY=VALUE', nargs=-1)
-@click.option(
-    '--templates', '-T', 'template_dirs', metavar='PATH', multiple=True,
-    help="Load templates from the given paths")
-@click.option(
-    '--recursive', '-r', is_flag=True, default=False,
-    help="Search template and data directories recursively")
-@click.option(
-    '--profile', "-p", default='koji',
-    help="Koji profile to use for connection")
+@opt_template_path
+@opt_profile
 @click.option(
     '--show-unchanged', 'show_unchanged', is_flag=True, default=False,
     help="Show objects that don't need any changes")
@@ -276,7 +278,7 @@ def template_compare(
         profile='koji',
         show_unchanged=False):
     """
-    Compare a single template expansion with koji.
+    Expand a single template and compare the result with koji.
 
     NAME is the name of the template to expand with the given KEY=VALUE variables
 
@@ -306,15 +308,8 @@ def template_compare(
 @template.command('diff')
 @click.argument('template_name', metavar='NAME')
 @click.argument('variables', metavar='KEY=VALUE', nargs=-1)
-@click.option(
-    '--templates', '-T', 'template_dirs', metavar='PATH', multiple=True,
-    help="Load templates from the given paths")
-@click.option(
-    '--recursive', '-r', is_flag=True, default=False,
-    help="Search template and data directories recursively")
-@click.option(
-    '--profile', "-p", default='koji',
-    help="Koji profile to use for connection")
+@opt_template_path
+@opt_profile
 @click.option(
     '--include-defaults', '-d', default=False, is_flag=True,
     help="Whether to include default values (bool default: False)")
@@ -330,6 +325,14 @@ def template_diff(
         profile='koji',
         include_defaults=False,
         context=3):
+    """
+    Expand a single template and compare the result with koji.
+
+    NAME is the name of the template to expand with the given KEY=VALUE variables
+
+    Results will be displayed as a unified diff between the expanded and
+    validated template and the koji state of the expanded objects.
+    """
 
     data = call_from_args(template_name, variables)
 
@@ -357,15 +360,8 @@ def template_diff(
 @template.command('apply')
 @click.argument('template_name', metavar='NAME')
 @click.argument('variables', metavar='KEY=VALUE', nargs=-1)
-@click.option(
-    '--templates', '-T', 'template_dirs', metavar='PATH', multiple=True,
-    help="Load templates from the given paths")
-@click.option(
-    '--recursive', '-r', is_flag=True, default=False,
-    help="Search template and data directories recursively")
-@click.option(
-    '--profile', "-p", default='koji',
-    help="Koji profile to use for connection")
+@opt_template_path
+@opt_profile
 @click.option(
     '--show-unchanged', 'show_unchanged', is_flag=True, default=False,
     help="Show objects that don't need any changes")

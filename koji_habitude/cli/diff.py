@@ -8,6 +8,9 @@ Show unified diff between local and remote YAML objects.
 :ai-assistant: Claude 4.5 Sonnet via Cursor
 """
 
+# Vibe-Coding State: AI Assisted, Mostly Human
+
+
 import click
 
 from ..workflow import CompareWorkflow
@@ -18,7 +21,7 @@ from .util import catchall, display_summary_as_diff
 @main.command()
 @click.argument('data', nargs=-1, required=True)
 @click.option(
-    '--templates', 'templates', metavar='PATH', multiple=True,
+    '--templates', "-t", metavar='PATH', multiple=True,
     help="Location to find templates that are not available in DATA")
 @click.option(
     '--recursive', '-r', is_flag=True, default=False,
