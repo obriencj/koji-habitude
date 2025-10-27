@@ -50,7 +50,7 @@ but overall it is in an operational state.
 - Templates and template calls are functional
 - Dependency-aware ordering works
 - Reference detection (eg. if you inherit from a tag you don’t define)
-- Middling unit testing coverage (411 tests, 67% coverage)
+- Middling unit testing coverage (419 tests, 72% coverage)
 
 **Next Steps:**
 

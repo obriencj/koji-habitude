@@ -9,24 +9,20 @@ Utility functions for the CLI.
 """
 
 
-from click import echo
-from typing import List
+from difflib import unified_diff
 from functools import wraps
-from koji import GSSAPIAuthError, GenericError
+from io import StringIO
+from typing import List
 
+from click import echo
+from koji import GenericError, GSSAPIAuthError
+
+from ..exceptions import (ChangeApplyError, ChangeReadError, ExpansionError,
+                          HabitudeError, KojiError, RedefineError,
+                          TemplateError, ValidationError, YAMLError)
+from ..loader import pretty_yaml
+from ..resolver import Reference
 from .theme import select_theme
-from ..exceptions import (
-    HabitudeError,
-    YAMLError,
-    ValidationError,
-    TemplateError,
-    ExpansionError,
-    RedefineError,
-    KojiError,
-    ChangeReadError,
-    ChangeApplyError,
-)
-
 
 __all__ = (
     'catchall',
@@ -241,6 +237,90 @@ def sort_objects_for_output(objects):
 
     dedup = {obj.key(): obj for obj in objects}
     return [item[1] for item in sorted(dedup.items())]
+
+
+def display_summary_as_diff(
+        summary,
+        context=3,
+        exclude_defaults=False,
+        theme=None):
+    """
+    Display the summary of the changes as a unified diff.
+
+    :param summary: The summary of the changes
+    :param context: The number of context lines to show
+    :param exclude_defaults: Whether to exclude default values
+    :param theme: The theme to use for the output
+
+    :returns: None
+    """
+
+    if theme is None:
+        theme = select_theme()
+
+    secho = theme.secho
+
+    # Only show objects with changes
+    work_objects = []
+    for change_report in summary.change_reports.values():
+        if len(change_report.changes):
+            work_objects.append(change_report.obj)
+
+    # Get local and remote objects for diffing
+    diff_pairs = []
+    for obj in work_objects:
+        if isinstance(obj, Reference):
+            continue
+
+        remote = obj.remote()
+        diff_pairs.append((obj, remote))
+
+    # Sort objects by type, name
+    diff_pairs = sorted(diff_pairs, key=lambda x: x[0].key())
+
+    for local_obj, remote_obj in diff_pairs:
+        # Generate local YAML string
+        local_dict = local_obj.to_dict(exclude_defaults=exclude_defaults)
+        local_buf = StringIO()
+        pretty_yaml(local_dict, out=local_buf, comments=False)
+        local_lines = local_buf.getvalue().splitlines(keepends=True)
+
+        # Generate remote YAML string (or empty for creates)
+        if remote_obj is None:
+            remote_lines = []
+            local_label = f"local:{local_obj.key()[1]}"
+            remote_label = "remote:<missing>"
+        else:
+            remote_dict = remote_obj.to_dict(exclude_defaults=exclude_defaults)
+            remote_buf = StringIO()
+            pretty_yaml(remote_dict, out=remote_buf, comments=False)
+            remote_lines = remote_buf.getvalue().splitlines(keepends=True)
+            local_label = f"local:{local_obj.key()[1]}"
+            remote_label = f"remote:{remote_obj.key()[1]}"
+
+        # Generate unified diff
+        diff_lines = list(unified_diff(
+            remote_lines, local_lines,
+            fromfile=remote_label,
+            tofile=local_label,
+            lineterm='',
+            n=context
+        ))
+
+        if diff_lines:
+            secho("Differences:", tp='diff_label')
+            for line in diff_lines:
+                line = line.rstrip()
+                if line.startswith('+'):
+                    secho(line, tp='diff_added')
+                elif line.startswith('-'):
+                    secho(line, tp='diff_removed')
+                elif line.startswith('?'):
+                    secho(line, tp='diff_changed')
+                else:
+                    secho(line, tp='diff_unchanged')
+
+    return len(diff_pairs)
 
 
 # The end.
