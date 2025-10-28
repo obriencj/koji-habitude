@@ -118,10 +118,8 @@ class Template(BaseModel, IdentifiableMixin, LocalMixin):
                 if self.template_file:
                     raise TemplateError(
                         original_error=ValueError(
-                            "Template content is not allowed when template file is specified"
-                        ),
-                        template=self,
-                    )
+                            "Template content is not allowed when template file is specified"),
+                        template=self)
 
                 ast = jinja_env.parse(self.template_content)
 
@@ -129,18 +127,15 @@ class Template(BaseModel, IdentifiableMixin, LocalMixin):
                 if not self.template_file:
                     raise TemplateError(
                         original_error=ValueError(
-                            "Template content is required when template file is not specified"
-                        ),
-                        template=self,
-                    )
+                            "Template content is required when template file is not specified"),
+                        template=self)
 
                 elif Path(self.template_file).is_absolute():
                     raise TemplateError(
                         original_error=ValueError(
                             "Absolute paths are not allowed with template file loading"
                         ),
-                        template=self,
-                    )
+                        template=self)
 
                 src = loader.get_source(jinja_env, self.template_file)[0]
                 ast = jinja_env.parse(src)
@@ -149,15 +144,13 @@ class Template(BaseModel, IdentifiableMixin, LocalMixin):
             raise TemplateSyntaxError(
                 original_error=e,
                 template=self,
-                template_file=self.template_file,
-            ) from e
+                template_file=self.template_file) from e
 
         except Jinja2TemplateError as e:
             raise TemplateError(
                 original_error=e,
                 template=self,
-                template_file=self.template_file,
-            ) from e
+                template_file=self.template_file) from e
 
         self._undeclared = find_undeclared_variables(ast)
         self._jinja2_template = jinja_env.from_string(ast)
@@ -197,20 +190,20 @@ class Template(BaseModel, IdentifiableMixin, LocalMixin):
 
         if not self.validate_call(data):
             raise TemplateRenderError(
-                original_error=ValueError(f"Data validation failed for template {self.name!r}"),
+                original_error=ValueError(
+                    f"Data validation failed for template {self.name!r}"),
                 template=self,
-                data=data,
-            )
+                data=data)
 
         merged_data = dict(self.defaults, **data)
         try:
             return self._jinja2_template.render(**merged_data)
+
         except UndefinedError as e:
             raise TemplateRenderError(
                 original_error=e,
                 template=self,
-                data=data,
-            ) from e
+                data=data) from e
 
 
     def render_and_load(
@@ -256,8 +249,7 @@ class Template(BaseModel, IdentifiableMixin, LocalMixin):
                         message="Template returned non-dict object",
                         template=self,
                         data=data,
-                        rendered_content=rendered,
-                    )
+                        rendered_content=rendered)
                 obj.update(merge)
                 yield obj
 
@@ -267,8 +259,7 @@ class Template(BaseModel, IdentifiableMixin, LocalMixin):
                 template=self,
                 data=data,
                 rendered_content=rendered,
-                original_exception=e,
-            ) from e
+                original_exception=e) from e
 
 
     def render_call(self, call: TemplateCall):
