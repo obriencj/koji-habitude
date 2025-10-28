@@ -120,7 +120,6 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(template.name, 'test-template')
         self.assertEqual(template.template_content, template_data['content'])
         self.assertIsNone(template.template_file)
-        self.assertIsNone(template.base_path)
         self.assertIsNotNone(template.jinja2_template)
 
 

@@ -100,82 +100,64 @@ class Template(BaseModel, IdentifiableMixin, LocalMixin):
     def model_post_init(self, __context: Any):
         super().model_post_init(__context)
 
-        if self.template_content:
-            if self.template_file:
-                raise TemplateError(
-                    original_error=ValueError(
-                        "Template content is not allowed when template file is specified"
-                    ),
-                    template=self,
-                )
+        if self.filename:
+            base_path = Path(self.filename).parent
+        else:
+            base_path = Path.cwd()
+        self._base_path = base_path
 
-            jinja_env = Environment(
-                trim_blocks=True,
-                lstrip_blocks=True,
-                undefined=StrictUndefined)
+        loader = FileSystemLoader(base_path)
+        jinja_env = Environment(
+            loader=loader,
+            trim_blocks=True,
+            lstrip_blocks=True,
+            undefined=StrictUndefined)
 
-            try:
+        try:
+            if self.template_content:
+                if self.template_file:
+                    raise TemplateError(
+                        original_error=ValueError(
+                            "Template content is not allowed when template file is specified"
+                        ),
+                        template=self,
+                    )
+
                 ast = jinja_env.parse(self.template_content)
 
-            except Jinja2TemplateSyntaxError as e:
-                raise TemplateSyntaxError(
-                    original_error=e,
-                    template=self,
-                ) from e
-
-            except Jinja2TemplateError as e:
-                raise TemplateError(
-                    original_error=e,
-                    template=self,
-                ) from e
-
-        else:
-            if not self.template_file:
-                raise TemplateError(
-                    original_error=ValueError(
-                        "Template content is required when template file is not specified"
-                    ),
-                    template=self,
-                )
-
-            elif Path(self.template_file).is_absolute():
-                raise TemplateError(
-                    original_error=ValueError(
-                        "Absolute paths are not allowed with template file loading"
-                    ),
-                    template=self,
-                )
-
-            if self.filename:
-                base_path = Path(self.filename).parent
             else:
-                base_path = Path.cwd()
-            self._base_path = base_path
+                if not self.template_file:
+                    raise TemplateError(
+                        original_error=ValueError(
+                            "Template content is required when template file is not specified"
+                        ),
+                        template=self,
+                    )
 
-            loader = FileSystemLoader(base_path)
-            jinja_env = Environment(
-                loader=loader,
-                trim_blocks=True,
-                lstrip_blocks=True,
-                undefined=StrictUndefined)
+                elif Path(self.template_file).is_absolute():
+                    raise TemplateError(
+                        original_error=ValueError(
+                            "Absolute paths are not allowed with template file loading"
+                        ),
+                        template=self,
+                    )
 
-            try:
                 src = loader.get_source(jinja_env, self.template_file)[0]
                 ast = jinja_env.parse(src)
 
-            except Jinja2TemplateSyntaxError as e:
-                raise TemplateSyntaxError(
-                    original_error=e,
-                    template=self,
-                    template_file=self.template_file,
-                ) from e
+        except Jinja2TemplateSyntaxError as e:
+            raise TemplateSyntaxError(
+                original_error=e,
+                template=self,
+                template_file=self.template_file,
+            ) from e
 
-            except Jinja2TemplateError as e:
-                raise TemplateError(
-                    original_error=e,
-                    template=self,
-                    template_file=self.template_file,
-                ) from e
+        except Jinja2TemplateError as e:
+            raise TemplateError(
+                original_error=e,
+                template=self,
+                template_file=self.template_file,
+            ) from e
 
         self._undeclared = find_undeclared_variables(ast)
         self._jinja2_template = jinja_env.from_string(ast)

@@ -11,8 +11,7 @@ Core koji object models package.
 # Vibe-Coding State: AI Generated with Human Rework
 
 
-from types import MappingProxyType
-from typing import Mapping, Tuple, Type
+from typing import Dict, List, Type
 
 from .archive_type import ArchiveType
 from .base import (
@@ -78,7 +77,7 @@ __all__ = (
 )
 
 
-CORE_TYPES: Tuple[Type[CoreObject], ...] = (
+CORE_TYPES: List[Type[CoreObject]] = [
     ArchiveType,
     BuildType,
     Channel,
@@ -90,10 +89,12 @@ CORE_TYPES: Tuple[Type[CoreObject], ...] = (
     Tag,
     Target,
     User,
-)
+]
 
-CORE_MODELS: Mapping[str, Type[CoreObject]] = \
-     MappingProxyType({tp.typename: tp for tp in CORE_TYPES})
+
+CORE_MODELS: Dict[str, Type[CoreObject]] = {
+    tp.typename: tp for tp in CORE_TYPES
+}
 
 
 # The end.

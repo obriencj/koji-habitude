@@ -82,6 +82,13 @@ class WorkflowPhantomsError(Exception):
 
 @dataclass
 class Workflow:
+    """
+    A Workflow represents the combination of the individual features and steps
+    of koji-habitude, providing a simplified interface for loading YAML, feeding
+    and validating the data into a Namespace, expanding templates, resolving
+    dependencies, identifying change sets, and applying the relevant changes
+    onto a Koji hub instance.
+    """
 
     paths: List[Union[str, Path]] = None
     template_paths: List[Union[str, Path]] = None
@@ -241,19 +248,20 @@ class Workflow:
                                 WorkflowState.COMPLETED)
 
 
-    def run(self):
+    def run(self) -> WorkflowState:
         """
-        Run the workflow, starting from the READY state and
-        iterating over the phases. As the workflow progresses, state
-        transitions are triggered, and the overridable callback
-        `workflow_state_change` is invoked. If the callback returns
-        True, the workflow is paused and this method returns True. If
-        the workflow completes successfully, this method returns
-        False.
+        Run the workflow, starting from the READY state and iterating over the
+        phases. As the workflow progresses, state transitions are triggered, and
+        the overridable callback `workflow_state_change` is invoked. If the
+        callback returns True, the workflow is paused and this method returns
+        the current state. If the workflow completes successfully, this method
+        returns `WorkflowState.COMPLETED`.
 
-        A paused workflow can be resumed by calling the `resume`
-        method, which will pick up where the workflow left off, and
-        may be paused again.
+        A paused workflow can be resumed by calling the `resume` method, which
+        will pick up where the workflow left off, and may be paused again.
+
+        If an exception is raised during the run, the workflow state is set
+        to `WorkflowState.FAILED` and the exception is re-raised.
         """
 
         if self.state != WorkflowState.READY:
@@ -266,7 +274,7 @@ class Workflow:
             for phase_result in self._iter_workflow:
                 if phase_result is True:
                     self.workflow_paused()
-                    return True
+                    return self.state
 
         except Exception:
             self._iter_workflow = None
@@ -275,7 +283,7 @@ class Workflow:
 
         else:
             self._iter_workflow = None
-            return False
+            return self.state
 
 
     def resume(self):
@@ -345,6 +353,11 @@ class Workflow:
 
 
 class ApplyWorkflow(Workflow):
+    """
+    Workflow for applying data onto a Koji hub instance. Implements the majority
+    of the behavior of the `apply` command.
+    """
+
     def __init__(
             self,
             paths: List[Union[str, Path]],
@@ -364,6 +377,12 @@ class ApplyWorkflow(Workflow):
 
 
 class CompareWorkflow(Workflow):
+    """
+    Workflow for comparing data against a Koji hub instance. Implements the
+    majority of the behavior of the `compare` command. Similar to the
+    `ApplyWorkflow` in most aspects, but with a processor that omits the apply
+    operations.
+    """
 
     def __init__(
             self,
@@ -402,6 +421,11 @@ class CompareWorkflow(Workflow):
 
 @dataclass
 class DictWorkflow(Workflow):
+    """
+    Workflow for operating over pre-created dictionaries of objects, rather than
+    using a loader to pull data from a filesystem.
+    """
+
     objects: List[Dict[str, Any]] = field(default_factory=list)
 
     def load_data(
@@ -418,6 +442,14 @@ class DictWorkflow(Workflow):
 
 
 class ApplyDictWorkflow(DictWorkflow):
+    """
+    Workflow for applying data onto a Koji hub instance, using pre-created dictionaries
+    of objects.
+
+    This is used by the `template apply` command to apply a single template's expansion
+    onto a Koji hub instance.
+    """
+
     def __init__(
             self,
             objects: List[Dict[str, Any]],
@@ -436,6 +468,14 @@ class ApplyDictWorkflow(DictWorkflow):
 
 
 class CompareDictWorkflow(DictWorkflow):
+    """
+    Workflow for comparing data against a Koji hub instance, using pre-created dictionaries
+    of objects.
+
+    This is used by the `template compare` command to compare a single template's expansion
+    against the objects on a Koji hub instance.
+    """
+
     def __init__(
             self,
             objects: List[Dict[str, Any]],
