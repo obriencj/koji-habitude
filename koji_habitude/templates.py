@@ -108,12 +108,12 @@ class ValidationRule(SubModel):
     Validation rules for a DynamicFieldDefinition
     """
 
-    min_length: Optional[int] = None
-    max_length: Optional[int] = None
-    min_value: Optional[float] = None
-    max_value: Optional[float] = None
-    pattern: Optional[str] = None
-    enum_values: Optional[List[Any]] = None
+    min_length: Optional[int] = Field(alias='min-length', default=None)
+    max_length: Optional[int] = Field(alias='max-length', default=None)
+    ge: Optional[float] = Field(alias='min-value', default=None)
+    le: Optional[float] = Field(alias='max-value', default=None)
+    pattern: Optional[str] = Field(alias='regex', default=None)
+    enum_values: Optional[List[Any]] = Field(alias='enum', default=None)
 
 
     def as_args(self) -> Dict[str, Any]:
@@ -122,10 +122,10 @@ class ValidationRule(SubModel):
             kwargs['min_length'] = self.min_length
         if self.max_length is not None:
             kwargs['max_length'] = self.max_length
-        if self.min_value is not None:
-            kwargs['min_value'] = self.min_value
-        if self.max_value is not None:
-            kwargs['max_value'] = self.max_value
+        if self.ge is not None:
+            kwargs['ge'] = self.ge
+        if self.le is not None:
+            kwargs['le'] = self.le
         if self.pattern is not None:
             kwargs['pattern'] = self.pattern
         if self.enum_values is not None:
@@ -346,7 +346,7 @@ class Template(BaseModel, IdentifiableMixin, LocalMixin):
 
         if not self.template_model:
             return True
-        return bool(self.template_model.model_validate(data))
+        return bool(self.template_model.new(data))
 
 
     def render(self, data: Dict[str, Any]) -> str:
