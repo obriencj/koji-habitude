@@ -13,7 +13,7 @@ This module provides a unified interface that works with both pydantic 1.10
 
 
 from typing import Any, Callable, Dict, Optional, Type, TypeVar
-from pydantic import BaseModel as _BaseModel, Field, PrivateAttr
+from pydantic import BaseModel as _BaseModel, Field as _Field, PrivateAttr
 
 
 __all__ = (
@@ -33,15 +33,32 @@ try:
     from pydantic import ConfigDict
     from pydantic import field_validator
 
+    Field = _Field
+
     class BaseModel(_BaseModel):
-        model_config = ConfigDict(validate_by_alias=True, validate_by_name=True)
+        model_config = ConfigDict(
+            validate_by_alias=True,
+            validate_by_name=True)
 
 
 except ImportError:
     # Pydantic v1.10 compatibility
     from pydantic import validator as _validator
-    from pydantic.main import ModelMetaclass
-    from pydantic.fields import ModelPrivateAttr
+
+
+    def Field(*args, **kwargs):  # type: ignore
+        if 'regex' in kwargs:
+            kwargs['pattern'] = kwargs.pop('regex')
+        if 'ge' in kwargs:
+            kwargs['min_value'] = kwargs.pop('ge')
+        if 'le' in kwargs:
+            kwargs['max_value'] = kwargs.pop('le')
+        if 'enum' in kwargs:
+            kwargs['enum_values'] = kwargs.pop('enum')
+        if 'array_item_type' in kwargs:
+            kwargs['item_type'] = kwargs.pop('array_item_type')
+        return _Field(*args, **kwargs)  # type: ignore
+
 
     T = TypeVar('T', bound='BaseModel')
 

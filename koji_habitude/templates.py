@@ -12,8 +12,11 @@ Template loading and Jinja2 expansion system for koji object templates.
 
 
 import logging
+from enum import Enum
 from pathlib import Path
-from typing import Any, ClassVar, Dict, Iterator, Optional, Set
+from typing import (Any, Callable, ClassVar, Dict, Iterator, List, Optional,
+                    Set, Tuple, Type, Union)
+from pydantic.fields import FieldInfo
 
 import yaml
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
@@ -22,11 +25,14 @@ from jinja2.exceptions import TemplateError as Jinja2TemplateError
 from jinja2.exceptions import TemplateSyntaxError as Jinja2TemplateSyntaxError
 from jinja2.exceptions import UndefinedError
 from jinja2.meta import find_undeclared_variables
+from pydantic import create_model
 
 from .exceptions import (TemplateError, TemplateOutputError,
                          TemplateRenderError, TemplateSyntaxError)
-from .models import (BaseModel, Field, IdentifiableMixin, LocalMixin,
-                     PrivateAttr, field_validator)
+from .models import (ArchiveType, BaseModel, BuildType, Channel,
+                     ContentGenerator, ExternalRepo, Field, Group, Host,
+                     IdentifiableMixin, LocalMixin, Permission, PrivateAttr,
+                     SubModel, Tag, Target, User, field_validator)
 
 logger = logging.getLogger("koji_habitude.templates")
 
@@ -48,6 +54,173 @@ class TemplateCall(BaseModel, LocalMixin):
         return self.yaml_type
 
 
+def _array_type_helper(f: 'TemplateFieldDefinition') -> Type:
+    if f.array_item_type:
+        return List[f.array_item_type._python_type]  # type: ignore
+    else:
+        return List[Any]
+
+
+def _enum_type_helper(f: 'TemplateFieldDefinition') -> Type:
+    if f.validation and f.validation.enum_values:
+        return Enum(f"Enum_{id(f)}", {str(v): v for v in f.validation.enum_values})  # type: ignore
+    else:
+        return str
+
+
+def _object_type_helper(f: 'TemplateFieldDefinition') -> Type:
+    if f.object_fields:
+        return TemplateModelDefinition(
+            name=f.object_type_name or f"Object_{id(f)}",
+            fields=f.object_fields,
+        )._model_class
+    else:
+        return Dict[str, Any]
+
+
+TYPE_REGISTRY: Dict[str, Union[Type, Callable]] = {
+    'string': str,
+    'int': int,
+    'float': float,
+    'bool': bool,
+
+    'array': _array_type_helper,
+    'enum': _enum_type_helper,
+
+    'object': _object_type_helper,
+
+    # 'Tag': Tag,
+    # 'User': User,
+    # 'Group': Group,
+    # 'Target': Target,
+    # 'Host': Host,
+    # 'Channel': Channel,
+    # 'Permission': Permission,
+    # 'ExternalRepo': ExternalRepo,
+    # 'ContentGenerator': ContentGenerator,
+    # 'ArchiveType': ArchiveType,
+    # 'BuildType': BuildType,
+}
+
+
+class ValidationRule(SubModel):
+    """
+    Validation rules for a DynamicFieldDefinition
+    """
+
+    min_length: Optional[int] = None
+    max_length: Optional[int] = None
+    min_value: Optional[float] = None
+    max_value: Optional[float] = None
+    pattern: Optional[str] = None
+    enum_values: Optional[List[Any]] = None
+
+
+    def as_args(self) -> Dict[str, Any]:
+        kwargs: Dict[str, Any] = {}
+        if self.min_length is not None:
+            kwargs['min_length'] = self.min_length
+        if self.max_length is not None:
+            kwargs['max_length'] = self.max_length
+        if self.min_value is not None:
+            kwargs['min_value'] = self.min_value
+        if self.max_value is not None:
+            kwargs['max_value'] = self.max_value
+        if self.pattern is not None:
+            kwargs['pattern'] = self.pattern
+        if self.enum_values is not None:
+            kwargs['enum_values'] = self.enum_values
+        return kwargs
+
+
+class TemplateFieldDefinition(SubModel):
+    """
+    Defines a Field in a TemplateModel
+    """
+
+    type: str
+    alias: Optional[str] = None
+    description: Optional[str] = None
+    default: Optional[Any] = None
+    required: bool = True
+    validation: Optional[ValidationRule] = None
+    array_item_type: Optional['TemplateFieldDefinition'] = None
+    object_fields: Optional[Dict[str, 'TemplateFieldDefinition']] = None
+    object_type_name: Optional[str] = None
+    reference_type: Optional[str] = None
+
+    _python_type: Optional[Type] = PrivateAttr(default=None)
+    _field_info: Optional[FieldInfo] = PrivateAttr(default=None)
+
+
+    @property
+    def definition(self) -> Tuple[Type, FieldInfo]:
+        return (self._python_type, self._field_info)
+
+
+    def model_post_init(self, __context: Any):
+        super().model_post_init(__context)
+
+        # Convert type to Python type
+        if self.type not in TYPE_REGISTRY:
+            raise ValueError(f"Unknown dynamic model field type '{self.type}'")
+
+        type_or_converter = TYPE_REGISTRY[self.type]
+        self._python_type = type_or_converter if isinstance(type_or_converter, type) else type_or_converter(self)
+
+        # Create field info
+        kwargs = {}
+        if self.alias:
+            kwargs['alias'] = self.alias
+
+        if self.description:
+            kwargs['description'] = self.description
+
+        if self.default is not None:
+            kwargs['default'] = self.default
+        elif not self.required:
+            kwargs['default'] = None
+
+        if self.validation:
+            kwargs.update(self.validation.as_args())
+
+        self._field_info = Field(**kwargs)  # type: ignore
+
+
+class TemplateModelDefinition(SubModel):
+    """
+    YAML definition for creating a Pydantic model for template data validation
+    """
+
+    name: str
+    description: Optional[str] = None
+    fields: Dict[str, TemplateFieldDefinition]
+
+    _model_class: Optional[Type[BaseModel]] = PrivateAttr(default=None)
+
+
+    def model_post_init(self, __context: Any):
+        super().model_post_init(__context)
+
+        field_defs: Dict[str, Any] = {
+            name: field.definition for name, field in self.fields.items()
+        }
+        field_defs['__base__'] = (LocalMixin, BaseModel)
+
+        self._model_class = create_model(self.name, **field_defs)  # type: ignore
+
+
+    def new(self, data: Dict[str, Any]) -> BaseModel:
+        """
+        Create a new instance of the template model from the given data.
+        """
+
+        if not self._model_class:
+            raise ValueError(f"Model class not created for {self.name}")
+
+        return self._model_class.model_validate(data)
+
+
 class Template(BaseModel, IdentifiableMixin, LocalMixin):
     """
     A Template allows for the expansion of some YAML data into zero or
@@ -57,10 +230,11 @@ class Template(BaseModel, IdentifiableMixin, LocalMixin):
     typename: ClassVar[str] = "template"
 
     defaults: Dict[str, Any] = Field(alias='defaults', default_factory=dict)
+
     template_file: Optional[str] = Field(alias='file', default=None)
     template_content: Optional[str] = Field(alias='content', default=None)
-    template_schema: Optional[Dict[str, Any]] = Field(alias='schema',
-                                                      default=None)
+    template_model: Optional[TemplateModelDefinition] = Field(alias='model', default=None)
+
     description: Optional[str] = Field(alias='description', default=None)
 
     _undeclared: Set[str] = PrivateAttr(default=None)
@@ -156,24 +330,6 @@ class Template(BaseModel, IdentifiableMixin, LocalMixin):
         self._jinja2_template = jinja_env.from_string(ast)
 
 
-    def validate_call(self, data: Dict[str, Any]) -> bool:
-        """
-        Validate call data against template schema if configured.
-
-        Args:
-            data: Data to validate
-
-        Returns:
-            True if validation passes or no schema configured
-        """
-
-        if not self.template_schema:
-            return True
-
-        # TODO: Implement schema validation
-        return True
-
-
     def get_missing(self):
         """
         Return the set of variable names which are referenced in the Jinja2
@@ -183,21 +339,33 @@ class Template(BaseModel, IdentifiableMixin, LocalMixin):
         return self._undeclared.difference(self.defaults)
 
 
+    def validate_call(self, data: Dict[str, Any]) -> bool:
+        """
+        Validate the call data against the template model if configured.
+        """
+
+        if not self.template_model:
+            return True
+        return bool(self.template_model.model_validate(data))
+
+
     def render(self, data: Dict[str, Any]) -> str:
         """
         Render the template with the given data into a str
         """
 
-        if not self.validate_call(data):
-            raise TemplateRenderError(
-                original_error=ValueError(
-                    f"Data validation failed for template {self.name!r}"),
-                template=self,
-                data=data)
+        if self.defaults:
+            data = dict(self.defaults, **data)
 
-        merged_data = dict(self.defaults, **data)
+        tmodel = self.template_model
+        if tmodel:
+            call_model = tmodel.new(data)
+            render_data = {tmodel.name: call_model, '_data': data}
+        else:
+            render_data = dict(data, _data=data)
+
         try:
-            return self._jinja2_template.render(**merged_data)
+            return self._jinja2_template.render(**render_data)
 
         except UndefinedError as e:
             raise TemplateRenderError(

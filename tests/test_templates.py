@@ -210,28 +210,6 @@ class TestTemplate(unittest.TestCase):
                 )
             self.assertIn("'template.j2' not found in search path:", str(context.exception))
 
-    def test_template_schema_handling(self):
-        """
-        Test template schema storage and validation.
-        """
-
-        schema = {
-            'type': 'object',
-            'properties': {
-                'name': {'type': 'string'},
-                'required': ['name'],
-            },
-        }
-        template_data = {
-            'type': 'template',
-            'name': 'test-template',
-            'content': 'test content',
-            'schema': schema,
-        }
-        template = Template.from_dict(template_data)
-
-        self.assertEqual(template.template_schema, schema)
-
     def test_template_repr(self):
         """
         Test Template string representation.
@@ -246,39 +224,6 @@ class TestTemplate(unittest.TestCase):
 
         repr_str = repr(template)
         self.assertEqual('<Template(test-template)>', repr_str)
-
-    def test_validate_data_no_schema(self):
-        """
-        Test data validation when no schema is configured.
-        """
-
-        template_data = {
-            'type': 'template',
-            'name': 'test-template',
-            'content': 'test content',
-        }
-        template = Template.from_dict(template_data)
-
-        # Should always return True when no schema
-        self.assertTrue(template.validate_call({}))
-        self.assertTrue(template.validate_call({'any': 'data'}))
-
-    def test_validate_data_with_schema_todo(self):
-        """
-        Test data validation with schema (currently TODO).
-        """
-
-        schema = {'type': 'object'}
-        template_data = {
-            'type': 'template',
-            'name': 'test-template',
-            'content': 'test content',
-            'schema': schema,
-        }
-        template = Template.from_dict(template_data)
-
-        # Currently always returns True (TODO implementation)
-        self.assertTrue(template.validate_call({'test': 'data'}))
 
     def test_render_simple_template(self):
         """
@@ -322,26 +267,6 @@ arches:
         self.assertIn('name: test-tag', result)
         self.assertIn('- x86_64', result)
         self.assertIn('- aarch64', result)
-
-    def test_render_with_validation_failure(self):
-        """
-        Test rendering when validation fails.
-        """
-
-        template_data = {
-            'type': 'template',
-            'name': 'test-template',
-            'content': 'test content',
-        }
-        template = Template.from_dict(template_data)
-
-        # Mock validate to return False
-        from koji_habitude.exceptions import TemplateRenderError
-        with patch.object(Template, 'validate_call', return_value=False):
-            with self.assertRaises(TemplateRenderError) as context:
-                template.render({'test': 'data'})
-            self.assertIn("Data validation failed", str(context.exception))
-            self.assertIn("test-template", str(context.exception))
 
     def test_render_and_load_basic(self):
         """
