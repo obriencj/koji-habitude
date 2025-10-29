@@ -68,7 +68,7 @@ Basic Structure
    # children.
    packages:
      - package1
-     - name: pacakge2
+     - name: package2
        owner: dave-user-1
 
    # if True, then any packages which are in the real Koji tag
