@@ -257,7 +257,7 @@ def template_show(
         return 1
 
     if yaml:
-        pretty_yaml(tmpl.to_dict())
+        pretty_yaml(tmpl.to_dict(exclude_defaults=True))
         return
 
     print_template(tmpl, full)

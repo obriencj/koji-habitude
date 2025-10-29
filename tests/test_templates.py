@@ -31,11 +31,8 @@ def load_documents_from_paths(paths):
     """
     Helper function to load YAML documents from file paths using MultiLoader.
 
-    Args:
-        paths: List of file or directory paths to load from
-
-    Returns:
-        List of loaded YAML documents with metadata
+    :param paths: List of file or directory paths to load from
+    :returns: List of loaded YAML documents with metadata
     """
 
     multiloader = MultiLoader([YAMLLoader])
@@ -46,11 +43,8 @@ def find_template_documents(documents):
     """
     Helper function to find template documents from a list of loaded documents.
 
-    Args:
-        documents: List of loaded YAML documents
-
-    Returns:
-        List of documents where type == 'template'
+    :param documents: List of loaded YAML documents
+    :returns: List of documents where type == 'template'
     """
 
     return [doc for doc in documents if doc.get('type') == 'template']
