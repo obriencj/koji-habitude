@@ -17,6 +17,13 @@ The ``diff`` command compares local definitions against remote koji state and
 displays a unified diff for objects that differ. This provides a familiar
 diff-style output that is easy to read and review, similar to ``git diff``.
 
+It's important to note that this command is only comparing the state in a direct
+mannar. Features like the ``exact_packages`` setting on a Tag -- which would
+allow a remote tag to have packages that are not declared in the local
+definitions -- are not considered by this command. The unified diff would still
+represent those packages as a potential removal, despite the fact that the
+``apply`` command would not remove them.
+
 The command will:
 
 1. Load all templates and data files

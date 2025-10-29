@@ -23,6 +23,12 @@ to stdout. This is useful for:
 - Creating static YAML from dynamic templates
 - Integration with other tools that consume YAML
 
+Note that templates may be declared in the data files alongside objects. The
+``--templates`` options provides a way to specify locations such that only
+templates are loaded from those locations, no other objects. This can be be
+useful for borrowing templates from other data sets, without also including the
+data itself.
+
 The command performs:
 
 1. Load templates from ``--templates`` locations
@@ -86,13 +92,7 @@ Expand with validation enabled:
 
    koji-habitude expand --validate data/
 
-Expand and save to a file:
-
-.. code-block:: bash
-
-   koji-habitude expand data/ > expanded.yaml
-
-Expand only specific object types:
+Expand and only output tags and targets:
 
 .. code-block:: bash
 
@@ -103,18 +103,6 @@ Expand with templates from multiple locations:
 .. code-block:: bash
 
    koji-habitude expand --templates templates/ --templates shared/ data/
-
-Expand without comments:
-
-.. code-block:: bash
-
-   koji-habitude expand --no-comments data/ | some-tool
-
-Expand with recursive search:
-
-.. code-block:: bash
-
-   koji-habitude expand --recursive data/ tags/
 
 Use Cases
 ---------

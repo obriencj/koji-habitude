@@ -46,7 +46,9 @@ Many commands share common options:
 ``--templates PATH``, ``-t PATH``
    Location to find templates that are not available in the DATA directories.
    This option can be repeated multiple times to specify multiple template
-   locations.
+   locations. The template paths use the same format as the DATA paths, the
+   difference being that all non-template objects defined in the template path
+   are ignored.
 
 ``--recursive``, ``-r``
    Search template and data directories recursively for YAML files.
@@ -63,18 +65,12 @@ Argument Conventions
 
 ``DATA``
    One or more directories or files containing YAML object definitions.
-   Directories are searched for ``*.yaml`` and ``*.yml`` files.
-
-``PATTERNS``
-   Search patterns for the ``dump`` command. Can be typed (e.g., ``tag:foo``)
-   or untyped (e.g., ``*-build``) depending on the command's default types.
+   Directories are searched for ``*.yaml`` and ``*.yml`` files. Any YAML files
+   found can contribute both objects and templates.
 
 ``NAME``
    The name of a template when working with template subcommands.
 
-``KEY=VALUE``
-   Variable assignments for template expansion, used with template subcommands.
-   Multiple assignments can be provided as separate arguments.
 
 Related Documentation
 ----------------------

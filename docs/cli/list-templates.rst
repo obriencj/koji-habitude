@@ -70,12 +70,6 @@ List templates from specific directories:
 
    koji-habitude list-templates templates/ shared-templates/
 
-List templates using --templates option:
-
-.. code-block:: bash
-
-   koji-habitude list-templates --templates templates/ --templates shared/
-
 List with recursive search:
 
 .. code-block:: bash

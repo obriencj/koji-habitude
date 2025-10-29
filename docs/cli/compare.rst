@@ -22,6 +22,10 @@ dependency reporting, making it ideal for:
 - Understanding what would change in your Koji instance
 - Checking for phantom dependencies
 
+In addition to the change report that this command produces, it will also
+display a resolver report, which will include any dependency references that are
+used but not defined in the data set.
+
 The command will:
 
 1. Load all templates and data files
@@ -62,35 +66,18 @@ Options
 Examples
 --------
 
-Compare a data directory against Koji:
+Compare a data directory against Koji, using templates from the templates
+directory, and object definitions from the data directory:
 
 .. code-block:: bash
 
-   koji-habitude compare data/
-
-Preview changes with templates from multiple locations:
-
-.. code-block:: bash
-
-   koji-habitude compare --templates templates/ --templates shared/ data/
-
-Compare with recursive search:
-
-.. code-block:: bash
-
-   koji-habitude compare --recursive data/ tags/ targets/
+   koji-habitude compare -t templates/ data/
 
 Show all objects including unchanged ones:
 
 .. code-block:: bash
 
    koji-habitude compare --show-unchanged data/
-
-Compare against a specific Koji profile:
-
-.. code-block:: bash
-
-   koji-habitude compare --profile staging data/
 
 Use Cases
 ---------

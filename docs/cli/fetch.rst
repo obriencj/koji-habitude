@@ -13,19 +13,20 @@ Syntax
 Description
 -----------
 
-The ``fetch`` command loads templates and data files, resolves dependencies,
-connects to Koji, and outputs YAML documents representing the remote state of
-objects that exist on the Koji instance. By default, only objects that differ
-from local definitions are shown, but ``--show-unchanged`` can be used to fetch
-all objects.
+The ``fetch`` command produces YAML that reflects the remote state of locally
+defined objects. By default, only objects that differ from local definitions are
+shown, but ``--show-unchanged`` can be used to fetch all objects.
+
+The semantics of this command are complementary to ``compare``, but rather than
+comparing local vs remote state, it focuses on producing that remote state in a
+YAML format.
 
 This command is useful for:
 
-- Exporting current Koji state to YAML files
-- Creating backups of Koji configuration
-- Comparing local definitions with remote state
-- Bootstrapping local definitions from existing Koji instance
-- Auditing what actually exists in Koji
+- Exporting or backing up current Koji state
+- Bootstrapping local definitions from existing instances
+- Comparing local vs remote state
+- Auditing Koji configuration
 
 The command will:
 
@@ -81,41 +82,14 @@ Fetch remote state of objects defined in data directory:
 
    koji-habitude fetch data/
 
-Fetch and save to a file:
+Fetch the remote state for all objects declared in the data directory and output
+their yaml, including content that would not be overwritten by values in the
+local definitions:
 
 .. code-block:: bash
 
-   koji-habitude fetch --output remote-state.yaml data/
+   koji-habitude fetch --show-unchanged data/
 
-Fetch all objects including unchanged ones:
-
-.. code-block:: bash
-
-   koji-habitude fetch --show-unchanged data/ > full-state.yaml
-
-Fetch with templates from multiple locations:
-
-.. code-block:: bash
-
-   koji-habitude fetch --templates templates/ --templates shared/ data/
-
-Fetch with recursive search:
-
-.. code-block:: bash
-
-   koji-habitude fetch --recursive data/ tags/
-
-Fetch from a specific Koji profile:
-
-.. code-block:: bash
-
-   koji-habitude fetch --profile production data/
-
-Fetch with default values included:
-
-.. code-block:: bash
-
-   koji-habitude fetch --include-defaults data/
 
 Use Cases
 ---------
