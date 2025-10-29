@@ -170,7 +170,8 @@ class TestTemplate(unittest.TestCase):
                     file='template.j2',
                     __file__='/fake/path'
                 )
-            self.assertIn("Template content is not allowed when template file is specified", str(context.exception))
+            self.assertIn("Template content is not allowed when template file is specified",
+                          str(context.exception))
 
 
     def test_template_file_path_validation(self):
