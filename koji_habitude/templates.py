@@ -131,12 +131,8 @@ class ValidationRule(SubModel):
 
 
     def as_field_validator(self, field_name: str) -> Callable:
-        print(f"Creating field validator for field {field_name} with validation {self}")
-
         @field_validator(field_name, mode='before')
         def validate_field(cls, value: Any) -> Any:
-            print(f"Validating field {field_name} with value {value}")
-
             if self.min_length is not None:
                 if len(value) < self.min_length:
                     raise ValueError(f"Field {field_name} must be at least {self.min_length} long")
@@ -231,9 +227,9 @@ class TemplateModelDefinition(SubModel):
     YAML definition for creating a Pydantic model for template data validation
     """
 
-    name: str
-    description: Optional[str] = None
-    fields: Dict[str, TemplateFieldDefinition]
+    name: str = Field(alias='name', default='model')
+    description: Optional[str] = Field(alias='description', default=None)
+    fields: Dict[str, TemplateFieldDefinition] = Field(alias='fields', default_factory=dict)
 
     _model_class: Optional[Type[BaseModel]] = PrivateAttr(default=None)
 
@@ -252,8 +248,6 @@ class TemplateModelDefinition(SubModel):
                 validators[f"validate_{name}"] = field.validation.as_field_validator(name)
         if validators:
             field_defs['__validators__'] = validators
-
-        print(f"Field {self.name} definitions: {field_defs}")
 
         self._model_class = create_model(self.name, **field_defs)  # type: ignore
 
@@ -276,10 +270,7 @@ class TemplateModelDefinition(SubModel):
         if not self._model_class:
             raise ValueError(f"Model class not created for {self.name}")
 
-        print(f"Validating data {data} against model {self._model_class}")
-        obj = self._model_class.model_validate(data)
-        print(f"Validated object: {obj}")
-        return obj
+        return self._model_class.model_validate(data)
 
 
 class Template(BaseModel, IdentifiableMixin, LocalMixin):
@@ -421,7 +412,8 @@ class Template(BaseModel, IdentifiableMixin, LocalMixin):
         tmodel = self.template_model
         if tmodel:
             call_model = tmodel.new(data)
-            render_data = {tmodel.name: call_model, '_data': data}
+            model_name = tmodel.name or 'model'
+            render_data = {model_name: call_model, '_data': data}
         else:
             render_data = dict(data, _data=data)
 
