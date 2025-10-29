@@ -5,6 +5,7 @@ Koji Habitude
    :maxdepth: 2
 
    overview
+   cli/index
    local_models
    remote_models
    yaml_format
