@@ -81,10 +81,16 @@ def _object_type_helper(f: 'TemplateFieldDefinition') -> Type:
 
 TYPE_REGISTRY: Dict[str, Union[Type, Callable]] = {
     'string': str,
+    'str': str,
+    'integer': int,
     'int': int,
     'float': float,
+    'boolean': bool,
     'bool': bool,
 
+    'dict': Dict[str, Any],
+
+    'list': _array_type_helper,
     'array': _array_type_helper,
     'enum': _enum_type_helper,
 
