@@ -7,7 +7,6 @@ content: |
   ---
   type: tag
   name: {{ product }}-dest
-  description: "Destination tag for {{ product }}"
   arches:
     - x86_64
     - aarch64
@@ -15,7 +14,6 @@ content: |
   ---
   type: tag
   name: {{ product }}-override
-  description: "Override tag for {{ product }}"
   arches:
     - x86_64
     - aarch64
@@ -23,7 +21,6 @@ content: |
   ---
   type: tag
   name: {{ product }}-build
-  description: "Build tag for {{ product }}"
   arches:
     - x86_64
     - aarch64

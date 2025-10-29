@@ -3,16 +3,3 @@
 type: template
 name: external-target-template
 file: target_template.j2
-schema:
-  type: object
-  properties:
-    name:
-      type: string
-    build-tag:
-      type: string
-    dest-tag:
-      type: string
-  required:
-    - name
-    - build-tag
-    - dest-tag

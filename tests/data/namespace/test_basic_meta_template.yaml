@@ -11,28 +11,23 @@ content: |
     ---
     type: tag
     name: {{ "{{" }} product {{ "}}" }}-{{ "{{" }} version {{ "}}" }}-build
-    description: "Build tag for {{ "{{" }} product {{ "}}" }} version {{ "{{" }} version {{ "}}" }}"
     arches:
       - x86_64
       - aarch64
     ---
     type: tag
     name: {{ "{{" }} product {{ "}}" }}-{{ "{{" }} version {{ "}}" }}-dest
-    description: "Destination tag for {{ "{{" }} product {{ "}}" }} version {{ "{{" }} version {{ "}}" }}"
     arches:
       - x86_64
       - aarch64
     ---
     type: target
     name: {{ "{{" }} product {{ "}}" }}-{{ "{{" }} version {{ "}}" }}-target
-    description: "Build target for {{ "{{" }} product {{ "}}" }} version {{ "{{" }} version {{ "}}" }}"
     build-tag: {{ "{{" }} product {{ "}}" }}-{{ "{{" }} version {{ "}}" }}-build
     dest-tag: {{ "{{" }} product {{ "}}" }}-{{ "{{" }} version {{ "}}" }}-dest
     ---
     type: group
     name: {{ "{{" }} product {{ "}}" }}-{{ "{{" }} version {{ "}}" }}-users
-    description: "Users group for {{ "{{" }} product {{ "}}" }} version {{ "{{" }} version {{ "}}" }}"
-    tag: {{ "{{" }} product {{ "}}" }}-{{ "{{" }} version {{ "}}" }}-build
 ---
 # Call meta-template to generate the version template
 type: gen-product

@@ -21,14 +21,12 @@ content: |
       ---
       type: tag
       name: {{ '{{ product }}' }}-{{ '{{ component }}' }}-{{ '{{ version }}' }}-build
-      description: "Build tag for {{ '{{ product }}' }} {{ '{{ component }}' }} version {{ '{{ version }}' }}"
       arches:
         - x86_64
         - aarch64
       ---
       type: target
       name: {{ '{{ product }}' }}-{{ '{{ component }}' }}-{{ '{{ version }}' }}-target
-      description: "Build target for {{ '{{ product }}' }} {{ '{{ component }}' }} version {{ '{{ version }}' }}"
       build-tag: {{ '{{ product }}' }}-{{ '{{ component }}' }}-{{ '{{ version }}' }}-build
       dest-tag: {{ '{{ product }}' }}-{{ '{{ component }}' }}-{{ '{{ version }}' }}-build
     {% endraw %}

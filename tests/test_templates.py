@@ -1297,11 +1297,11 @@ class TestTemplateDynamicModels(unittest.TestCase):
                 "fields": {
                     "name": {
                         "type": "string",
-                        "validation": {"min_length": 1, "max_length": 10}
+                        "validation": {"min-length": 1, "max-length": 10}
                     },
                     "count": {
                         "type": "int",
-                        "validation": {"min_value": 0, "max_value": 100}
+                        "validation": {"min-value": 0, "max-value": 100}
                     },
                     "active": {"type": "bool"}
                 }

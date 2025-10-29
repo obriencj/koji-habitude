@@ -4,4 +4,3 @@
 # This template call references a template that doesn't exist
 type: missing-template
 product: test-product
-description: "This should cause a deadlock"

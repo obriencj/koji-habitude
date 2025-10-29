@@ -14,9 +14,9 @@ Template loading and Jinja2 expansion system for koji object templates.
 import logging
 from enum import Enum
 from pathlib import Path
+from re import Pattern, compile
 from typing import (Any, Callable, ClassVar, Dict, Iterator, List, Optional,
                     Set, Tuple, Type, Union)
-from pydantic.fields import FieldInfo
 
 import yaml
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
@@ -26,6 +26,7 @@ from jinja2.exceptions import TemplateSyntaxError as Jinja2TemplateSyntaxError
 from jinja2.exceptions import UndefinedError
 from jinja2.meta import find_undeclared_variables
 from pydantic import create_model
+from pydantic.fields import FieldInfo
 
 from .exceptions import (TemplateError, TemplateOutputError,
                          TemplateRenderError, TemplateSyntaxError)
@@ -70,10 +71,10 @@ def _enum_type_helper(f: 'TemplateFieldDefinition') -> Type:
 
 def _object_type_helper(f: 'TemplateFieldDefinition') -> Type:
     if f.object_fields:
-        return TemplateModelDefinition(
+        inner = TemplateModelDefinition(
             name=f.object_type_name or f"Object_{id(f)}",
-            fields=f.object_fields,
-        )._model_class
+            fields=f.object_fields)
+        return inner.get_model_class()
     else:
         return Dict[str, Any]
 
@@ -110,27 +111,47 @@ class ValidationRule(SubModel):
 
     min_length: Optional[int] = Field(alias='min-length', default=None)
     max_length: Optional[int] = Field(alias='max-length', default=None)
-    ge: Optional[float] = Field(alias='min-value', default=None)
-    le: Optional[float] = Field(alias='max-value', default=None)
-    pattern: Optional[str] = Field(alias='regex', default=None)
+    min_value: Optional[float] = Field(alias='min-value', default=None)
+    max_value: Optional[float] = Field(alias='max-value', default=None)
+    pattern: Optional[Pattern] = Field(alias='regex', default=None)
     enum_values: Optional[List[Any]] = Field(alias='enum', default=None)
 
 
-    def as_args(self) -> Dict[str, Any]:
-        kwargs: Dict[str, Any] = {}
-        if self.min_length is not None:
-            kwargs['min_length'] = self.min_length
-        if self.max_length is not None:
-            kwargs['max_length'] = self.max_length
-        if self.ge is not None:
-            kwargs['ge'] = self.ge
-        if self.le is not None:
-            kwargs['le'] = self.le
-        if self.pattern is not None:
-            kwargs['pattern'] = self.pattern
-        if self.enum_values is not None:
-            kwargs['enum_values'] = self.enum_values
-        return kwargs
+    @field_validator('pattern', mode='before')
+    def validate_pattern(cls, value: Any) -> Pattern:
+        if isinstance(value, str):
+            return compile(value)
+        return value
+
+
+    def as_field_validator(self, field_name: str) -> Callable:
+        print(f"Creating field validator for field {field_name} with validation {self}")
+
+        @field_validator(field_name, mode='before')
+        def validate_field(cls, value: Any) -> Any:
+            print(f"Validating field {field_name} with value {value}")
+
+            if self.min_length is not None:
+                if len(value) < self.min_length:
+                    raise ValueError(f"Field {field_name} must be at least {self.min_length} long")
+            if self.max_length is not None:
+                if len(value) > self.max_length:
+                    raise ValueError(f"Field {field_name} must be at most {self.max_length} long")
+            if self.min_value is not None:
+                if value < self.min_value:
+                    raise ValueError(f"Field {field_name} must be greater than or equal to {self.min_value}")
+            if self.max_value is not None:
+                if value > self.max_value:
+                    raise ValueError(f"Field {field_name} must be less than or equal to {self.max_value}")
+            if self.pattern is not None:
+                if not self.pattern.match(value):
+                    raise ValueError(f"Field {field_name} must match pattern {self.pattern}")
+            if self.enum_values is not None:
+                if value not in self.enum_values:
+                    raise ValueError(f"Field {field_name} must be one of {self.enum_values}")
+            return value
+
+        return validate_field
 
 
 class TemplateFieldDefinition(SubModel):
@@ -138,7 +159,7 @@ class TemplateFieldDefinition(SubModel):
     Defines a Field in a TemplateModel
     """
 
-    type: str
+    type: str = Field(alias='type')
     alias: Optional[str] = None
     description: Optional[str] = None
     default: Optional[Any] = None
@@ -166,10 +187,16 @@ class TemplateFieldDefinition(SubModel):
             raise ValueError(f"Unknown dynamic model field type '{self.type}'")
 
         type_or_converter = TYPE_REGISTRY[self.type]
-        self._python_type = type_or_converter if isinstance(type_or_converter, type) else type_or_converter(self)
+        if isinstance(type_or_converter, type):
+            self._python_type = type_or_converter
+        else:
+            # these helper functions return something to be used as the pydantic
+            # field type. They may need to use values harvested from our
+            # configuration to do so (eg. array_item_type, object_fields)
+            self._python_type = type_or_converter(self)
 
         # Create field info
-        kwargs = {}
+        kwargs: Dict[str, Any] = {}
         if self.alias:
             kwargs['alias'] = self.alias
 
@@ -178,11 +205,17 @@ class TemplateFieldDefinition(SubModel):
 
         if self.default is not None:
             kwargs['default'] = self.default
+
+            # this will trigger validation (ie. type conversion) of the default
+            # value to the correct type as defined by the field definition. That
+            # saves us the trouble of having to convert it ourselves.
+            kwargs['validate_default'] = True
+
         elif not self.required:
             kwargs['default'] = None
 
-        if self.validation:
-            kwargs.update(self.validation.as_args())
+        # the validator will be added to the model class during model creation,
+        # it's not associated directly with the field definition.
 
         self._field_info = Field(**kwargs)  # type: ignore
 
@@ -207,7 +240,26 @@ class TemplateModelDefinition(SubModel):
         }
         field_defs['__base__'] = (LocalMixin, BaseModel)
 
+        validators = {}
+        for name, field in self.fields.items():
+            if field.validation:
+                validators[f"validate_{name}"] = field.validation.as_field_validator(name)
+        if validators:
+            field_defs['__validators__'] = validators
+
+        print(f"Field {self.name} definitions: {field_defs}")
+
         self._model_class = create_model(self.name, **field_defs)  # type: ignore
+
+
+    def get_model_class(self) -> Type[BaseModel]:
+        """
+        Get the model class for the template model.
+        """
+
+        if not self._model_class:
+            raise ValueError(f"Model class not created for {self.name}")
+        return self._model_class
 
 
     def new(self, data: Dict[str, Any]) -> BaseModel:
@@ -218,7 +270,10 @@ class TemplateModelDefinition(SubModel):
         if not self._model_class:
             raise ValueError(f"Model class not created for {self.name}")
 
-        return self._model_class.model_validate(data)
+        print(f"Validating data {data} against model {self._model_class}")
+        obj = self._model_class.model_validate(data)
+        print(f"Validated object: {obj}")
+        return obj
 
 
 class Template(BaseModel, IdentifiableMixin, LocalMixin):

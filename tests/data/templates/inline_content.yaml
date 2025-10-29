@@ -17,10 +17,3 @@ content: |
       priority: {{ loop.index * 10 }}
   {% endfor %}
   {% endif %}
-schema:
-  type: object
-  properties:
-    name:
-      type: string
-    arches:
-      type: array
