@@ -16,6 +16,7 @@ from typing import Any, Dict, List
 
 import click
 from click import echo
+from yaml import safe_load
 
 from ..loader import load_yaml_files, pretty_yaml, pretty_yaml_all
 from ..namespace import ExpanderNamespace, Namespace, TemplateNamespace
@@ -48,7 +49,7 @@ def call_from_args(
             key, value = var, ''
         else:
             key, value = var.split('=', 1)
-        data[key] = value
+        data[key] = safe_load(value)
 
     return data
 
