@@ -73,7 +73,7 @@ objects. The CLI includes:
 
 For detailed CLI documentation with all options, examples, and use
 cases, see the `Command-Line Interface
-documentation <docs/cli/index.rst>`__ in the full documentation.
+documentation <../cli/>`__ in the full documentation.
 
 YAML Format & Templates
 -----------------------
@@ -92,7 +92,7 @@ a template name trigger template expansion, creating final koji objects
 through recursive processing.
 
 For complete YAML format documentation and detailed examples, see the
-`YAML Format Specification <docs/yaml_format.rst>`__ in the full
+`YAML Format Specification <../yaml_format/>`__ in the full
 documentation.
 
 Architecture
