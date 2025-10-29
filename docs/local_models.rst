@@ -28,7 +28,7 @@ The following local model types are supported, each with detailed YAML schemas:
 - ``Channel`` - Build channels with host assignments
 - ``Permission`` - User permission definitions
 - ``ExternalRepo`` - External package repositories with URL validation
-- ``ContentGgenerator`` - Content generators with user access control
+- ``ContentGenerator`` - Content generators with user access control
 - ``BuildType`` - Build type definitions (rpm, maven, image, etc.)
 - ``ArchiveType`` - Archive type definitions with file extensions and compression
 

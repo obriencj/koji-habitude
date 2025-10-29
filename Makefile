@@ -125,6 +125,11 @@ docs/overview.rst: README.md
 			docker.io/pandoc/core:latest \
 			--from=markdown --to=rst -o /workspace/$@ /workspace/$< ; \
 	fi
+	@# Convert relative links: docs/ -> ../, /index.rst -> /, other .rst -> /
+	@sed -i \
+	    -e 's|<docs/|<../|g' \
+		-e 's|/index\.rst>`__|/>`__|g' \
+		-e 's|\.rst>`__|/>`__|g' $@
 
 
 clean-docs:	## Remove built docs

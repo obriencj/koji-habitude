@@ -38,7 +38,7 @@ trying to keep project packagers happy.
 Current Status
 --------------
 
-As notes before, this project is still a work-in-progress, but most of
+As noted before, this project is still a work-in-progress, but most of
 the core features have been implemented. Some are still being refined,
 but overall it is in an operational state.
 
@@ -55,282 +55,87 @@ but overall it is in an operational state.
 **Next Steps:**
 
 - CLI testing coverage improvements
-- Integration testing on a real koji instance
-- Performance optimization and error handling improvements
+- Further integration testing on real koji instance
+- Documentation
 
-CLI Commands
-------------
+Command-Line Interface
+----------------------
 
-koji-habitude is built using
-`Click <https://click.palletsprojects.com/>`__ and provides six main
-commands plus a template subcommand group for working with individual
-templates.
+koji-habitude provides a comprehensive CLI built with
+`Click <https://click.palletsprojects.com/>`__ for managing Koji
+objects. The CLI includes:
 
-Main Commands
-~~~~~~~~~~~~~
+- **Primary commands**: ``apply``, ``compare``, ``expand``, ``fetch``,
+  ``dump``, ``list-templates``, ``diff``
+- **Template subcommands**: Work with individual templates using
+  ``template show``, ``template expand``, ``template compare``,
+  ``template diff``, ``template apply``
 
-``apply`` - Apply changes to Koji hub
-
-.. code:: bash
-
-   koji-habitude apply [OPTIONS] DATA [DATA...]
-
-- Loads templates and data files with dependency resolution
-- Applies changes to koji hub in the correct order
-- Options: ``--templates PATH``, ``--profile PROFILE``,
-  ``--show-unchanged``, ``--skip-phantoms``
-
-``compare`` - Show differences (dry-run)
-
-.. code:: bash
-
-   koji-habitude compare [OPTIONS] DATA [DATA...]
-
-- Same processing as apply but without making changes
-- Provides detailed change analysis and dependency reporting
-- Options: ``--templates PATH``, ``--profile PROFILE``,
-  ``--show-unchanged``
-
-``expand`` - Expand templates to YAML
-
-.. code:: bash
-
-   koji-habitude expand [OPTIONS] DATA [DATA...]
-
-- Expands templates and outputs final YAML to stdout
-- Options: ``--templates PATH``, ``--validate``, ``--select TYPE``
-
-``fetch`` - Fetch remote data from Koji instance
-
-.. code:: bash
-
-   koji-habitude fetch [OPTIONS] DATA [DATA...]
-
-- Loads templates and data files, connects to Koji
-- Outputs YAML documents representing remote state of objects
-- Shows objects that differ from local definitions (or all with
-  ``--show-unchanged``)
-- Options: ``--templates PATH``, ``--profile PROFILE``,
-  ``--output PATH``, ``--include-defaults``, ``--show-unchanged``
-
-``dump`` - Bootstrap local definitions from remote Koji state
-
-.. code:: bash
-
-   koji-habitude dump [OPTIONS] PATTERNS...
-
-- Searches koji for objects matching patterns and outputs as YAML
-- Supports pattern matching for searchable types (tags, targets, users,
-  hosts)
-- No local YAML definitions required - operates entirely on remote data
-- Options: ``--profile PROFILE``, ``--output PATH``,
-  ``--include-defaults``, ``--with-deps``, ``--max-depth``,
-  ``--with-dep-type``, type flags (``--tags``, ``--users``, etc.)
-
-``list-templates`` - List available templates
-
-.. code:: bash
-
-   koji-habitude list-templates [OPTIONS] [PATH...]
-
-- Lists templates with their configuration details
-- Options: ``--templates PATH``, ``--yaml``, ``--full``,
-  ``--select NAME``
-
-Template Subcommands
-~~~~~~~~~~~~~~~~~~~~
-
-Work with individual templates by name:
-
-``template show`` - Show template definition
-
-.. code:: bash
-
-   koji-habitude template show [OPTIONS] NAME
-
-- Displays the definition of a single template
-- Options: ``--templates PATH``, ``--yaml``
-
-``template expand`` - Expand single template
-
-.. code:: bash
-
-   koji-habitude template expand [OPTIONS] NAME [KEY=VALUE...]
-
-- Expands a template with given variables and outputs YAML
-- Options: ``--templates PATH``, ``--validate``
-
-``template compare`` - Compare single template
-
-.. code:: bash
-
-   koji-habitude template compare [OPTIONS] NAME [KEY=VALUE...]
-
-- Expands and compares a template against koji (dry-run)
-- Options: ``--templates PATH``, ``--profile PROFILE``,
-  ``--show-unchanged``
-
-``template apply`` - Apply single template
-
-.. code:: bash
-
-   koji-habitude template apply [OPTIONS] NAME [KEY=VALUE...]
-
-- Expands and applies a template to koji
-- Options: ``--templates PATH``, ``--profile PROFILE``,
-  ``--show-unchanged``
-
-Common Patterns
-~~~~~~~~~~~~~~~
-
-- ``DATA``: Directories or files containing YAML definitions
-- ``PATTERNS``: Search patterns for dump command (e.g., ``tag:foo``,
-  ``*-build``, ``user:*bob*``)
-- ``--templates PATH``: Additional template locations (can be repeated)
-- ``--profile PROFILE``: Koji profile to use (default: ‘koji’)
-- ``--show-unchanged``: Include objects that don’t need changes
-
-Dump Command Examples
-~~~~~~~~~~~~~~~~~~~~~
-
-.. code:: bash
-
-   # Search tags and targets for *-build (default behavior)
-   koji-habitude dump *-build
-
-   # Search specific types
-   koji-habitude dump --tags --users *bob*
-
-   # Exact matches with dependencies
-   koji-habitude dump tag:f40-build --with-deps --max-depth 2
-
-   # Mixed patterns
-   koji-habitude dump tag:foo target:bar *-build user:*admin*
+For detailed CLI documentation with all options, examples, and use
+cases, see the `Command-Line Interface
+documentation <../cli/>`__ in the full documentation.
 
 YAML Format & Templates
 -----------------------
 
 YAML files can be single or multi-document, processed in-order. Each
-document has a ‘type’ key indicating the document type. Default types
-are ‘template’, ‘tag’, ‘target’, ‘user’, ‘group’, ‘host’, ‘channel’,
-‘permission’, ‘content-generator’, ‘build-type’, ‘archive-type’, and
-‘external-repo’. Templates define new types based on their name.
-
-Template System
-~~~~~~~~~~~~~~~
+document has a ``type`` key indicating the document type. Core types
+include ``template``, ``tag``, ``target``, ``user``, ``group``,
+``host``, ``channel``, ``permission``, ``content-generator``,
+``build-type``, ``archive-type``, and ``external-repo``. Templates
+define new types based on their name.
 
 Templates use `Jinja2 <https://jinja.palletsprojects.com/>`__ for
-dynamic content generation:
+dynamic content generation, allowing you to create reusable patterns for
+koji objects. When processing data files, objects with ``type`` matching
+a template name trigger template expansion, creating final koji objects
+through recursive processing.
 
-**Inline Template:**
+For complete YAML format documentation and detailed examples, see the
+`YAML Format Specification <../yaml_format/>`__ in the full
+documentation.
 
-.. code:: yaml
-
-   ---
-   type: template
-   name: my-template
-   content: |
-     ---
-     type: tag
-     name: {{ name }}
-     inheritance:
-       {% for parent in parents %}
-       - name: {{ parent }}
-         priority: {{ loop.index * 10 }}
-       {% endfor %}
-
-**External Template:**
-
-.. code:: yaml
-
-   ---
-   type: template
-   name: my-template
-   file: my-template.j2
-
-**Template Usage:**
-
-.. code:: yaml
-
-   ---
-   type: my-template
-   name: fedora-42-build
-   parents:
-     - fedora-42-base
-     - fedora-42-updates
-
-When processing data files, objects with ``type`` matching a template
-name trigger template expansion, creating final koji objects through
-recursive processing.
-
-Supported Types & Architecture
-------------------------------
-
-Core Koji Object Types
-~~~~~~~~~~~~~~~~~~~~~~
+Architecture
+------------
 
 koji-habitude supports all core Koji object types with fully implemented
-Pydantic models:
+Pydantic models: tags, external repos, users, targets, hosts, groups,
+channels, permissions, content generators, build types, and archive
+types.
 
-- ``tag``: Build tags with inheritance chains and external repositories
-- ``external-repo``: External package repositories with URL validation
-- ``user``: Koji users and permissions with group membership
-- ``target``: Build targets linking build and destination tags
-- ``host``: Build hosts and their configurations with architecture
-  support
-- ``group``: Package groups and their memberships
-- ``channel``: Build channels with host assignments
-- ``permission``: User permission definitions
-- ``content-generator``: Content generators with user access control
-- ``build-type``: Build type definitions (rpm, maven, image, etc.)
-- ``archive-type``: Archive type definitions with file extensions and
-  compression
-
-Dependency Resolution
-~~~~~~~~~~~~~~~~~~~~~
-
-The system automatically detects dependencies between objects and
-provides intelligent resolution:
-
-- **Resolver Module**: Handles external dependencies and creates
-  placeholders for missing objects
-- **Solver Module**: Creates tiered execution plans with priority-based
-  ordering
-- **Automatic Splitting**: Cross-tier dependencies are resolved through
-  object splitting
-- **Tiered Execution**: Objects are processed in dependency-resolved
-  tiers to ensure proper ordering
-
-Architecture Components
-~~~~~~~~~~~~~~~~~~~~~~~
+The system automatically detects dependencies between objects (e.g., tag
+inheritance) and provides intelligent resolution through tiered
+execution, ensuring objects are processed in the correct order. The
+architecture includes:
 
 - **Template System**: Jinja2-based template expansion with recursive
   processing
+- **Dependency Resolution**: Automatic detection and tiered execution
+  ordering
 - **Remote Models**: Complete set of remote object models for fetching
-  and comparing Koji state
-- **Processor Module**: State machine-driven synchronization engine with
+  and comparing
+- **State Synchronization**: State machine-driven processor with
   multicall integration
-- **Change Tracking**: ``ChangeReport`` system tracks all modifications
-  with detailed explanations
-- **Dry-Run Support**: ``CompareOnlyProcessor`` for previewing changes
-  without applying them
-- **Fetch Capability**: Pull remote Koji state as YAML for comparison
-  and backup
-- **Dump Capability**: Bootstrap local definitions from remote Koji
-  state using pattern matching
+- **Change Tracking**: Detailed tracking of all modifications with
+  explanations
+- **Dry-Run Support**: Preview changes without applying them
+- **Bidirectional**: Fetch remote state to YAML, or dump remote objects
+  by pattern
 
-**Data Flow**: - **Forward**: YAML files → Template expansion →
-Dependency resolution → Tiered processing - **Reverse**: Remote patterns
-→ Search/Discovery → Dependency resolution → YAML output
+**Data Flow**: YAML files → Template expansion → Dependency resolution →
+Tiered processing → Koji hub
 
 Requirements & Installation
 ---------------------------
 
-**Requirements:** - Python 3.8+ - `Koji <https://pagure.io/koji>`__ -
-`Click <https://palletsprojects.com/p/click/>`__ -
-`PyYAML <https://pyyaml.org/>`__ -
-`Jinja2 <https://palletsprojects.com/p/jinja/>`__ -
-`Pydantic <https://docs.pydantic.dev/>`__
+**Requirements:**
+
+- Python 3.8+
+- `Koji <https://pagure.io/koji>`__
+- `Click <https://palletsprojects.com/p/click/>`__
+- `PyYAML <https://pyyaml.org/>`__
+- `Jinja2 <https://palletsprojects.com/p/jinja/>`__
+- `Pydantic <https://docs.pydantic.dev/>`__
 
 **Installation:**
 
@@ -341,7 +146,7 @@ Requirements & Installation
 Contact & License
 -----------------
 
-**Author**: Christopher O’Brien <obriencj@gmail.com
+**Author**: Christopher O’Brien obriencj@gmail.com
 
 **Repository**: https://github.com/obriencj/koji-habitude
 
