@@ -730,7 +730,7 @@ class TagChangeReport(ChangeReport):
 
         for name, parent in koji_inher.items():
             if name not in inher:
-                yield TagRemoveInheritance(self.obj, parent.parent_id, parent.name)
+                yield TagRemoveInheritance(self.obj, parent._parent_tag_id, parent.name)
 
         for name, parent in inher.items():
             if name not in koji_inher:
@@ -742,7 +742,7 @@ class TagChangeReport(ChangeReport):
                    koji_parent.noconfig != parent.noconfig or \
                    koji_parent.pkgfilter != parent.pkgfilter or \
                    koji_parent.intransitive != parent.intransitive:
-                    yield TagUpdateInheritance(self.obj, parent, koji_parent.parent_id)
+                    yield TagUpdateInheritance(self.obj, parent, koji_parent._parent_tag_id)
 
 
     def _compare_external_repos(self) -> Iterable[Change]:
@@ -1172,7 +1172,7 @@ class RemoteTag(TagModel, RemoteObject):
             maven_support=data.get('maven_support', False),
             maven_include_all=data.get('maven_include_all', False),
             extras=pure_extras,
-            blocked_extras=blocked_extras,
+            block_extras=blocked_extras,
         )
 
 
@@ -1200,16 +1200,19 @@ class RemoteTag(TagModel, RemoteObject):
 
 
     def set_koji_inheritance(self, result: VirtualPromise):
-        self.inheritance = [
-            InheritanceLink(
+        inher = []
+        for inheritance in result.result:
+            link = InheritanceLink(
                 name=inheritance['name'],
-                parent_id=inheritance['parent_id'],
                 priority=inheritance['priority'],
                 maxdepth=inheritance['maxdepth'],
                 noconfig=inheritance['noconfig'],
                 pkgfilter=inheritance['pkg_filter'],
                 intransitive=inheritance['intransitive'])
-            for inheritance in result.result]
+            link._parent_tag_id = inheritance['parent_id']
+            inher.append(link)
+
+        self.inheritance = inher
 
 
     def set_koji_external_repos(self, result: VirtualPromise):

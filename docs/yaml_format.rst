@@ -43,44 +43,18 @@ The following core koji object types are supported:
    yaml_format/content-generator
    yaml_format/build-type
    yaml_format/archive-type
+   yaml_format/template
 
 Templates
 ---------
 
-Templates allow you to define custom object types using Jinja2 templating:
+Templates allow you to define custom object types using Jinja2 templating.
+Templates can define data models for validation and type-safe access to template
+data. When processing data files, objects with ``type`` matching a template name
+trigger template expansion, creating final koji objects through recursive processing.
 
-.. code-block:: yaml
-
-   ---
-   type: template
-   name: my-template
-   content: |
-     ---
-     type: tag
-     name: {{ name }}
-     inheritance:
-       - parent: {{ parent_tag }}
-         priority: 10
-   schema:
-     # Optional schema validation
-     required:
-       - name
-       - parent_tag
-
-Template Expansion
-------------------
-
-When processing data files, objects with ``type`` matching a template name
-trigger template expansion:
-
-.. code-block:: yaml
-
-   ---
-   type: my-template
-   name: fedora-42-build
-   parent_tag: fedora-42-base
-
-This expands into the final koji objects through recursive template processing.
+See :doc:`yaml_format/template` for the full template specification including
+model definitions, validation rules, and detailed examples.
 
 Validation
 ----------

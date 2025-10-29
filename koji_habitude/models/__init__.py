@@ -14,9 +14,8 @@ Core koji object models package.
 from typing import Dict, List, Type
 
 from .archive_type import ArchiveType
-from .base import (
-    BaseKey, BaseObject, BaseStatus, CoreModel, CoreObject,
-    IdentifiableMixin, LocalMixin, ResolvableMixin)
+from .base import (BaseKey, BaseObject, BaseStatus, CoreModel, CoreObject,
+                   IdentifiableMixin, LocalMixin, ResolvableMixin, SubModel)
 from .build_type import BuildType
 from .change import Add, Change, ChangeReport, Create, Modify, Remove, Update
 from .channel import Channel
@@ -29,7 +28,6 @@ from .permission import Permission
 from .tag import Tag
 from .target import Target
 from .user import User
-
 
 __all__ = (
     'CORE_TYPES',
@@ -49,6 +47,7 @@ __all__ = (
 
     # Compat
     'BaseModel',
+    'SubModel',
     'Field',
     'PrivateAttr',
     'field_validator',

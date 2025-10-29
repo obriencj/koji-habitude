@@ -11,7 +11,6 @@ content: |
     ---
     type: tag
     # Missing required name field - this makes the generated template invalid
-    description: "Invalid tag without name"
     arches:
       - x86_64
 ---

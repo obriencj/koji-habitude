@@ -440,7 +440,6 @@ class TestYAMLLoader(unittest.TestCase):
         # Check that original content is preserved with new structure
         self.assertEqual(doc['type'], 'tag', "Document should have 'type' field")
         self.assertEqual(doc['name'], 'single-doc', "Should preserve original content")
-        self.assertEqual(doc['description'], 'A single document for testing', "Should preserve description")
 
     def test_load_multiple_documents(self):
         """
@@ -464,14 +463,14 @@ class TestYAMLLoader(unittest.TestCase):
         # Check second document
         doc2 = documents[1]
         self.assertEqual(doc2['__file__'], str(yaml_file), "Second doc should have correct __file__")
-        self.assertEqual(doc2['__line__'], 8, "Second doc should start at line 8")
+        self.assertEqual(doc2['__line__'], 7, "Second doc should start at line 7")
         self.assertEqual(doc2['type'], 'host', "Second doc should have 'type' field")
         self.assertEqual(doc2['name'], 'second-doc', "Second doc should have correct content")
 
         # Check third document
         doc3 = documents[2]
         self.assertEqual(doc3['__file__'], str(yaml_file), "Third doc should have correct __file__")
-        self.assertEqual(doc3['__line__'], 15, "Third doc should start at line 15")
+        self.assertEqual(doc3['__line__'], 12, "Third doc should start at line 12")
         self.assertEqual(doc3['type'], 'user', "Third doc should have 'type' field")
         self.assertEqual(doc3['name'], 'third-doc', "Third doc should have correct content")
 

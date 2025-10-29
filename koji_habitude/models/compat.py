@@ -18,6 +18,7 @@ from pydantic import BaseModel as _BaseModel, Field, PrivateAttr
 
 __all__ = (
     'BaseModel',
+    'StrictModel',
     'Mixin',
     'Field',
     'PrivateAttr',
@@ -34,14 +35,21 @@ try:
     from pydantic import field_validator
 
     class BaseModel(_BaseModel):
-        model_config = ConfigDict(validate_by_alias=True, validate_by_name=True)
+        model_config = ConfigDict(
+            validate_by_alias=True,
+            validate_by_name=True)
+
+    class StrictModel(_BaseModel):
+        model_config = ConfigDict(
+            validate_by_alias=True,
+            validate_by_name=True,
+            extra='forbid')
 
 
 except ImportError:
     # Pydantic v1.10 compatibility
     from pydantic import validator as _validator
-    from pydantic.main import ModelMetaclass
-    from pydantic.fields import ModelPrivateAttr
+
 
     T = TypeVar('T', bound='BaseModel')
 
@@ -97,6 +105,14 @@ except ImportError:
             return _validator(field, *fields, pre=pre, always=True, allow_reuse=True)(work)
 
         return decorator
+
+
+    class StrictModel(BaseModel):  # type: ignore
+
+        class Config:
+            allow_population_by_field_name = True
+            underscore_attrs_are_private = True
+            extra = 'forbid'
 
 
 # The end.

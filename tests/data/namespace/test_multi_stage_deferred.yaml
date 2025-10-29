@@ -24,7 +24,6 @@ content: |
   ---
   type: tag
   name: {{ stage }}-build
-  description: "{{ stage }} build tag"
   arches:
     - x86_64
 ---
@@ -35,7 +34,6 @@ content: |
   ---
   type: tag
   name: {{ stage }}-build
-  description: "{{ stage }} build tag"
   arches:
     - x86_64
   inheritance:
@@ -49,7 +47,6 @@ content: |
   ---
   type: tag
   name: {{ stage }}-build
-  description: "{{ stage }} build tag"
   arches:
     - x86_64
   inheritance:
@@ -63,6 +60,5 @@ content: |
   ---
   type: target
   name: {{ stage }}-target
-  description: "{{ stage }} target"
   build-tag: stage3-build
   dest-tag: stage3-build

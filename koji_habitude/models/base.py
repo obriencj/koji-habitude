@@ -12,14 +12,14 @@ Base class for koji object models
 
 
 from enum import Enum
-from typing import (TYPE_CHECKING, Any, ClassVar, Dict, List, Optional, Protocol,
-                    Sequence, Tuple, Type, TypeVar)
+from typing import (TYPE_CHECKING, Any, ClassVar, Dict, List, Optional,
+                    Protocol, Sequence, Tuple, Type, TypeVar)
 
 from koji import MultiCallNotReady, MultiCallSession, VirtualCall
 from typing_extensions import TypeAlias
 
 from ..koji import PromiseMultiCallSession
-from .compat import BaseModel, Field, Mixin, PrivateAttr, field_validator
+from .compat import Field, Mixin, PrivateAttr, BaseModel, StrictModel, field_validator
 
 if TYPE_CHECKING:
     from ..resolver import Resolver
@@ -238,6 +238,10 @@ class CoreObject(LocalMixin, ResolvableMixin, BaseModel):
     """
 
     typename: ClassVar[str] = 'object'
+
+    # TODO: this is a holdover from when we allowed arbitrary fields in the
+    # YAML. We should remove this in favor of comments, most likely.
+    description: Optional[str] = Field(alias='description', default=None)
 
     _auto_split: ClassVar[bool] = False
     _is_split: bool = PrivateAttr(default=False)

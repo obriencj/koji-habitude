@@ -7,7 +7,6 @@ content: |
   ---
   type: tag
   name: {{ invalid_syntax_missing_close
-  description: "This template has invalid Jinja2 syntax"
   arches:
     - x86_64
 ---

@@ -6,12 +6,10 @@ content: |
   ---
   type: tag
   name: {{ name }}-build
-  description: "Build tag for {{ name }}"
   arches: {{ arches | list }}
   ---
   type: tag
   name: {{ name }}-dest
-  description: "Destination tag for {{ name }}"
   arches: {{ arches | list }}
   inheritance:
     - name: {{ name }}-build

@@ -69,7 +69,7 @@ templates.
 Main Commands
 ~~~~~~~~~~~~~
 
-**``apply``** - Apply changes to Koji hub
+``apply`` - Apply changes to Koji hub
 
 .. code:: bash
 
@@ -80,7 +80,7 @@ Main Commands
 - Options: ``--templates PATH``, ``--profile PROFILE``,
   ``--show-unchanged``, ``--skip-phantoms``
 
-**``compare``** - Show differences (dry-run)
+``compare`` - Show differences (dry-run)
 
 .. code:: bash
 
@@ -91,7 +91,7 @@ Main Commands
 - Options: ``--templates PATH``, ``--profile PROFILE``,
   ``--show-unchanged``
 
-**``expand``** - Expand templates to YAML
+``expand`` - Expand templates to YAML
 
 .. code:: bash
 
@@ -100,7 +100,7 @@ Main Commands
 - Expands templates and outputs final YAML to stdout
 - Options: ``--templates PATH``, ``--validate``, ``--select TYPE``
 
-**``fetch``** - Fetch remote data from Koji instance
+``fetch`` - Fetch remote data from Koji instance
 
 .. code:: bash
 
@@ -113,7 +113,7 @@ Main Commands
 - Options: ``--templates PATH``, ``--profile PROFILE``,
   ``--output PATH``, ``--include-defaults``, ``--show-unchanged``
 
-**``dump``** - Bootstrap local definitions from remote Koji state
+``dump`` - Bootstrap local definitions from remote Koji state
 
 .. code:: bash
 
@@ -127,7 +127,7 @@ Main Commands
   ``--include-defaults``, ``--with-deps``, ``--max-depth``,
   ``--with-dep-type``, type flags (``--tags``, ``--users``, etc.)
 
-**``list-templates``** - List available templates
+``list-templates`` - List available templates
 
 .. code:: bash
 
@@ -142,7 +142,7 @@ Template Subcommands
 
 Work with individual templates by name:
 
-**``template show``** - Show template definition
+``template show`` - Show template definition
 
 .. code:: bash
 
@@ -151,7 +151,7 @@ Work with individual templates by name:
 - Displays the definition of a single template
 - Options: ``--templates PATH``, ``--yaml``
 
-**``template expand``** - Expand single template
+``template expand`` - Expand single template
 
 .. code:: bash
 
@@ -160,7 +160,7 @@ Work with individual templates by name:
 - Expands a template with given variables and outputs YAML
 - Options: ``--templates PATH``, ``--validate``
 
-**``template compare``** - Compare single template
+``template compare`` - Compare single template
 
 .. code:: bash
 
@@ -170,7 +170,7 @@ Work with individual templates by name:
 - Options: ``--templates PATH``, ``--profile PROFILE``,
   ``--show-unchanged``
 
-**``template apply``** - Apply single template
+``template apply`` - Apply single template
 
 .. code:: bash
 
@@ -272,21 +272,19 @@ Core Koji Object Types
 koji-habitude supports all core Koji object types with fully implemented
 Pydantic models:
 
-- **``tag``**: Build tags with inheritance chains and external
-  repositories
-- **``external-repo``**: External package repositories with URL
-  validation
-- **``user``**: Koji users and permissions with group membership
-- **``target``**: Build targets linking build and destination tags
-- **``host``**: Build hosts and their configurations with architecture
+- ``tag``: Build tags with inheritance chains and external repositories
+- ``external-repo``: External package repositories with URL validation
+- ``user``: Koji users and permissions with group membership
+- ``target``: Build targets linking build and destination tags
+- ``host``: Build hosts and their configurations with architecture
   support
-- **``group``**: Package groups and their memberships
-- **``channel``**: Build channels with host assignments
-- **``permission``**: User permission definitions
-- **``content-generator``**: Content generators with user access control
-- **``build-type``**: Build type definitions (rpm, maven, image, etc.)
-- **``archive-type``**: Archive type definitions with file extensions
-  and compression
+- ``group``: Package groups and their memberships
+- ``channel``: Build channels with host assignments
+- ``permission``: User permission definitions
+- ``content-generator``: Content generators with user access control
+- ``build-type``: Build type definitions (rpm, maven, image, etc.)
+- ``archive-type``: Archive type definitions with file extensions and
+  compression
 
 Dependency Resolution
 ~~~~~~~~~~~~~~~~~~~~~

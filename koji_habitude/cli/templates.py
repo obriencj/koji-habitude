@@ -66,15 +66,60 @@ def print_template(tmpl: Template, full: bool = False, theme=None):
     echo(style("Template: ", tp='template_label') + style(tmpl.name, tp='template_name'))
     if tmpl.description:
         echo(style(tmpl.description, tp='template_description'))
-    missing = tmpl.get_missing()
-    if missing:
-        echo(style("Required: ", tp='template_label'))
-        for var in missing:
-            echo(f"  {style(var, tp='template_value')}")
-    if tmpl.defaults:
-        echo(style("Optional: ", tp='template_label'))
-        for var, value in tmpl.defaults.items():
-            echo(f"  {style(var, tp='template_value')}: {value!r}")
+
+    if tmpl.template_model:
+        # Display model information instead of missing/defaults
+        model = tmpl.template_model
+        if model.name and model.name != 'model':
+            echo(style("Model: ", tp='template_label') + style(model.name, tp='template_value'))
+        if model.description:
+            echo(style(model.description, tp='template_description'))
+
+        # Separate fields into required and optional
+        required_fields = []
+        optional_fields = []
+
+        for field_name, field_def in model.fields.items():
+            display_name = field_def.alias if field_def.alias else field_name
+            field_info = display_name
+
+            # Add type information
+            field_info += f" ({field_def.type})"
+
+            # Add description if present
+            if field_def.description:
+                field_info += f": {field_def.description}"
+
+            # Add default value if present
+            if field_def.default is not None:
+                field_info += f" = {field_def.default!r}"
+
+            if field_def.required:
+                required_fields.append(field_info)
+            else:
+                optional_fields.append(field_info)
+
+        if required_fields:
+            echo(style("Required: ", tp='template_label'))
+            for field_info in required_fields:
+                echo(f"  {style(field_info, tp='template_value')}")
+
+        if optional_fields:
+            echo(style("Optional: ", tp='template_label'))
+            for field_info in optional_fields:
+                echo(f"  {style(field_info, tp='template_value')}")
+
+    else:
+        # Original behavior: display missing/defaults
+        missing = tmpl.get_missing()
+        if missing:
+            echo(style("Required: ", tp='template_label'))
+            for var in missing:
+                echo(f"  {style(var, tp='template_value')}")
+        if tmpl.defaults:
+            echo(style("Optional: ", tp='template_label'))
+            for var, value in tmpl.defaults.items():
+                echo(f"  {style(var, tp='template_value')}: {value!r}")
 
     if full:
         echo(style("Declared at: ", tp='template_label') + f"{tmpl.filename}:{tmpl.lineno}")

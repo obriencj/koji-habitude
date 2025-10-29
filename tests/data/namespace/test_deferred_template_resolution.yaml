@@ -12,18 +12,15 @@ content: |
   ---
   type: tag
   name: {{ product }}-build
-  description: "Deferred build tag for {{ product }}"
   arches:
     - x86_64
   ---
   type: tag
   name: {{ product }}-dest
-  description: "Deferred destination tag for {{ product }}"
   arches:
     - x86_64
   ---
   type: target
   name: {{ product }}-target
-  description: "Deferred build target for {{ product }}"
   build-tag: {{ product }}-build
   dest-tag: {{ product }}-dest
