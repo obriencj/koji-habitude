@@ -128,11 +128,14 @@ Tiered processing → Koji hub
 Requirements & Installation
 ---------------------------
 
-**Requirements:** - Python 3.8+ - `Koji <https://pagure.io/koji>`__ -
-`Click <https://palletsprojects.com/p/click/>`__ -
-`PyYAML <https://pyyaml.org/>`__ -
-`Jinja2 <https://palletsprojects.com/p/jinja/>`__ -
-`Pydantic <https://docs.pydantic.dev/>`__
+**Requirements:**
+
+- Python 3.8+
+- `Koji <https://pagure.io/koji>`__
+- `Click <https://palletsprojects.com/p/click/>`__
+- `PyYAML <https://pyyaml.org/>`__
+- `Jinja2 <https://palletsprojects.com/p/jinja/>`__
+- `Pydantic <https://docs.pydantic.dev/>`__
 
 **Installation:**
 

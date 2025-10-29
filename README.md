@@ -113,6 +113,7 @@ processing → Koji hub
 ## Requirements & Installation
 
 **Requirements:**
+
 - Python 3.8+
 - [Koji](https://pagure.io/koji)
 - [Click](https://palletsprojects.com/p/click/)
@@ -121,6 +122,7 @@ processing → Koji hub
 - [Pydantic](https://docs.pydantic.dev/)
 
 **Installation:**
+
 ```bash
 pip install -e .
 ```
