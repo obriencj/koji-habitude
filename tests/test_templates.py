@@ -21,6 +21,9 @@ from koji_habitude.loader import MultiLoader, YAMLLoader
 from koji_habitude.templates import (
     Template,
     TemplateCall,
+    TemplateModelDefinition,
+    TemplateFieldDefinition,
+    ValidationRule,
 )
 
 
@@ -807,6 +810,650 @@ class TestTemplatesWithRealFiles(unittest.TestCase):
         self.assertEqual(trace[1]['name'], 'inline-tag-template')
         self.assertEqual(trace[1]['file'], str(template_file))
         self.assertEqual(trace[1]['line'], 3)
+
+
+class TestTemplateDynamicModels(unittest.TestCase):
+    """
+    Test cases for dynamic model feature in templates.
+    """
+
+    def test_basic_model_creation_string_field(self):
+        """
+        Test creating a model with a simple string field.
+        """
+
+        model_def = TemplateModelDefinition(
+            name="TestModel",
+            fields={
+                "name": TemplateFieldDefinition(type="string")
+            }
+        )
+
+        self.assertIsNotNone(model_def._model_class)
+        self.assertEqual(model_def._model_class.__name__, "TestModel")
+
+        # Test creating an instance
+        instance = model_def.new({"name": "test-value"})
+        self.assertEqual(instance.name, "test-value")
+
+    def test_basic_model_creation_multiple_field_types(self):
+        """
+        Test creating a model with multiple basic field types.
+        """
+
+        model_def = TemplateModelDefinition(
+            name="MultiTypeModel",
+            fields={
+                "name": TemplateFieldDefinition(type="string"),
+                "count": TemplateFieldDefinition(type="int"),
+                "price": TemplateFieldDefinition(type="float"),
+                "active": TemplateFieldDefinition(type="bool")
+            }
+        )
+
+        instance = model_def.new({
+            "name": "product",
+            "count": 42,
+            "price": 19.99,
+            "active": True
+        })
+
+        self.assertEqual(instance.name, "product")
+        self.assertEqual(instance.count, 42)
+        self.assertEqual(instance.price, 19.99)
+        self.assertEqual(instance.active, True)
+
+    def test_optional_field_with_default(self):
+        """
+        Test creating a model with optional fields and defaults.
+        """
+
+        model_def = TemplateModelDefinition(
+            name="OptionalModel",
+            fields={
+                "required_field": TemplateFieldDefinition(
+                    type="string",
+                    required=True
+                ),
+                "optional_field": TemplateFieldDefinition(
+                    type="string",
+                    required=False
+                ),
+                "default_field": TemplateFieldDefinition(
+                    type="string",
+                    default="default-value"
+                )
+            }
+        )
+
+        # Test with minimal data
+        instance1 = model_def.new({"required_field": "value"})
+        self.assertEqual(instance1.required_field, "value")
+        self.assertIsNone(instance1.optional_field)
+        self.assertEqual(instance1.default_field, "default-value")
+
+        # Test with all fields provided
+        instance2 = model_def.new({
+            "required_field": "value",
+            "optional_field": "optional",
+            "default_field": "custom"
+        })
+        self.assertEqual(instance2.optional_field, "optional")
+        self.assertEqual(instance2.default_field, "custom")
+
+    def test_field_with_alias(self):
+        """
+        Test creating a model with field aliases.
+        """
+
+        model_def = TemplateModelDefinition(
+            name="AliasModel",
+            fields={
+                "display_name": TemplateFieldDefinition(
+                    type="string",
+                    alias="name"
+                )
+            }
+        )
+
+        # Should accept both the field name and alias
+        instance = model_def.new({"name": "aliased-value"})
+        self.assertEqual(instance.display_name, "aliased-value")
+
+    def test_string_validation_min_max_length(self):
+        """
+        Test string field validation with min/max length.
+        """
+
+        model_def = TemplateModelDefinition(
+            name="ValidatedStringModel",
+            fields={
+                "code": TemplateFieldDefinition(
+                    type="string",
+                    validation=ValidationRule(
+                        min_length=3,
+                        max_length=10
+                    )
+                )
+            }
+        )
+
+        # Valid cases
+        instance1 = model_def.new({"code": "abc"})
+        self.assertEqual(instance1.code, "abc")
+
+        instance2 = model_def.new({"code": "1234567890"})
+        self.assertEqual(instance2.code, "1234567890")
+
+        # Invalid cases
+        with self.assertRaises(ValidationError):
+            model_def.new({"code": "ab"})  # Too short
+
+        with self.assertRaises(ValidationError):
+            model_def.new({"code": "12345678901"})  # Too long
+
+    def test_int_validation_min_max_value(self):
+        """
+        Test integer field validation with min/max value.
+        """
+
+        model_def = TemplateModelDefinition(
+            name="ValidatedIntModel",
+            fields={
+                "score": TemplateFieldDefinition(
+                    type="int",
+                    validation=ValidationRule(
+                        min_value=0,
+                        max_value=100
+                    )
+                )
+            }
+        )
+
+        # Valid cases
+        instance1 = model_def.new({"score": 0})
+        self.assertEqual(instance1.score, 0)
+
+        instance2 = model_def.new({"score": 100})
+        self.assertEqual(instance2.score, 100)
+
+        instance3 = model_def.new({"score": 50})
+        self.assertEqual(instance3.score, 50)
+
+        # Invalid cases - should raise ValidationError
+        # BUG: These currently don't raise ValidationError. The min_value and max_value
+        # validation rules are passed to Field() but Pydantic Field() doesn't accept
+        # these as keyword arguments. The validation rules need to be handled differently,
+        # possibly using Pydantic validators or constraints.
+        with self.assertRaises(ValidationError):
+            model_def.new({"score": -1})  # Below min_value=0
+
+        with self.assertRaises(ValidationError):
+            model_def.new({"score": 101})  # Above max_value=100
+
+    def test_string_validation_pattern(self):
+        """
+        Test string field validation with regex pattern.
+        """
+
+        model_def = TemplateModelDefinition(
+            name="PatternModel",
+            fields={
+                "email": TemplateFieldDefinition(
+                    type="string",
+                    validation=ValidationRule(
+                        pattern=r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+                    )
+                )
+            }
+        )
+
+        # Valid case
+        instance = model_def.new({"email": "test@example.com"})
+        self.assertEqual(instance.email, "test@example.com")
+
+        # Invalid case
+        with self.assertRaises(ValidationError):
+            model_def.new({"email": "not-an-email"})
+
+    def test_enum_validation(self):
+        """
+        Test enum field validation.
+        """
+
+        model_def = TemplateModelDefinition(
+            name="EnumModel",
+            fields={
+                "status": TemplateFieldDefinition(
+                    type="enum",
+                    validation=ValidationRule(
+                        enum_values=["pending", "active", "completed"]
+                    )
+                )
+            }
+        )
+
+        # Valid cases
+        # Note: enum values are returned as Enum instances, need to access the value
+        instance1 = model_def.new({"status": "pending"})
+        self.assertEqual(instance1.status.value, "pending")
+
+        instance2 = model_def.new({"status": "active"})
+        self.assertEqual(instance2.status.value, "active")
+
+        # Invalid case
+        with self.assertRaises(ValidationError):
+            model_def.new({"status": "invalid"})
+
+    def test_array_field_type(self):
+        """
+        Test array field type.
+        """
+
+        model_def = TemplateModelDefinition(
+            name="ArrayModel",
+            fields={
+                "items": TemplateFieldDefinition(type="array")
+            }
+        )
+
+        instance = model_def.new({"items": [1, 2, 3, "four"]})
+        self.assertEqual(instance.items, [1, 2, 3, "four"])
+
+    def test_typed_array_field(self):
+        """
+        Test array field with typed items.
+        """
+
+        model_def = TemplateModelDefinition(
+            name="TypedArrayModel",
+            fields={
+                "numbers": TemplateFieldDefinition(
+                    type="array",
+                    array_item_type=TemplateFieldDefinition(type="int")
+                )
+            }
+        )
+
+        instance = model_def.new({"numbers": [1, 2, 3, 4, 5]})
+        self.assertEqual(instance.numbers, [1, 2, 3, 4, 5])
+
+    def test_object_field_type(self):
+        """
+        Test object field type with nested fields.
+        """
+
+        model_def = TemplateModelDefinition(
+            name="ObjectModel",
+            fields={
+                "metadata": TemplateFieldDefinition(
+                    type="object",
+                    object_fields={
+                        "author": TemplateFieldDefinition(type="string"),
+                        "version": TemplateFieldDefinition(type="int")
+                    },
+                    object_type_name="Metadata"
+                )
+            }
+        )
+
+        instance = model_def.new({
+            "metadata": {
+                "author": "test-author",
+                "version": 1
+            }
+        })
+
+        self.assertEqual(instance.metadata.author, "test-author")
+        self.assertEqual(instance.metadata.version, 1)
+
+    def test_template_with_model_validation_success(self):
+        """
+        Test template rendering with model validation - success case.
+        """
+
+        template = Template.from_dict({
+            "name": "validated-template",
+            "content": "name: {{ TestModel.name }}\ncount: {{ TestModel.count }}",
+            "model": {
+                "name": "TestModel",
+                "fields": {
+                    "name": {"type": "string"},
+                    "count": {"type": "int"}
+                }
+            }
+        })
+
+        data = {"name": "test-name", "count": 42}
+        result = template.render(data)
+
+        self.assertIn("name: test-name", result)
+        self.assertIn("count: 42", result)
+
+    def test_template_with_model_validation_failure(self):
+        """
+        Test template rendering with model validation - failure case.
+        """
+
+        template = Template.from_dict({
+            "name": "validated-template",
+            "content": "name: {{ TestModel.name }}",
+            "model": {
+                "name": "TestModel",
+                "fields": {
+                    "name": {
+                        "type": "string",
+                        "validation": {
+                            "min_length": 3
+                        }
+                    }
+                }
+            }
+        })
+
+        # Invalid data - name too short
+        with self.assertRaises(ValidationError):
+            template.render({"name": "ab"})
+
+    def test_template_model_instance_accessible(self):
+        """
+        Test that model instance is accessible in template with correct name.
+        """
+
+        template = Template.from_dict({
+            "name": "model-access-template",
+            "content": "{{ TestModel.name }}-{{ TestModel.count }}",
+            "model": {
+                "name": "TestModel",
+                "fields": {
+                    "name": {"type": "string"},
+                    "count": {"type": "int"}
+                }
+            }
+        })
+
+        data = {"name": "test", "count": 5}
+        result = template.render(data)
+
+        self.assertEqual(result.strip(), "test-5")
+
+    def test_template_original_data_preserved(self):
+        """
+        Test that original data is still accessible as _data in template.
+        """
+
+        template = Template.from_dict({
+            "name": "data-preservation-template",
+            "content": "model: {{ TestModel.value }}\ndata: {{ _data.value }}",
+            "model": {
+                "name": "TestModel",
+                "fields": {
+                    "value": {"type": "string"}
+                }
+            }
+        })
+
+        data = {"value": "test-value", "extra": "extra-value"}
+        result = template.render(data)
+
+        self.assertIn("model: test-value", result)
+        self.assertIn("data: test-value", result)
+
+    def test_template_model_with_defaults(self):
+        """
+        Test that template defaults merge with call data before validation.
+        """
+
+        template = Template.from_dict({
+            "name": "defaults-template",
+            "defaults": {
+                "optional": "default-optional"
+            },
+            "content": "required: {{ TestModel.required }}\noptional: {{ TestModel.optional }}",
+            "model": {
+                "name": "TestModel",
+                "fields": {
+                    "required": {"type": "string"},
+                    "optional": {"type": "string", "required": False}
+                }
+            }
+        })
+
+        # Provide only required field, optional should come from defaults
+        data = {"required": "test-required"}
+        result = template.render(data)
+
+        self.assertIn("required: test-required", result)
+        self.assertIn("optional: default-optional", result)
+
+    def test_template_complex_nested_access(self):
+        """
+        Test template accessing nested model properties.
+        """
+
+        template = Template.from_dict({
+            "name": "nested-template",
+            "content": "author: {{ TestModel.config.author }}\nversion: {{ TestModel.config.version }}",
+            "model": {
+                "name": "TestModel",
+                "fields": {
+                    "config": {
+                        "type": "object",
+                        "object_fields": {
+                            "author": {"type": "string"},
+                            "version": {"type": "int"}
+                        },
+                        "object_type_name": "Config"
+                    }
+                }
+            }
+        })
+
+        data = {
+            "config": {
+                "author": "test-author",
+                "version": 2
+            }
+        }
+        result = template.render(data)
+
+        self.assertIn("author: test-author", result)
+        self.assertIn("version: 2", result)
+
+    def test_template_load_from_yaml_with_model(self):
+        """
+        Test loading a template with model definition from YAML structure.
+        """
+
+        template_data = {
+            "name": "yaml-model-template",
+            "content": "{{ ItemModel.name }}: {{ ItemModel.count }}",
+            "model": {
+                "name": "ItemModel",
+                "fields": {
+                    "name": {"type": "string"},
+                    "count": {"type": "int"}
+                }
+            }
+        }
+
+        template = Template.from_dict(template_data)
+        self.assertIsNotNone(template.template_model)
+        self.assertEqual(template.template_model.name, "ItemModel")
+
+        result = template.render({"name": "widget", "count": 10})
+        self.assertIn("widget: 10", result)
+
+    def test_template_mixed_field_types_validation(self):
+        """
+        Test template with multiple different field types all validated together.
+        """
+
+        template = Template.from_dict({
+            "name": "mixed-types-template",
+            "content": "{{ MixedModel.name }}-{{ MixedModel.count }}-{{ MixedModel.active }}",
+            "model": {
+                "name": "MixedModel",
+                "fields": {
+                    "name": {
+                        "type": "string",
+                        "validation": {"min_length": 1, "max_length": 10}
+                    },
+                    "count": {
+                        "type": "int",
+                        "validation": {"min_value": 0, "max_value": 100}
+                    },
+                    "active": {"type": "bool"}
+                }
+            }
+        })
+
+        # Valid data
+        result = template.render({
+            "name": "test",
+            "count": 50,
+            "active": True
+        })
+        self.assertIn("test-50-True", result)
+
+        # Invalid string
+        with self.assertRaises(ValidationError):
+            template.render({
+                "name": "too-long-string-value",
+                "count": 50,
+                "active": True
+            })
+
+        # Invalid int - should raise ValidationError
+        # BUG: Same bug as above - min_value/max_value validation doesn't work for int fields
+        with self.assertRaises(ValidationError):
+            template.render({
+                "name": "test",
+                "count": 150,  # Above max_value=100
+                "active": True
+            })
+
+    def test_template_enum_validation_in_context(self):
+        """
+        Test enum validation works correctly in template context.
+        """
+
+        template = Template.from_dict({
+            "name": "enum-template",
+            "content": "status: {{ StatusModel.status }}",
+            "model": {
+                "name": "StatusModel",
+                "fields": {
+                    "status": {
+                        "type": "enum",
+                        "validation": {
+                            "enum_values": ["new", "in-progress", "done"]
+                        }
+                    }
+                }
+            }
+        })
+
+        # Valid enum value
+        result = template.render({"status": "in-progress"})
+        # Enum values render as their string representation
+        self.assertIn("status:", result)
+        # Check that the enum value is present (may be rendered differently)
+        self.assertTrue("in-progress" in result or "Enum_" in result)
+
+        # Invalid enum value
+        with self.assertRaises(ValidationError):
+            template.render({"status": "invalid-status"})
+
+    def test_template_pattern_validation_in_context(self):
+        """
+        Test pattern validation works correctly in template context.
+        """
+
+        template = Template.from_dict({
+            "name": "pattern-template",
+            "content": "code: {{ CodeModel.code }}",
+            "model": {
+                "name": "CodeModel",
+                "fields": {
+                    "code": {
+                        "type": "string",
+                        "validation": {
+                            "pattern": "^[A-Z]{3}-[0-9]{3}$"
+                        }
+                    }
+                }
+            }
+        })
+
+        # Valid pattern
+        result = template.render({"code": "ABC-123"})
+        self.assertIn("code: ABC-123", result)
+
+        # Invalid pattern
+        with self.assertRaises(ValidationError):
+            template.render({"code": "invalid"})
+
+    def test_validate_call_method(self):
+        """
+        Test the validate_call method on Template.
+        """
+
+        template = Template.from_dict({
+            "name": "validation-template",
+            "content": "test",
+            "model": {
+                "name": "TestModel",
+                "fields": {
+                    "value": {
+                        "type": "string",
+                        "validation": {"min_length": 3}
+                    }
+                }
+            }
+        })
+
+        # Invalid call - should raise ValidationError
+        with self.assertRaises(ValidationError):
+            template.validate_call({"value": "ab"})
+
+        # Valid call - should return True, not raise
+        # BUG: validate_call currently raises ValidationError even for valid data.
+        # It calls model_validate() on the TemplateModelDefinition instead of creating
+        # a model instance. It should use model.new(data) instead.
+        result = template.validate_call({"value": "valid"})
+        self.assertTrue(result)  # Should return True for valid data, not raise
+
+    def test_template_with_model_render_and_load(self):
+        """
+        Test that render_and_load works correctly with models.
+        """
+
+        template = Template.from_dict({
+            "name": "model-render-load-template",
+            "content": "---\ntype: tag\nname: {{ TagModel.name }}\narches: {{ TagModel.arches | join(', ') }}",
+            "model": {
+                "name": "TagModel",
+                "fields": {
+                    "name": {"type": "string"},
+                    "arches": {
+                        "type": "array",
+                        "array_item_type": {"type": "string"}
+                    }
+                }
+            }
+        })
+
+        data = {
+            "name": "test-tag",
+            "arches": ["x86_64", "aarch64"]
+        }
+
+        results = list(template.render_and_load(data))
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["type"], "tag")
+        self.assertEqual(results[0]["name"], "test-tag")
+        self.assertEqual(results[0]["arches"], "x86_64, aarch64")
 
 
 # The end.
