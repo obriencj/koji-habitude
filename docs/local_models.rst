@@ -1,5 +1,5 @@
 Local Object Models
-==================
+===================
 
 Overview
 --------
@@ -12,58 +12,27 @@ Local models are the primary interface for defining and managing koji objects
 through YAML files. They support dependency resolution, validation, and
 automatic synchronization with remote koji instances.
 
-Supported Types
----------------
-
-The following local model types are supported, each with detailed YAML schemas:
-
-- **``tag``** - Build tags with inheritance chains and external repositories
-- **``target``** - Build targets linking build and destination tags
-- **``user``** - Koji users with group membership and permissions
-- **``group``** - Package groups and their memberships
-- **``host``** - Build hosts and their configurations with architecture support
-- **``channel``** - Build channels with host assignments
-- **``permission``** - User permission definitions
-- **``external-repo``** - External package repositories with URL validation
-- **``content-generator``** - Content generators with user access control
-- **``build-type``** - Build type definitions (rpm, maven, image, etc.)
-- **``archive-type``** - Archive type definitions with file extensions and compression
-
-See :doc:`yaml_format` for detailed schemas and field specifications for each type.
-
 Architecture
 ------------
 
-Base Classes
+Local Models
 ~~~~~~~~~~~~
 
-- **``CoreObject``** - Base class for all local models
-  - Inherits from ``LocalMixin`` and ``ResolvableMixin``
-  - Provides dependency resolution and processing capabilities
-  - Includes file position tracking and trace information
-  - Provides ``remote()`` method to access remote state for comparison
+The following local model types are supported, each with detailed YAML schemas:
 
-- **``CoreModel``** - Shared base for both local and remote models
-  - Contains common fields and validation logic
-  - Enables consistent data structures across local and remote representations
-  - Provides identification through ``key()`` method
+- ``Tag`` - Build tags with inheritance chains and external repositories
+- ``Target`` - Build targets linking build and destination tags
+- ``User`` - Koji users with group membership and permissions
+- ``Group`` - Package groups and their memberships
+- ``Host`` - Build hosts and their configurations with architecture support
+- ``Channel`` - Build channels with host assignments
+- ``Permission`` - User permission definitions
+- ``ExternalRepo`` - External package repositories with URL validation
+- ``ContentGgenerator`` - Content generators with user access control
+- ``BuildType`` - Build type definitions (rpm, maven, image, etc.)
+- ``ArchiveType`` - Archive type definitions with file extensions and compression
 
-Mixin Classes
-~~~~~~~~~~~~~
-
-- **``IdentifiableMixin``** - Provides object identification and key generation
-  - Generates ``(typename, name)`` keys for object lookup
-  - Supports type aliases via ``yaml_type`` field
-
-- **``LocalMixin``** - Handles local data storage and YAML loading
-  - Tracks source file and line number information
-  - Maintains trace chain for template expansion
-  - Provides ``from_dict()`` and ``to_dict()`` methods
-
-- **``ResolvableMixin``** - Manages remote state loading and comparison
-  - Provides ``status`` property indicating PRESENT, PENDING, DISCOVERED, or PHANTOM
-  - Loads remote state via ``load_remote()`` method
-  - Enables comparison between local and remote objects
+See :doc:`yaml_format` for detailed schemas and field specifications for each type.
 
 Loading from YAML
 -----------------
@@ -105,7 +74,7 @@ on configuration errors with detailed error messages including file and line
 number information.
 
 Dependency Resolution
---------------------
+---------------------
 
 Local models declare dependencies through the ``dependency_keys()`` method,
 which returns a sequence of ``(typename, name)`` tuples. The resolver system:
@@ -119,7 +88,7 @@ This enables safe, ordered processing of koji objects where child objects
 are created before their parents.
 
 Processing and Synchronization
--------------------------------
+------------------------------
 
 Local models integrate with the workflow system for synchronization:
 

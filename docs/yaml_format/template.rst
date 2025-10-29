@@ -99,10 +99,10 @@ The following field types are supported:
 Basic Types
 ^^^^^^^^^^^
 
-- **``string``**: Text values (maps to Python ``str``)
-- **``int``**: Integer values (maps to Python ``int``)
-- **``float``**: Floating-point values (maps to Python ``float``)
-- **``bool``**: Boolean values (maps to Python ``bool``)
+- ``string`` or ``str``: Text values (maps to Python ``str``)
+- ``integer`` or ``int``: Integer values (maps to Python ``int``)
+- ``float``: Floating-point values (maps to Python ``float``)
+- ``boolean`` or ``bool``: Boolean values (maps to Python ``bool``)
 
 Example:
 
@@ -369,7 +369,7 @@ then validated against the model (if defined).
 
 
 Accessing Model Data in Templates
-----------------------------------
+---------------------------------
 
 When a template defines a model, the validated model instance is available using
 the model name:
