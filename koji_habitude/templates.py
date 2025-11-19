@@ -337,6 +337,7 @@ class Template(BaseModel, IdentifiableMixin, LocalMixin):
             loader=loader,
             trim_blocks=True,
             lstrip_blocks=True,
+            extensions=['jinja2.ext.do'],
             undefined=StrictUndefined)
 
         try:
