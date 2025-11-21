@@ -108,36 +108,17 @@ purge:  clean
 docs-gen:	## Generate schema documentation from Pydantic models
 	$(TOX) -qe docs-gen
 
+
 docs: clean-docs docs/overview.rst	## Build sphinx docs
 	$(TOX) -qe sphinx
 
 
-overview: docs/overview.rst  ## rebuilds the overview from README.md
-
-
-docs/overview.rst: README.md
-	@if which pandoc >/dev/null 2>&1 ; then \
-		echo "Using system pandoc..." ; \
-		pandoc --from=markdown --to=rst -o $@ $< ; \
-	else \
-		echo "pandoc not found, using containerized version..." ; \
-		podman run --rm -v "$(PWD):/workspace":Z -w /workspace \
-			docker.io/pandoc/core:latest \
-			--from=markdown --to=rst -o /workspace/$@ /workspace/$< ; \
-	fi
-	@# Convert relative links: docs/ -> ../, /index.rst -> /, other .rst -> /
-	@sed -i \
-	    -e 's|<docs/|<../|g' \
-		-e 's|/index\.rst>`__|/>`__|g' \
-		-e 's|\.rst>`__|/>`__|g' $@
-
-
 clean-docs:	## Remove built docs
-	@rm -rf build/sphinx
+	@rm -rf build/docs
 
 
 preview-docs: docs	## Build and hosts docs locally
-	@$(PYTHON) -B -m http.server -d build/sphinx \
+	@$(PYTHON) -B -m http.server -d build/docs \
 	  -b 127.0.0.1 $(PORT)
 
 
