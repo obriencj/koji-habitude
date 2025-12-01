@@ -367,16 +367,18 @@ class TagAddInheritance(Add):
 
     def break_multicall(self, resolver: 'Resolver') -> bool:
 
-        # quick explanation here. Adding to tag inheritance requires knowing the
-        # parent tag's ID -- it's the only API in koji that has this behavior.
-        # We have a hook at the end of the TagCreate's apply method which will
-        # queue up a fetch of the newly created tag's ID, but until the MC
-        # completes that value isn't available to us. What we're doing here is
-        # using a resolver (which we got from the ChangeReport) to look up the
-        # parent tag entry by its key, and then attempting to see if it exists.
-        # If it does, we'll have the ID and we can continue. If checking raises
-        # a MultiCallNotReady, then damnit we need to break out of the multicall
-        # so it can complete and get us that value.
+        # quick explanation here. Adding to tag inheritance requires
+        # knowing the parent tag's ID -- it's the only API in koji
+        # that has this behavior.  We have a hook at the end of the
+        # TagCreate's apply method which will queue up a fetch of the
+        # newly created tag's ID, but until the MC completes that
+        # value isn't available to us. What we're doing here is using
+        # a resolver (which we got from the ChangeReport) to look up
+        # the parent tag entry by its key, and then attempting to see
+        # if it exists.  If it does, we'll have the ID and we can
+        # continue. If checking raises a MultiCallNotReady, then
+        # damnit we need to break out of the multicall so it can
+        # complete and get us that value.
 
         logger.debug(f"Checking if TagAddInheritance ({self.obj.name}) needs to break out of multicall")
 
@@ -1192,10 +1194,13 @@ class RemoteTag(TagModel, RemoteObject):
                 name=group['name'],
                 description=group['description'],
                 block=group['blocked'],
-                packages=[TagGroupPackage(
-                    name=package['package'],
-                    block=package['blocked'])
-                    for package in group['packagelist']])
+                packages=[
+                    TagGroupPackage(
+                        name=package['package'],
+                        block=package['blocked'])
+                    for package in group['packagelist']
+                    if package.get('tag_id') == self.koji_id
+                ])
             for group in result.result}
 
 
@@ -1230,7 +1235,15 @@ class RemoteTag(TagModel, RemoteObject):
         # This would require multiple API calls
 
         promise_call(self.set_koji_packages, session.listPackages, tagID=self.name)
-        promise_call(self.set_koji_groups, session.getTagGroups, self.name, inherit=False, incl_blocked=True)
+
+        # workaround, don't set inherit=False
+        # https://pagure.io/koji/issues/4503
+        # if/when fixed, add a version check
+        if False:
+            promise_call(self.set_koji_groups, session.getTagGroups, self.name, inherit=False, incl_blocked=True)
+        else:
+            promise_call(self.set_koji_groups, session.getTagGroups, self.name, incl_blocked=True)
+
         promise_call(self.set_koji_inheritance, session.getInheritanceData, self.name)
         promise_call(self.set_koji_external_repos, session.getTagExternalRepos, tag_info=self.name)
 

@@ -130,6 +130,7 @@ def promise_call(
 class PromiseMultiCallSession(MultiCallSession):
 
     def _callMethod(self, name: str, args, kwargs=None, retry=True) -> VirtualPromise:
+        logger.debug(f"callMethod({name!r}, {args!r}, {kwargs!r})")
         if kwargs is None:
             kwargs = {}
         ret = VirtualPromise(name, args, kwargs)
