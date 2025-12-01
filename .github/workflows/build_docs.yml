@@ -1,0 +1,39 @@
+name: "Build: Documentation"
+
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+
+jobs:
+
+  build-documentation:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.9
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get install make
+          pip install tox
+
+      - name: Generate Documentation
+        run: |
+          make docs
+
+      - name: Store Documentation
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path:
+            build/docs
+
+
+# The end.
