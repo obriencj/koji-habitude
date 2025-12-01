@@ -1189,19 +1189,27 @@ class RemoteTag(TagModel, RemoteObject):
 
 
     def set_koji_groups(self, result: VirtualPromise):
-        self.groups = {
-            group['name']: RemoteTagGroup(
-                name=group['name'],
-                description=group['description'],
-                block=group['blocked'],
-                packages=[
-                    TagGroupPackage(
+        groups = {}
+
+        for group in result.result:
+            pkgs = [TagGroupPackage(
                         name=package['package'],
                         block=package['blocked'])
                     for package in group['packagelist']
-                    if package.get('tag_id') == self.koji_id
-                ])
-            for group in result.result}
+                    if package.get('tag_id') == self.koji_id]
+
+            if group.get('tag_id') != self.koji_id and not pkgs:
+                # omit empty groups that are not owned by this tag
+                continue
+
+            groups[group['name']] = RemoteTagGroup(
+                # koji_id=group['group_id'],
+                name=group['name'],
+                description=group['description'],
+                block=group['blocked'],
+                packages=pkgs)
+
+        self.groups = groups
 
 
     def set_koji_inheritance(self, result: VirtualPromise):
