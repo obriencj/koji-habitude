@@ -3,10 +3,22 @@ Koji Habitude
 
 .. toctree::
    :maxdepth: 2
+   :caption: Welcome
 
    overview
+   vibe
+
+.. toctree::
+   :maxdepth: 2
+   :caption: User Guide
+
    cli/index
+   yaml_format
+
+.. toctree::
+   :maxdepth: 2
+   :caption: API Reference
+
+   koji_habitude
    local_models
    remote_models
-   yaml_format
-   koji_habitude
