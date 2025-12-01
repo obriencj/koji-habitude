@@ -536,7 +536,7 @@ class TestProcessorTagLifecycle(MulticallMocking, TestCase):
 
         get_tag_mock.assert_called_once_with('existing-tag', strict=False, blocked=True)
         list_packages_mock.assert_called_once_with(tagID='existing-tag')
-        get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
+        get_groups_mock.assert_called_once_with('existing-tag', incl_blocked=True)
         get_inheritance_mock.assert_called_once_with('existing-tag')
         get_external_repos_mock.assert_called_once_with(tag_info='existing-tag')
 
@@ -697,7 +697,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
 
         get_tag_mock.assert_called_once_with('existing-tag', strict=False, blocked=True)
         list_packages_mock.assert_called_once_with(tagID='existing-tag')
-        get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
+        get_groups_mock.assert_called_once_with('existing-tag', incl_blocked=True)
         add_group_mock.assert_called_once_with('existing-tag', 'build', description=None, block=False, force=True)
         add_group_pkg_mock.assert_called_once_with('existing-tag', 'build', 'package1', block=False, force=True)
 
@@ -730,7 +730,9 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
             'name': 'build',
             'description': 'Old description',
             'blocked': True,  # Different from our desired state
-            'packagelist': [{'package': 'package1', 'blocked': False}]
+            'tag_id': 100,
+            'group_id': 200,
+            'packagelist': [{'package': 'package1', 'blocked': False, 'tag_id': 100}]
         }]
 
         get_inheritance_mock = Mock()
@@ -762,7 +764,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
 
         get_tag_mock.assert_called_once_with('existing-tag', strict=False, blocked=True)
         list_packages_mock.assert_called_once_with(tagID='existing-tag')
-        get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
+        get_groups_mock.assert_called_once_with('existing-tag', incl_blocked=True)
         # Should update group because block status differs
         update_group_mock.assert_called_once_with('existing-tag', 'build', description=None, block=False, force=True)
 
@@ -797,6 +799,8 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
             'name': 'build',
             'description': 'Build group',
             'blocked': False,
+            'tag_id': 100,
+            'group_id': 200,
             'packagelist': []
         }]
 
@@ -829,7 +833,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
 
         get_tag_mock.assert_called_once_with('existing-tag', strict=False, blocked=True)
         list_packages_mock.assert_called_once_with(tagID='existing-tag')
-        get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
+        get_groups_mock.assert_called_once_with('existing-tag', incl_blocked=True)
         # Should remove the group because exact_groups=True and group not in desired state
         remove_group_mock.assert_called_once_with('existing-tag', 'build')
 
@@ -862,7 +866,9 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
             'name': 'build',
             'description': None,
             'blocked': False,
-            'packagelist': [{'package': 'package1', 'blocked': False}]
+            'tag_id': 100,
+            'group_id': 200,
+            'packagelist': [{'package': 'package1', 'blocked': False, 'tag_id': 100}]
         }]
 
         get_inheritance_mock = Mock()
@@ -894,7 +900,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
 
         get_tag_mock.assert_called_once_with('existing-tag', strict=False, blocked=True)
         list_packages_mock.assert_called_once_with(tagID='existing-tag')
-        get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
+        get_groups_mock.assert_called_once_with('existing-tag', incl_blocked=True)
         # Should add the missing package
         add_group_pkg_mock.assert_called_once_with('existing-tag', 'build', 'package2', block=False, force=True)
 
@@ -927,7 +933,9 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
             'name': 'build',
             'description': None,
             'blocked': False,
-            'packagelist': [{'package': 'package1', 'blocked': False}]  # Currently not blocked
+            'tag_id': 100,
+            'group_id': 200,
+            'packagelist': [{'package': 'package1', 'blocked': False, 'tag_id': 100}]  # Currently not blocked
         }]
 
         get_inheritance_mock = Mock()
@@ -959,7 +967,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
 
         get_tag_mock.assert_called_once_with('existing-tag', strict=False, blocked=True)
         list_packages_mock.assert_called_once_with(tagID='existing-tag')
-        get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
+        get_groups_mock.assert_called_once_with('existing-tag', incl_blocked=True)
         # Should update the package because block status differs
         update_group_pkg_mock.assert_called_once_with('existing-tag', 'build', 'package1', block=True, force=True)
 
@@ -994,9 +1002,11 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
             'name': 'build',
             'description': None,
             'blocked': False,
+            'tag_id': 100,
+            'group_id': 200,
             'packagelist': [
-                {'package': 'package1', 'blocked': False},
-                {'package': 'package2', 'blocked': False}  # Should be removed
+                {'package': 'package1', 'blocked': False, 'tag_id': 100},
+                {'package': 'package2', 'blocked': False, 'tag_id': 100}  # Should be removed
             ]
         }]
 
@@ -1029,7 +1039,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
 
         get_tag_mock.assert_called_once_with('existing-tag', strict=False, blocked=True)
         list_packages_mock.assert_called_once_with(tagID='existing-tag')
-        get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
+        get_groups_mock.assert_called_once_with('existing-tag', incl_blocked=True)
         # Should remove the extra package because exact_packages=True
         remove_group_pkg_mock.assert_called_once_with('existing-tag', 'build', 'package2')
 
@@ -1070,10 +1080,12 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
             'name': 'build',
             'description': None,
             'blocked': False,
+            'tag_id': 100,
+            'group_id': 200,
             'packagelist': [
-                {'package': 'package1', 'blocked': False},  # Keep as-is
-                {'package': 'package2', 'blocked': False},  # Remove (not in desired state)
-                {'package': 'package4', 'blocked': False}   # Update block status
+                {'package': 'package1', 'blocked': False, 'tag_id': 100},  # Keep as-is
+                {'package': 'package2', 'blocked': False, 'tag_id': 100},  # Remove (not in desired state)
+                {'package': 'package4', 'blocked': False, 'tag_id': 100}   # Update block status
             ]
         }]
 
@@ -1114,7 +1126,7 @@ class TestProcessorTagGroups(MulticallMocking, TestCase):
 
         get_tag_mock.assert_called_once_with('existing-tag', strict=False, blocked=True)
         list_packages_mock.assert_called_once_with(tagID='existing-tag')
-        get_groups_mock.assert_called_once_with('existing-tag', inherit=False, incl_blocked=True)
+        get_groups_mock.assert_called_once_with('existing-tag', incl_blocked=True)
 
         # Should add new package3
         add_group_pkg3_mock.assert_called_once_with('existing-tag', 'build', 'package3', block=False, force=True)
