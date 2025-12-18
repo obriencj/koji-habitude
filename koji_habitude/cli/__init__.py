@@ -19,6 +19,12 @@ import click
 
 
 class MagicGroup(click.Group):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.context_settings = {
+            "help_option_names": ["-h", "--help"],
+        }
+
     def _load_commands(self):
         # delaying to avoid circular imports
         from . import apply
