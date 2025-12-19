@@ -171,6 +171,7 @@ class ReportingMulticall(PromiseMultiCallSession):
 
 def multicall(
         session: ClientSession,
+        batch: Optional[int] = 100,
         associations: Optional[Dict['BaseKey', List[VirtualCall]]] = None) -> ReportingMulticall:
 
     """
@@ -183,7 +184,7 @@ def multicall(
     """
 
     # note that we make the call log mandatory here.
-    mc = ReportingMulticall(session, associations=associations)
+    mc = ReportingMulticall(session, batch=100, associations=associations)
     vars(mc)['_currentuser'] = vars(session)['_currentuser']
     return mc
 
