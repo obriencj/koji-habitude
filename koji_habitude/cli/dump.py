@@ -149,8 +149,9 @@ def resolve_dependencies(
     "--hosts", default=False, is_flag=True,
     help="Search hosts by default")
 @catchall
-def dump(patterns, profile='koji', output=sys.stdout, include_defaults=False,
-         with_deps=False, with_dep_type=[], max_depth=None, tags=False, targets=False,
+def dump(patterns, profile='koji', output=sys.stdout,
+         include_defaults=False, with_deps=False, with_dep_type=[],
+         max_depth=None, tags=False, targets=False,
          users=False, hosts=False):
     """
     Dump remote data from Koji instance by pattern matching.
@@ -159,14 +160,16 @@ def dump(patterns, profile='koji', output=sys.stdout, include_defaults=False,
     their remote state as YAML. Supports both exact matches and pattern
     matching for searchable types (tags, targets, users, hosts).
 
+    \b
     PATTERNS can be:
-    - TYPE:PATTERN (e.g., 'tag:foo', 'user:*bob*')
-    - PATTERN (applied to default types, e.g., '*-build')
+      - TYPE:PATTERN (e.g., 'tag:foo', 'user:*bob*')
+      - PATTERN (applied to default types, e.g., '*-build')
 
+    \b
     Examples:
-    - koji-habitude dump tag:foo *-build
-    - koji-habitude dump --tags --users *bob*
-    - koji-habitude dump tag:f40-build --with-deps --dep-depth 2
+      - koji-habitude dump tag:foo *-build
+      - koji-habitude dump --tags --users *bob*
+      - koji-habitude dump tag:f40-build --with-deps --dep-depth 2
     """
 
     # Determine default types from flags
