@@ -4,8 +4,8 @@
 
 
 Name:           python3-%{srcname}
-Version:        0.1.0
-Release:        1%{?dist}
+Version:        0.9.0
+Release:        0%{?dist}
 Summary:        %{sum}
 
 License:        GPL-3.0-or-later
@@ -36,15 +36,6 @@ It provides a declarative approach to managing koji objects through YAML
 templates and data files, with intelligent dependency resolution and tiered
 execution.
 
-Key Features:
-- Define koji objects (tags, external repos, users, targets, hosts, groups,
-  channels, permissions, build types, archive types) in YAML
-- Use Jinja2 templates for dynamic configuration generation
-- Automatically resolve dependencies between objects
-- Preview template expansion results
-- Apply changes in the correct order through tiered execution
-- Validate configurations offline before deployment
-
 
 %prep
 %autosetup -n %{srcname}-%{version}
@@ -67,6 +58,9 @@ Key Features:
 
 
 %changelog
+* Fri Dec 19 2025 Christopher O'Brien <obriencj@gmail.com> - 0.9.0-1
+- Cutting the first "it works" release
+
 * Mon Oct 13 2025 Christopher O'Brien <obriencj@gmail.com> - 0.1.0-1
 - Initial RPM package for koji-habitude
 - Provides CLI tool for declarative koji configuration management
