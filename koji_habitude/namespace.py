@@ -36,7 +36,8 @@ __all__ = (
 )
 
 
-default_logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
+default_logger = logger
 
 
 class Redefine(Enum):
@@ -343,6 +344,7 @@ class Namespace:
             raise ValueError(f"No type handler for {objtype}")
 
         try:
+            logger.debug(f"Converting object of type {objtype} to {cls.__name__}")
             return cls.from_dict(objdict)
         except PydanticValidationError as e:
             raise ValidationError(
@@ -376,6 +378,7 @@ class Namespace:
             raise TypeError(f"{type(obj).__name__} cannot be"
                             " directly added to a Namespace")
 
+        logger.debug(f"Adding object {obj.key()} to namespace")
         return add_into(self._ns, obj.key(), obj,
                         self.redefine, self.logger)
 

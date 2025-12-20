@@ -27,7 +27,7 @@ except ImportError:
 
 from .exceptions import YAMLError
 from .intern import intern
-
+import logging
 
 __all__ = (
     'MultiLoader',
@@ -38,6 +38,9 @@ __all__ = (
     'pretty_yaml',
     'pretty_yaml_all',
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 # this is mostly for testing purposes, but it can be overridden by the user if
@@ -239,9 +242,11 @@ class YAMLLoader(LoaderProtocol):
         interning = ENABLE_INTERNING
 
         with open(self.filename, 'r') as fd:
+            logger.debug(f"Loading YAML file {self.filename}")
             try:
                 for doc in load_all(fd, Loader=MagicSafeLoader):
                     doc['__file__'] = self.filename
+                    logger.debug(f"Loaded YAML document {self.filename}:{doc['__line__']}")
                     yield intern(doc) if interning else doc
 
             except PyYAMLError as e:
