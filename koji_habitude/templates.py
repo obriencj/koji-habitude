@@ -15,30 +15,42 @@ import logging
 from enum import Enum
 from pathlib import Path
 from re import Pattern, compile
-from typing import (Any, Callable, ClassVar, Dict, Iterator, List, Optional,
-                    Set, Tuple, Type, Union)
+from typing import (
+    Any, Callable, ClassVar, Dict, Iterator, List, Optional,
+    Set, Tuple, Type, TypeVar, Union,
+)
 
 import yaml
-from jinja2 import Environment, FileSystemLoader, StrictUndefined
-from jinja2 import Template as Jinja2Template
-from jinja2.exceptions import TemplateError as Jinja2TemplateError
-from jinja2.exceptions import TemplateSyntaxError as Jinja2TemplateSyntaxError
-from jinja2.exceptions import UndefinedError
+from jinja2 import (
+    Environment, FileSystemLoader, StrictUndefined,
+    Template as Jinja2Template,
+)
+from jinja2.exceptions import (
+    TemplateError as Jinja2TemplateError,
+    TemplateSyntaxError as Jinja2TemplateSyntaxError,
+    UndefinedError,
+)
 from jinja2.meta import find_undeclared_variables
 from pydantic import create_model
 from pydantic.fields import FieldInfo
 
-from .exceptions import (TemplateError, TemplateOutputError,
-                         TemplateRenderError, TemplateSyntaxError)
-from .models import (ArchiveType, BaseModel, BuildType, Channel,
-                     ContentGenerator, ExternalRepo, Field, Group, Host,
-                     IdentifiableMixin, LocalMixin, Permission, PrivateAttr,
-                     SubModel, Tag, Target, User, field_validator)
+from .exceptions import (
+    TemplateError, TemplateOutputError,
+    TemplateRenderError, TemplateSyntaxError,
+)
+from .models import (
+    ArchiveType, BaseModel, BuildType, CoreObject, Channel,
+    ContentGenerator, DataMixin, ExternalRepo, Field, Group, Host,
+    IdentifiableMixin, LocalMixin, Permission, PrivateAttr,
+    SubModel, Tag, Target, User, field_validator,
+)
+from .models.compat import PrivateAttr
+
 
 logger = logging.getLogger("koji_habitude.templates")
 
 
-class TemplateCall(BaseModel, LocalMixin):
+class TemplateCall(DataMixin, BaseModel):
     """
     Represents a YAML doc that needs to be expanded into zero or more
     new docs via a Template.
@@ -47,6 +59,8 @@ class TemplateCall(BaseModel, LocalMixin):
     typename: ClassVar[str] = "template"
 
     yaml_type: str = Field(alias='type')
+
+    _data: Optional[Dict[str, Any]] = None
 
 
     @property
@@ -64,7 +78,9 @@ def _array_type_helper(f: 'TemplateFieldDefinition') -> Type:
 
 def _enum_type_helper(f: 'TemplateFieldDefinition') -> Type:
     if f.validation and f.validation.enum_values:
-        return Enum(f"Enum_{id(f)}", {str(v): v for v in f.validation.enum_values})  # type: ignore
+        return Enum(
+            f"Enum_{id(f)}",
+            {str(v): v for v in f.validation.enum_values})  # type: ignore
     else:
         return str
 
@@ -192,9 +208,10 @@ class TemplateFieldDefinition(SubModel):
         if isinstance(type_or_converter, type):
             self._python_type = type_or_converter
         else:
-            # these helper functions return something to be used as the pydantic
-            # field type. They may need to use values harvested from our
-            # configuration to do so (eg. array_item_type, object_fields)
+            # these helper functions return something to be used as
+            # the pydantic field type. They may need to use values
+            # harvested from our configuration to do so
+            # (eg. array_item_type, object_fields)
             self._python_type = type_or_converter(self)
 
         # Create field info
@@ -208,28 +225,32 @@ class TemplateFieldDefinition(SubModel):
         if self.default is not None:
             kwargs['default'] = self.default
 
-            # this will trigger validation (ie. type conversion) of the default
-            # value to the correct type as defined by the field definition. That
-            # saves us the trouble of having to convert it ourselves.
+            # this will trigger validation (ie. type conversion) of
+            # the default value to the correct type as defined by the
+            # field definition. That saves us the trouble of having to
+            # convert it ourselves.
             kwargs['validate_default'] = True
 
         elif not self.required:
             kwargs['default'] = None
 
-        # the validator will be added to the model class during model creation,
-        # it's not associated directly with the field definition.
+        # the validator will be added to the model class during model
+        # creation, it's not associated directly with the field
+        # definition.
 
         self._field_info = Field(**kwargs)  # type: ignore
 
 
 class TemplateModelDefinition(SubModel):
     """
-    YAML definition for creating a Pydantic model for template data validation
+    YAML definition for creating a Pydantic model for template data
+    validation
     """
 
     name: str = Field(alias='name', default='model')
     description: Optional[str] = Field(alias='description', default=None)
-    fields: Dict[str, TemplateFieldDefinition] = Field(alias='fields', default_factory=dict)
+    fields: Dict[str, TemplateFieldDefinition] = Field(
+        alias='fields', default_factory=dict)
 
     _model_class: Optional[Type[BaseModel]] = PrivateAttr(default=None)
 
@@ -245,11 +266,13 @@ class TemplateModelDefinition(SubModel):
         validators = {}
         for name, field in self.fields.items():
             if field.validation:
-                validators[f"validate_{name}"] = field.validation.as_field_validator(name)
+                validators[f"validate_{name}"] = \
+                    field.validation.as_field_validator(name)
         if validators:
             field_defs['__validators__'] = validators
 
-        self._model_class = create_model(self.name, **field_defs)  # type: ignore
+        self._model_class = create_model(  # type: ignore
+            self.name, **field_defs)
 
 
     def get_model_class(self) -> Type[BaseModel]:
@@ -285,7 +308,8 @@ class Template(BaseModel, IdentifiableMixin, LocalMixin):
 
     template_file: Optional[str] = Field(alias='file', default=None)
     template_content: Optional[str] = Field(alias='content', default=None)
-    template_model: Optional[TemplateModelDefinition] = Field(alias='model', default=None)
+    template_model: Optional[TemplateModelDefinition] = Field(
+        alias='model', default=None)
 
     description: Optional[str] = Field(alias='description', default=None)
 

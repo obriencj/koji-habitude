@@ -55,7 +55,9 @@ except ImportError:
 
 
     class BaseModel(_BaseModel):  # type: ignore
-        # This is a compatability shim for pydantic v1.10 to look more like v2
+
+        # This is a compatability shim for pydantic v1.10 to look more
+        # like v2
 
         class Config:
             allow_population_by_field_name = True
@@ -69,19 +71,28 @@ except ImportError:
             pass
 
         @classmethod
-        def model_validate(cls: Type[T], data: Dict[str, Any]) -> T:  # type: ignore
+        def model_validate(  # type: ignore
+                cls: Type[T],
+                data: Dict[str, Any]) -> T:
             """
-            Create an instance directly from a dictionary. Records the original data
-            dict for later review via the `data` property.
+            Create an instance directly from a dictionary. Records the
+            original data dict for later review via the `data`
+            property.
             """
+
             return cls.parse_obj(data)
 
-        def model_dump(self, by_alias: bool = True, **kwargs: Any) -> Dict[str, Any]:  # type: ignore
+        def model_dump(  # type: ignore
+                self,
+                by_alias: bool = True,
+                **kwargs: Any) -> Dict[str, Any]:
             """
-            Return a dictionary representation of this object. This is distinct from
-            the original data that was used to create the object, and may include
-            fields with default values and validated forms.
+            Return a dictionary representation of this object. This is
+            distinct from the original data that was used to create
+            the object, and may include fields with default values and
+            validated forms.
             """
+
             return self.dict(by_alias=by_alias, **kwargs)
 
     def field_validator(  # type: ignore
@@ -102,7 +113,8 @@ except ImportError:
                 work = func
             else:
                 work = lambda cls, v, values=None: func(cls, v)
-            return _validator(field, *fields, pre=pre, always=True, allow_reuse=True)(work)
+            return _validator(field, *fields, pre=pre,
+                              always=True, allow_reuse=True)(work)
 
         return decorator
 
