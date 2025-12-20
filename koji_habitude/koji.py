@@ -12,11 +12,17 @@ Helper functions for koji client operations.
 
 
 import logging
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
+from typing import (
+    TYPE_CHECKING, Any, Callable, Dict, List, Optional, TypeVar,
+)
 
-from koji import (ClientSession, MultiCallSession, VirtualCall, VirtualMethod,
-                  read_config)
+from koji import (
+    ClientSession, MultiCallSession, VirtualCall, VirtualMethod,
+    read_config,
+)
+from .intern import intern
 from koji_cli.lib import activate_session
+
 
 if TYPE_CHECKING:
     from .models import BaseKey
@@ -31,6 +37,19 @@ __all__ = (
 logger = logging.getLogger(__name__)
 
 
+ENABLE_INTERNING = True
+
+
+class InterningClientSession(ClientSession):
+    """
+    A client session that may intern the results of API calls to conserve
+    memory
+    """
+
+    def _callMethod(self, name, args, kwargs=None, retry=True):
+        return intern(super()._callMethod(name, args, kwargs, retry))
+
+
 def session(
         profile: str = 'koji',
         authenticate: bool = False) -> ClientSession:
@@ -40,7 +59,11 @@ def session(
 
     conf = read_config(profile)
     server = conf["server"]
-    session = ClientSession(server, opts=conf)
+    session: ClientSession
+    if ENABLE_INTERNING:
+        session = InterningClientSession(server, opts=conf)
+    else:
+        session = ClientSession(server, opts=conf)
     session.logger = logger
 
     if authenticate:
@@ -74,6 +97,7 @@ class VirtualPromise(VirtualCall):
 
     @_result.setter
     def _result(self, value: Any):
+        value = intern(value) if ENABLE_INTERNING else value
         self._real_result = value
         if trigger_fn := self._trigger:
             self._trigger = None
@@ -158,7 +182,7 @@ CallDict = Dict['BaseKey', List[VirtualCall]]
 
 class ReportingMulticall(PromiseMultiCallSession):
     """
-    A multicall that reports the results of the calls.
+    A multicall that associates the results of the calls with an object key.
     """
 
     def __init__(
@@ -196,19 +220,17 @@ class ReportingMulticall(PromiseMultiCallSession):
 
 def multicall(
         session: ClientSession,
-        batch: Optional[int] = 100,
-        associations: Optional[CallDict] = None) -> ReportingMulticall:
-
+        batch: Optional[int] = 100) -> PromiseMultiCallSession:
     """
     Create a multicall session that will record the calls made to it
     into the call_log list.
 
     :param session: The koji session to create the multicall session from
-    :param associations: Dict of BaseKey to list of VirtualCall objects
+    :param batch: The batch size for the multicall session
     """
 
     # note that we make the call log mandatory here.
-    mc = ReportingMulticall(session, batch=batch, associations=associations)
+    mc = PromiseMultiCallSession(session, batch=batch)
     vars(mc)['_currentuser'] = vars(session)['_currentuser']
     return mc
 
