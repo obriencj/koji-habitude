@@ -17,7 +17,9 @@ import logging
 from dataclasses import dataclass
 from enum import Enum
 from itertools import chain, islice
-from typing import Callable, Dict, Iterable, Iterator, List, Optional
+from typing import (
+    Callable, Dict, Iterable, Iterator, List, Optional, TypeAlias,
+)
 
 from koji import ClientSession, VirtualCall
 
@@ -31,6 +33,9 @@ logger = logging.getLogger(__name__)
 
 class ProcessorStateError(Exception):
     pass
+
+
+StepCallback: TypeAlias = Callable[[int, int], None]
 
 
 class ProcessorState(Enum):
@@ -57,20 +62,10 @@ class ProcessorSummary:
     state: ProcessorState
 
     change_reports: Dict[BaseKey, ChangeReport]
-    read_calls: Dict[BaseKey, List[VirtualCall]]
-    write_calls: Dict[BaseKey, List[VirtualCall]]
 
     @property
     def total_changes(self) -> int:
         return sum(len(reports) for reports in self.change_reports.values())
-
-    @property
-    def total_read_calls(self) -> int:
-        return sum(len(calls) for calls in self.read_calls.values())
-
-    @property
-    def total_write_calls(self) -> int:
-        return sum(len(calls) for calls in self.write_calls.values())
 
 
 class Processor:
@@ -93,10 +88,12 @@ class Processor:
         """
         Initialize the processor.
 
-        Args:
-            object_stream: Iterator of koji objects in dependency-resolved order
-            chunk_size: Number of objects to process in each chunk
-            koji_session: Koji session for API calls
+        :param koji_session: Koji session for API calls
+        :param dataseries: Iterator of koji objects in dependency-resolved
+          order
+        :param resolver: Resolver for dependency resolution
+        :param chunk_size: Number of objects to process in each chunk
+        :param skip_phantoms: Whether to skip phantoms
         """
 
         self.koji_session: ClientSession = koji_session
@@ -109,23 +106,20 @@ class Processor:
         self.state: ProcessorState = ProcessorState.READY_CHUNK
 
         self.change_reports: Dict[BaseKey, ChangeReport] = {}
-        self.read_logs: Dict[BaseKey, List[VirtualCall]] = {}
-        self.write_logs: Dict[BaseKey, List[VirtualCall]] = {}
 
 
     def step(self, chunk_size: Optional[int] = None) -> int:
         """
         Execute one complete cycle: read -> compare -> apply.
 
-        Can be safely invoked from either the READY_CHUNK or READY_READ states.
-        If READY_CHUNK, the current chunk is discarded and a new one is loaded.
-        If there was no chunk, state is set to EXHAUSTED and 0 is returned.
-        Otherwise, state is set to READY_READ and step_read, step_compare, and
-        step_apply are called in order. If any of these steps fail, the state is
-        set to BROKEN and an exception is raised.
+        Can be safely invoked from either the READY_CHUNK or READY_READ
+        states. If READY_CHUNK, the current chunk is discarded and a new one
+        is loaded. If there was no chunk, state is set to EXHAUSTED and 0 is
+        returned. Otherwise, state is set to READY_READ and step_read,
+        step_compare, and step_apply are called in order. If any of these
+        steps fail, the state is set to BROKEN and an exception is raised.
 
-        Returns:
-            count of objects processed
+        :returns: count of objects processed
         """
 
         if chunk_size is None:
@@ -166,11 +160,17 @@ class Processor:
         Fetch current state from Koji for all objects in current chunk.
 
         This step:
-        1. Creates empty change reports for each object via obj.change_report()
-        2. Calls read() on each report to fetch current koji state via multicall
-        3. Stores the populated reports for use in step_compare()
 
-        After this step, change reports contain current koji data but no changes yet.
+         1. Creates empty change reports for each object via
+            obj.change_report()
+
+         2. Calls read() on each report to fetch current koji state via
+            multicall
+
+         3. Stores the populated reports for use in step_compare()
+
+        After this step, change reports contain current koji data but no
+        changes yet.
         """
 
         if self.state != ProcessorState.READY_READ:
@@ -182,11 +182,8 @@ class Processor:
         logger.debug(f"Fetching koji state for {len(self.current_chunk)} objects")
 
         deferred_calls = []
-        with multicall(self.koji_session, associations=self.read_logs) as mc:
+        with multicall(self.koji_session) as mc:
             for obj in self.current_chunk:
-
-                # let our mc know to record calls with this key associated
-                mc.associate(obj.key())
 
                 # create and load the change report for this object
                 change_report = obj.change_report(self.resolver)
@@ -196,15 +193,14 @@ class Processor:
                     # indicate it would have follow-up queries to perform.
                     # Generally these follow a pattern of doing the initial
                     # object check, and then follup calls only if it does.
-                    deferred_calls.append((obj.key(), defer))
+                    deferred_calls.append(defer)
 
                 # store it in our change reports
                 self.change_reports[obj.key()] = change_report
 
         if deferred_calls:
-            with multicall(self.koji_session, associations=self.read_logs) as mc:
-                for key, call in deferred_calls:
-                    mc.associate(key)
+            with multicall(self.koji_session) as mc:
+                for call in deferred_calls:
                     call(mc)
 
         self.state = ProcessorState.READY_COMPARE
@@ -215,11 +211,15 @@ class Processor:
         Compare each object with its current koji state and identify changes.
 
         This step:
-        1. Retrieves the change reports populated in step_read()
-        2. Calls compare() on each report to analyze differences
-        3. Populates the reports with specific changes that need to be made
 
-        After this step, change reports contain both current data and required changes.
+          1. Retrieves the change reports populated in step_read()
+
+          2. Calls compare() on each report to analyze differences
+
+          3. Populates the reports with specific changes that need to be made
+
+        After this step, change reports contain both current data and required
+        changes.
         """
 
         if self.state != ProcessorState.READY_COMPARE:
@@ -247,9 +247,13 @@ class Processor:
         Apply the identified changes to the koji instance.
 
         This step:
-        1. Retrieves the change reports with changes identified in step_compare()
-        2. Calls apply() on each report to execute the changes via multicall
-        3. Commits all changes to the koji instance
+
+          1. Retrieves the change reports with changes identified in
+             step_compare()
+
+          2. Calls apply() on each report to execute the changes via multicall
+
+          3. Commits all changes to the koji instance
 
         After this step, the koji instance matches the desired state.
         """
@@ -262,9 +266,9 @@ class Processor:
             return
         logger.debug(f"Applying changes for {len(self.current_chunk)} objects")
 
-        # this is horribly over-complicated because at any point in the loop we
-        # may need to break out of the multicall and continue with that object
-        # and the rest of the work in a new multicall. Why? Because tag
+        # this is horribly over-complicated because at any point in the loop
+        # we may need to break out of the multicall and continue with that
+        # object and the rest of the work in a new multicall. Why? Because tag
         # inheritance can ONLY be added by using the parent tag's ID, not by
         # name. So if we're adding the parent tag, we don't know its ID until
         # after that multicall has run. This one quirk of the koji API is the
@@ -277,22 +281,23 @@ class Processor:
             holdover = None
             work_check = []
 
-            with multicall(self.koji_session, associations=self.write_logs) as m:
+            with multicall(self.koji_session) as m:
                 for obj in work_segment:
 
                     # get the change report for this object
                     change_report = self.change_reports[obj.key()]
 
-                    # check if the damned thing needs to break out of the multicall
-                    # this should only happen for tag inheritance where the parent
-                    # tag is being created in this same multicall.
+                    # check if the damned thing needs to break out of the
+                    # multicall this should only happen for tag inheritance
+                    # where the parent tag is being created in this same
+                    # multicall.
                     if change_report.break_multicall():
                         holdover = obj
                         break
-                    else:
-                        # apply the changes to the koji instance
-                        change_report.apply(m, skip_phantoms=self.skip_phantoms)
-                        work_check.append(obj)
+
+                    # apply the changes to the koji instance
+                    change_report.apply(m, skip_phantoms=self.skip_phantoms)
+                    work_check.append(obj)
 
             # check the results of all the changes. This will raise an exception
             # if the apply failed for some reason.
@@ -303,15 +308,15 @@ class Processor:
         self.state = ProcessorState.READY_CHUNK
 
 
-    def run(self, step_callback: Optional[Callable[[int, int], None]] = None) -> ProcessorSummary:
+    def run(self,
+            step_callback: Optional[StepCallback] = None) -> ProcessorSummary:
         """
-        Process all objects in the stream by repeatedly calling step() until we
-        are in an EXHAUSTED or BROKEN state. Returns a summary of the processing
-        results.
+        Process all objects in the stream by repeatedly calling step() until
+        we are in an EXHAUSTED or BROKEN state. Returns a summary of the
+        processing results.
 
-        Returns:
-            Summary of processing results including total objects processed,
-            changes applied, and any errors encountered.
+        :returns: Summary of processing results including total objects
+            processed, changes applied, and any errors encountered.
         """
         total_objects = 0
         step = 0
@@ -328,18 +333,26 @@ class Processor:
 
             state=self.state,
 
-            change_reports=self.change_reports,
-            read_calls=self.read_logs,
-            write_calls=self.write_logs)
+            change_reports=self.change_reports)
 
 
     def is_exhausted(self) -> bool:
-        """Check if the object stream has been fully processed."""
+        """
+        Check if the object stream has been fully processed.
+
+        :returns: True if the processor is in the EXHAUSTED state, False
+            otherwise
+        """
         return self.state == ProcessorState.EXHAUSTED
 
 
     def is_broken(self) -> bool:
-        """Check if the processor is in the BROKEN state."""
+        """
+        Check if the processor is in the BROKEN state.
+
+        :returns: True if the processor is in the BROKEN state, False
+            otherwise
+        """
         return self.state == ProcessorState.BROKEN
 
 
