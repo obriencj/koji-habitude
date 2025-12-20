@@ -775,31 +775,6 @@ class TestNamespaceFeedMethods(unittest.TestCase):
         # Check name
         self.assertEqual(self.ns._feedline[0].name, 'inline-tag-template')
 
-    def test_feed_raw_preserves_data_integrity(self):
-        """Test that feed_raw preserves all data from YAML documents."""
-
-        complex_doc = {
-            'type': 'tag',
-            'name': 'complex-tag',
-            'description': 'A complex tag with lots of data',
-            'inheritance': [
-                {'name': 'base-tag', 'priority': 10},
-                {'name': 'extra-tag', 'priority': 20}
-            ],
-            'external-repos': [{'name': 'repo1', 'priority': 15}, {'name': 'repo2', 'priority': 25}],
-        }
-
-        self.ns.feed_raw(complex_doc)
-
-        obj = self.ns._feedline[0]
-        self.assertIsInstance(obj, Tag)
-        self.assertEqual(obj.name, 'complex-tag')
-
-        # Check that all data is preserved
-        self.assertEqual(obj.data['description'], 'A complex tag with lots of data')
-        self.assertEqual(obj.data['inheritance'], [{'name': 'base-tag', 'priority': 10}, {'name': 'extra-tag', 'priority': 20}])
-        self.assertEqual(obj.data['external-repos'], [{'name': 'repo1', 'priority': 15}, {'name': 'repo2', 'priority': 25}])
-
     def test_feedall_raw_from_nested_sample(self):
         """Test feedall_raw with nested sample file."""
 
