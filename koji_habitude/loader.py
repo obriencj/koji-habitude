@@ -14,12 +14,20 @@ YAML file loading, path discovery, and pretty-printing.
 import sys
 from itertools import chain
 from pathlib import Path
-from typing import (Any, Dict, Iterable, Iterator, List, Optional, Protocol,
-                    Sequence, Type, Union)
+from typing import (
+    Any, Dict, Iterable, Iterator, List, Optional, Protocol,
+    Sequence, Type, TypeVar, Union,
+)
 
-import yaml
+from yaml import dump, load_all, YAMLError as PyYAMLError
+try:
+    from yaml import CSafeLoader as SafeLoader, CDumper as Dumper
+except ImportError:
+    from yaml import SafeLoader, Dumper  # type: ignore
 
 from .exceptions import YAMLError
+from .intern import intern
+
 
 __all__ = (
     'MultiLoader',
@@ -32,6 +40,11 @@ __all__ = (
 )
 
 
+# this is mostly for testing purposes, but it can be overridden by the user if
+# they hate saving memory
+ENABLE_INTERNING = True
+
+
 def load_yaml_files(
         paths: List[Union[str, Path]],
         recursive: bool = False) -> List[Dict[str, Any]]:
@@ -39,8 +52,8 @@ def load_yaml_files(
     Load YAML file content from the given paths, in order, and return the
     resulting documents as a list.
 
-    A shortcut for creating a :class:`MultiLoader` with the :class:`YAMLLoader` class and
-    using it to load the given paths.
+    A shortcut for creating a :class:`MultiLoader` with the
+    :class:`YAMLLoader` class and using it to load the given paths.
 
     :param paths: List of file paths to load
     :param recursive: Whether to recursively search directories
@@ -50,7 +63,7 @@ def load_yaml_files(
     return list(MultiLoader([YAMLLoader]).load(paths, recursive=recursive))
 
 
-class PrettyYAML(yaml.Dumper):
+class PrettyYAML(Dumper):
     """
     Custom YAML dumper for pretty-printing.
 
@@ -69,7 +82,11 @@ class PrettyYAML(yaml.Dumper):
             return super().represent_scalar(tag, value, style='')
 
 
-def pretty_yaml_all(sequence: Iterable[Dict[str, Any]], out=sys.stdout, comments=True, **opts) -> None:
+def pretty_yaml_all(
+        sequence: Iterable[Dict[str, Any]],
+        out=sys.stdout,
+        comments=True,
+        **opts) -> None:
     """
     Pretty-print a sequence of YAML documents to the given output stream, with
     document separators.
@@ -90,13 +107,18 @@ def pretty_yaml_all(sequence: Iterable[Dict[str, Any]], out=sys.stdout, comments
         out.write('\n')
 
 
-def pretty_yaml(doc: Dict[str, Any], out=sys.stdout, comments=True, **opts) -> None:
+def pretty_yaml(
+        doc: Dict[str, Any],
+        out=sys.stdout,
+        comments=True,
+        **opts) -> None:
     """
     Pretty-print a single YAML object to the given output stream.
 
-    Handles special features of the koji-habitude YAML format, in particular the
-    `__file__`, `__line__`, and `__trace__` keys. These are removed from the main
-    document body and represented as comments preceeding the document.
+    Handles special features of the koji-habitude YAML format, in particular
+    the `__file__`, `__line__`, and `__trace__` keys. These are removed from
+    the main document body and represented as comments preceeding the
+    document.
 
     :param doc: The YAML document to pretty-print
     :param out: The output stream to write to
@@ -135,16 +157,16 @@ def pretty_yaml(doc: Dict[str, Any], out=sys.stdout, comments=True, **opts) -> N
         'explicit_start': False,
     }
     params.update(opts)
-    return yaml.dump(doc, Dumper=PrettyYAML, stream=out, **params)  # type: ignore
+    dump(doc, Dumper=PrettyYAML, stream=out, **params)  # type: ignore
 
 
-class MagicSafeLoader(yaml.SafeLoader):
+class MagicSafeLoader(SafeLoader):
     """
     A SafeLoader with slightly tweaked behavior.
 
     * allows our anchors to persist across documents
-    * adds a ``__line__`` key to each document, representing the line number in the
-      file that the document started on.
+    * adds a ``__line__`` key to each document, representing the line number
+      in the file that the document started on.
     """
 
     def compose_document(self):
@@ -213,12 +235,16 @@ class YAMLLoader(LoaderProtocol):
         :returns: Iterator of YAML documents with __file__ and __line__ keys
         :raises YAMLError: If YAML parsing fails
         """
+
+        interning = ENABLE_INTERNING
+
         with open(self.filename, 'r') as fd:
             try:
-                for doc in yaml.load_all(fd, Loader=MagicSafeLoader):
+                for doc in load_all(fd, Loader=MagicSafeLoader):
                     doc['__file__'] = self.filename
-                    yield doc
-            except yaml.YAMLError as e:
+                    yield intern(doc) if interning else doc
+
+            except PyYAMLError as e:
                 raise YAMLError(e, filename=self.filename) from e
 
 
