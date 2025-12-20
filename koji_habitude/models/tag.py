@@ -387,7 +387,10 @@ class TagAddInheritance(Add):
 
         tinfo = tag.remote()
         if tinfo is None:
-            assert not tag.is_phantom()
+            if tag.is_phantom():
+                logger.debug(f"Parent tag '{self.parent.name}' is phantom, skipping")
+                return False
+
             logger.debug("MultiCallNotReady, breaking out of multicall")
             return True
 
