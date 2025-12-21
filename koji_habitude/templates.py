@@ -44,7 +44,6 @@ from .models import (
     IdentifiableMixin, LocalMixin, Permission, PrivateAttr,
     SubModel, Tag, Target, User, field_validator,
 )
-from .models.compat import PrivateAttr
 
 
 logger = logging.getLogger("koji_habitude.templates")

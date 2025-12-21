@@ -1269,7 +1269,7 @@ class RemoteTag(TagModel, RemoteObject):
         # workaround, don't set inherit=False
         # https://pagure.io/koji/issues/4503
         # if/when fixed, add a version check
-        ## promise_call(self.set_koji_groups, session.getTagGroups, self.name, inherit=False, incl_blocked=True)
+        # XXX: promise_call(self.set_koji_groups, session.getTagGroups, self.name, inherit=False, incl_blocked=True)
         promise_call(self.set_koji_groups, session.getTagGroups, self.name, incl_blocked=True)
 
         promise_call(self.set_koji_inheritance, session.getInheritanceData, self.name)
