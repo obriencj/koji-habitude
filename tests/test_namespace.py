@@ -641,15 +641,16 @@ class TestNamespaceFeedMethods(unittest.TestCase):
 
         self.ns.feed_raw(doc)
 
-        # Check feedline has one object
-        self.assertEqual(len(self.ns._feedline), 1)
-        obj = self.ns._feedline[0]
+        # Check object was added directly to namespace
+        self.assertEqual(len(self.ns._feedline), 0)
+        obj = self.ns.get(('user', 'sample-data'))
+        self.assertIsNotNone(obj)
         self.assertIsInstance(obj, User)
         self.assertEqual(obj.name, 'sample-data')
         self.assertEqual(obj.typename, 'user')
 
     def test_feed_raw_multiple_calls(self):
-        """Test multiple feed_raw calls accumulate in feedline."""
+        """Test multiple feed_raw calls add objects directly to namespace."""
 
         # Create test documents
         doc1 = {'type': 'tag', 'name': 'tag1'}
@@ -661,16 +662,25 @@ class TestNamespaceFeedMethods(unittest.TestCase):
         self.ns.feed_raw(doc2)
         self.ns.feed_raw(doc3)
 
-        # Check all are in feedline
-        self.assertEqual(len(self.ns._feedline), 3)
-        self.assertIsInstance(self.ns._feedline[0], Tag)
-        self.assertIsInstance(self.ns._feedline[1], User)
-        self.assertIsInstance(self.ns._feedline[2], ExternalRepo)
+        # Check all are in namespace (not feedline)
+        self.assertEqual(len(self.ns._feedline), 0)
+
+        obj1 = self.ns.get(('tag', 'tag1'))
+        obj2 = self.ns.get(('user', 'user1'))
+        obj3 = self.ns.get(('external-repo', 'repo1'))
+
+        self.assertIsNotNone(obj1)
+        self.assertIsNotNone(obj2)
+        self.assertIsNotNone(obj3)
+
+        self.assertIsInstance(obj1, Tag)
+        self.assertIsInstance(obj2, User)
+        self.assertIsInstance(obj3, ExternalRepo)
 
         # Check names
-        self.assertEqual(self.ns._feedline[0].name, 'tag1')
-        self.assertEqual(self.ns._feedline[1].name, 'user1')
-        self.assertEqual(self.ns._feedline[2].name, 'repo1')
+        self.assertEqual(obj1.name, 'tag1')
+        self.assertEqual(obj2.name, 'user1')
+        self.assertEqual(obj3.name, 'repo1')
 
     def test_feedall_raw_multiple_documents(self):
         """Test feedall_raw with multiple documents from a multi-doc file."""
@@ -684,18 +694,26 @@ class TestNamespaceFeedMethods(unittest.TestCase):
 
         self.ns.feedall_raw(documents)
 
-        # Check all documents are in feedline
-        self.assertEqual(len(self.ns._feedline), 3)
+        # Check all documents are in namespace (not feedline)
+        self.assertEqual(len(self.ns._feedline), 0)
 
         # Check types and names
-        self.assertIsInstance(self.ns._feedline[0], Target)
-        self.assertEqual(self.ns._feedline[0].name, 'first-doc')
+        obj1 = self.ns.get(('target', 'first-doc'))
+        obj2 = self.ns.get(('host', 'second-doc'))
+        obj3 = self.ns.get(('user', 'third-doc'))
 
-        self.assertIsInstance(self.ns._feedline[1], Host)
-        self.assertEqual(self.ns._feedline[1].name, 'second-doc')
+        self.assertIsNotNone(obj1)
+        self.assertIsNotNone(obj2)
+        self.assertIsNotNone(obj3)
 
-        self.assertIsInstance(self.ns._feedline[2], User)
-        self.assertEqual(self.ns._feedline[2].name, 'third-doc')
+        self.assertIsInstance(obj1, Target)
+        self.assertEqual(obj1.name, 'first-doc')
+
+        self.assertIsInstance(obj2, Host)
+        self.assertEqual(obj2.name, 'second-doc')
+
+        self.assertIsInstance(obj3, User)
+        self.assertEqual(obj3.name, 'third-doc')
 
     def test_feedall_raw_mixed_types(self):
         """Test feedall_raw with mixed core types, templates, and template calls."""
@@ -710,15 +728,26 @@ class TestNamespaceFeedMethods(unittest.TestCase):
 
         self.ns.feedall_raw(mixed_docs)
 
-        # Check all objects are in feedline
-        self.assertEqual(len(self.ns._feedline), 5)
+        # Only TemplateCall should be in feedline
+        self.assertEqual(len(self.ns._feedline), 1)
+        self.assertIsInstance(self.ns._feedline[0], TemplateCall)
 
-        # Verify types
-        self.assertIsInstance(self.ns._feedline[0], Tag)
-        self.assertIsInstance(self.ns._feedline[1], Template)
-        self.assertIsInstance(self.ns._feedline[2], User)
-        self.assertIsInstance(self.ns._feedline[3], TemplateCall)
-        self.assertIsInstance(self.ns._feedline[4], ExternalRepo)
+        # Verify BaseObjects are in namespace
+        tag_obj = self.ns.get(('tag', 'test-tag'))
+        user_obj = self.ns.get(('user', 'test-user'))
+        repo_obj = self.ns.get(('external-repo', 'test-repo'))
+
+        self.assertIsNotNone(tag_obj)
+        self.assertIsNotNone(user_obj)
+        self.assertIsNotNone(repo_obj)
+        self.assertIsInstance(tag_obj, Tag)
+        self.assertIsInstance(user_obj, User)
+        self.assertIsInstance(repo_obj, ExternalRepo)
+
+        # Verify Template is in templates
+        template = self.ns.get_template('test-template')
+        self.assertIsNotNone(template)
+        self.assertIsInstance(template, Template)
 
     def test_feedall_raw_empty_sequence(self):
         """Test feedall_raw with empty sequence."""
@@ -734,9 +763,11 @@ class TestNamespaceFeedMethods(unittest.TestCase):
 
         self.ns.feedall_raw([doc])
 
-        self.assertEqual(len(self.ns._feedline), 1)
-        self.assertIsInstance(self.ns._feedline[0], Host)
-        self.assertEqual(self.ns._feedline[0].name, 'single-host')
+        self.assertEqual(len(self.ns._feedline), 0)
+        obj = self.ns.get(('host', 'single-host'))
+        self.assertIsNotNone(obj)
+        self.assertIsInstance(obj, Host)
+        self.assertEqual(obj.name, 'single-host')
 
     def test_feed_raw_with_templates_disabled(self):
         """Test feed_raw behavior when templates are disabled."""
@@ -746,8 +777,10 @@ class TestNamespaceFeedMethods(unittest.TestCase):
         # Core type should work
         core_doc = {'type': 'tag', 'name': 'test-tag'}
         ns_no_templates.feed_raw(core_doc)
-        self.assertEqual(len(ns_no_templates._feedline), 1)
-        self.assertIsInstance(ns_no_templates._feedline[0], Tag)
+        self.assertEqual(len(ns_no_templates._feedline), 0)
+        obj = ns_no_templates.get(('tag', 'test-tag'))
+        self.assertIsNotNone(obj)
+        self.assertIsInstance(obj, Tag)
 
         # Template type should fail
         template_doc = {'type': 'template', 'name': 'test-template', 'content': 'test'}
@@ -768,12 +801,14 @@ class TestNamespaceFeedMethods(unittest.TestCase):
 
         self.ns.feedall_raw(documents)
 
-        # Check template is in feedline
-        self.assertEqual(len(self.ns._feedline), 1)
-        self.assertIsInstance(self.ns._feedline[0], Template)
+        # Check template is in templates (not feedline)
+        self.assertEqual(len(self.ns._feedline), 0)
+        template = self.ns.get_template('inline-tag-template')
+        self.assertIsNotNone(template)
+        self.assertIsInstance(template, Template)
 
         # Check name
-        self.assertEqual(self.ns._feedline[0].name, 'inline-tag-template')
+        self.assertEqual(template.name, 'inline-tag-template')
 
     def test_feedall_raw_from_nested_sample(self):
         """Test feedall_raw with nested sample file."""
@@ -784,9 +819,10 @@ class TestNamespaceFeedMethods(unittest.TestCase):
 
         self.ns.feedall_raw(documents)
 
-        # Check the group object
-        self.assertEqual(len(self.ns._feedline), 1)
-        obj = self.ns._feedline[0]
+        # Check the group object is in namespace
+        self.assertEqual(len(self.ns._feedline), 0)
+        obj = self.ns.get(('group', 'deep-sample'))
+        self.assertIsNotNone(obj)
         self.assertIsInstance(obj, Group)
         self.assertEqual(obj.name, 'deep-sample')
 
@@ -814,7 +850,7 @@ class TestNamespaceFeedMethods(unittest.TestCase):
             self.ns.feedall_raw(docs_with_error)
 
     def test_feed_raw_accumulation_across_calls(self):
-        """Test that multiple feed operations accumulate correctly."""
+        """Test that multiple feed operations add objects to correct storage locations."""
 
         # Load different files and feed them
         sample_docs = self.load_yaml_file('samples/sample.yaml')
@@ -826,31 +862,23 @@ class TestNamespaceFeedMethods(unittest.TestCase):
         self.ns.feedall_raw(template_docs)  # feedall_raw with 1 template doc
         self.ns.feedall_raw(nested_docs)  # feedall_raw with 1 doc
 
-        # Check total accumulation
-        self.assertEqual(len(self.ns._feedline), 3)
+        # No TemplateCalls, so feedline should be empty
+        self.assertEqual(len(self.ns._feedline), 0)
 
-        # Check types in order
-        self.assertIsInstance(self.ns._feedline[0], User)      # sample.yaml
-        self.assertIsInstance(self.ns._feedline[1], Template)  # inline_content.yaml
-        self.assertIsInstance(self.ns._feedline[2], Group)     # deep.yml
+        # Check User is in namespace
+        user_obj = self.ns.get(('user', 'sample-data'))
+        self.assertIsNotNone(user_obj)
+        self.assertIsInstance(user_obj, User)
 
-    def test_feedall_raw_maintains_document_order(self):
-        """Test that feedall_raw maintains the order of documents."""
+        # Check Template is in templates
+        template = self.ns.get_template('inline-tag-template')
+        self.assertIsNotNone(template)
+        self.assertIsInstance(template, Template)
 
-        ordered_docs = [
-            {'type': 'tag', 'name': 'first'},
-            {'type': 'user', 'name': 'second'},
-            {'type': 'host', 'name': 'third'},
-            {'type': 'target', 'name': 'fourth', 'build-tag': 'fourth-build'},
-            {'type': 'group', 'name': 'fifth'},
-        ]
-
-        self.ns.feedall_raw(ordered_docs)
-
-        # Check order is preserved
-        names = [obj.name for obj in self.ns._feedline]
-        self.assertEqual(names, ['first', 'second', 'third', 'fourth', 'fifth'])
-
+        # Check Group is in namespace
+        group_obj = self.ns.get(('group', 'deep-sample'))
+        self.assertIsNotNone(group_obj)
+        self.assertIsInstance(group_obj, Group)
 
 if __name__ == '__main__':
     unittest.main()
