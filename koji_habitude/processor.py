@@ -16,9 +16,8 @@ import logging
 from dataclasses import dataclass
 from enum import Enum
 from itertools import chain, islice
-from typing import (
-    Callable, Dict, Iterable, Iterator, List, Optional, TypeAlias,
-)
+from typing import Callable, Dict, Iterable, Iterator, List, Optional
+from typing_extensions import TypeAlias
 
 from koji import ClientSession, VirtualCall
 
@@ -112,7 +111,7 @@ class Processor:
         self.spinner_fn: Callable[[str], None] = spinner_fn
 
         self.read_batch_size: int = chunk_size
-        self.apply_batch_size: int = chunk_size * 10
+        self.apply_batch_size: int = chunk_size * 5
 
 
     def spin(self, message: str = None) -> None:
