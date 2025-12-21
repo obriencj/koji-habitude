@@ -432,7 +432,14 @@ class Namespace:
         :param obj: The core object to add to the queue
         """
 
-        return self._feedline.append(obj)
+        if isinstance(obj, Template):
+            return self.add_template(obj)
+        elif isinstance(obj, TemplateCall):
+            return self._feedline.append(obj)
+        elif isinstance(obj, BaseObject):
+            return self.add(obj)
+        else:
+            raise TypeError(f"Unknown object type: {type(obj).__name__}")
 
 
     def feedall(self, sequence: Iterable[Core]) -> None:
@@ -444,7 +451,8 @@ class Namespace:
         :param sequence: The sequence of core objects to add to the queue
         """
 
-        return self._feedline.extend(sequence)
+        for obj in sequence:
+            self.feed(obj)
 
 
     def expand(self) -> None:
