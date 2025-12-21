@@ -387,7 +387,10 @@ class TagAddInheritance(Add):
 
         tinfo = tag.remote()
         if tinfo is None:
-            assert not tag.is_phantom()
+            if tag.is_phantom():
+                logger.debug(f"Parent tag '{self.parent.name}' is phantom, skipping")
+                return False
+
             logger.debug("MultiCallNotReady, breaking out of multicall")
             return True
 
@@ -505,13 +508,25 @@ class TagPackageListAdd(Add):
     obj: 'Tag'
     package: 'PackageEntry'
 
+    _phantom_owner: bool = False
+
+    _skippable: ClassVar[bool] = True
+
+    def skip_check_impl(self, resolver: 'Resolver') -> bool:
+        # We don't actually skip, but we do set the owner to None if it's a
+        # phantom
+        owner = resolver.resolve(('user', self.package.owner))
+        self._phantom_owner = owner.is_phantom()
+        return False
+
     def impl_apply(self, session: MultiCallSession):
         arches_list = self.package.extra_arches
         arches = ' '.join(arches_list) if arches_list else None
+        owner = self.package.owner if not self._phantom_owner else None
         return session.packageListAdd(
             self.obj.name,
             self.package.name,
-            owner=self.package.owner,
+            owner=owner,
             block=self.package.block,
             extra_arches=arches,
             force=True)
@@ -520,7 +535,8 @@ class TagPackageListAdd(Add):
         if self.package.block:
             return f"Block package {self.package.name}"
         else:
-            info = " with owner {self.package.owner}" if self.package.owner else ""
+            owner = self.package.owner if not self._phantom_owner else None
+            info = f" with owner {owner}" if owner else ""
             if self.package.extra_arches:
                 arches_str = ', '.join(self.package.extra_arches)
                 info += f" with extra_arches [{arches_str}]"
@@ -556,6 +572,12 @@ class TagPackageListSetOwner(Modify):
     obj: 'Tag'
     package: str
     owner: str
+
+    _skippable: ClassVar[bool] = True
+
+    def skip_check_impl(self, resolver: 'Resolver') -> bool:
+        owner = resolver.resolve(('user', self.owner))
+        return owner.is_phantom()
 
     def impl_apply(self, session: MultiCallSession):
         return session.packageListSetOwner(self.obj.name, self.package, self.owner, force=True)
@@ -1247,10 +1269,8 @@ class RemoteTag(TagModel, RemoteObject):
         # workaround, don't set inherit=False
         # https://pagure.io/koji/issues/4503
         # if/when fixed, add a version check
-        if False:
-            promise_call(self.set_koji_groups, session.getTagGroups, self.name, inherit=False, incl_blocked=True)
-        else:
-            promise_call(self.set_koji_groups, session.getTagGroups, self.name, incl_blocked=True)
+        # XXX: promise_call(self.set_koji_groups, session.getTagGroups, self.name, inherit=False, incl_blocked=True)
+        promise_call(self.set_koji_groups, session.getTagGroups, self.name, incl_blocked=True)
 
         promise_call(self.set_koji_inheritance, session.getInheritanceData, self.name)
         promise_call(self.set_koji_external_repos, session.getTagExternalRepos, tag_info=self.name)

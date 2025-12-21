@@ -15,14 +15,16 @@ resolution logic for defining and expanding templates.
 
 import logging
 from enum import Enum, auto
-from typing import (Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple,
-                    Type, Union)
+from typing import (
+    Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple,
+    Type, Union,
+)
 
 from pydantic import ValidationError as PydanticValidationError
 from typing_extensions import TypeAlias
 
 from .exceptions import ExpansionError, RedefineError, ValidationError
-from .models import CORE_MODELS, BaseObject, BaseKey, CoreObject
+from .models import CORE_MODELS, BaseObject, BaseKey, CoreObject, DataMixin
 from .templates import Template, TemplateCall
 
 
@@ -34,7 +36,8 @@ __all__ = (
 )
 
 
-default_logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
+default_logger = logger
 
 
 class Redefine(Enum):
@@ -83,9 +86,12 @@ def add_into(
     :param key: The key to add the object under
     :param obj: The object to add
     :param redefine: The redefine setting
-    :param logger: The logger to use when redefine is IGNORE_WARN or ALLOW_WARN
+    :param logger: The logger to use when redefine is IGNORE_WARN or
+      ALLOW_WARN
 
-    :raises RedefineError: If the object is being redefined and the redefine setting is ERROR
+    :raises RedefineError: If the object is being redefined and the
+      redefine setting is ERROR
+
     :raises AssertionError: If the redefine setting is unknown
     """
 
@@ -133,7 +139,8 @@ def merge_into(
         redefine: Redefine = Redefine.ERROR,
         logger: Optional[logging.Logger] = None) -> None:
     """
-    Merge a dictionary into another dictionary, following the redefine semantics.
+    Merge a dictionary into another dictionary, following the
+    redefine semantics.
 
     :param into: The target dictionary
     :param other: The source dictionary to merge from
@@ -145,15 +152,30 @@ def merge_into(
         add_into(into, key, obj, redefine, logger)
 
 
-CoreType: TypeAlias = Union[Type[CoreObject], Type[Template], Type[TemplateCall]]
-Core: TypeAlias = Union[CoreObject, Template, TemplateCall]
+class DataObject(DataMixin, CoreObject):
+
+    # must redeclare due to pydantic v1.10 support
+    _data: Optional[Dict[str, Any]] = None
+
+    def to_dict(self):
+        return self._data
+
+
+CoreType: TypeAlias = Union[Type[CoreObject],
+                            Type[Template],
+                            Type[TemplateCall]]
+
+Core: TypeAlias = Union[CoreObject,
+                        Template,
+                        TemplateCall]
 
 
 class Namespace:
 
     def __init__(
             self,
-            coretypes: Union[Mapping[str, Type[CoreObject]], Iterable[Type[CoreObject]]] = CORE_MODELS,
+            coretypes: Union[Mapping[str, Type[CoreObject]],
+                             Iterable[Type[CoreObject]]] = CORE_MODELS,
             enable_templates: bool = True,
             redefine: Redefine = Redefine.ERROR,
             logger: Optional[logging.Logger] = None):
@@ -257,28 +279,35 @@ class Namespace:
             other: 'Namespace',
             redefine: Optional[Redefine] = None) -> None:
         """
-        Merge the templates from another namespace into this one, following the
-        redefine semantics of this namespace. If redefine is provided, use those
-        rules instead.
+        Merge the templates from another namespace into this one,
+        following the redefine semantics of this namespace. If
+        redefine is provided, use those rules instead.
 
         :param other: The namespace to merge templates from
-        :param redefine: Optional redefine setting to override the instance setting
+        :param redefine: Optional redefine setting to override the
+          instance setting
         """
+
         redefine = redefine or self.redefine
         merge_into(self._templates, other._templates, redefine, self.logger)
 
 
-    def get_type(self, typename: str, or_call: bool = True) -> Optional[CoreType]:
+    def get_type(
+            self,
+            typename: str,
+            or_call: bool = True) -> Optional[CoreType]:
         """
-        Return the type for the given typename. If or_call is True (the
-        default), will return a TemplateCall for missing type names. If or_call
-        is False, or if the Namespace was not created with templates enabled,
-        then this will return None for missing type names.
+        Return the type for the given typename. If or_call is True
+        (the default), will return a TemplateCall for missing type
+        names. If or_call is False, or if the Namespace was not
+        created with templates enabled, then this will return None for
+        missing type names.
 
         :param typename: The type name to look up
         :param or_call: Whether to return a TemplateCall for missing types
         :returns: The type class or None
         """
+
         if or_call:
             return self.typemap.get(typename) or self.typemap.get(None)
         else:
@@ -287,18 +316,22 @@ class Namespace:
 
     def to_object(self, objdict: Dict[str, Any]) -> Core:
         """
-        Convert a dictionary into a Resolvable object instance. Types are resolved
-        from the `type` key. An exception is raised if no type key is present.
+        Convert a dictionary into a Resolvable object
+        instance. Types are resolved from the `type` key. An exception
+        is raised if no type key is present.
 
-        If templates are enabled, then the `type` key may be `template` in order
-        to define a new template. Any other unknown type is assumed to be a
-        template call.
+        If templates are enabled, then the `type` key may be
+        `template` in order to define a new template. Any other
+        unknown type is assumed to be a template call.
 
         If templates are not enabled, then any unknown type is an error.
 
         :param objdict: The dictionary to convert
         :returns: A resolvable object instance
-        :raises ValueError: If no type key is present, or if no type handler is found for the type
+
+        :raises ValueError: If no type key is present, or if no type
+          handler is found for the type
+
         :raises ValidationError: If pydantic validation fails for the object
         """
 
@@ -311,6 +344,7 @@ class Namespace:
             raise ValueError(f"No type handler for {objtype}")
 
         try:
+            logger.debug(f"Converting object of type {objtype} to {cls.__name__}")
             return cls.from_dict(objdict)
         except PydanticValidationError as e:
             raise ValidationError(
@@ -321,8 +355,8 @@ class Namespace:
 
     def to_objects(self, objseq: Iterable[Dict[str, Any]]) -> Iterable[Core]:
         """
-        Convert a sequence of dictionaries into a sequence of Resolvable object
-        instances, via the `to_object` method.
+        Convert a sequence of dictionaries into a sequence of
+        Resolvable object instances, via the `to_object` method.
 
         :param objseq: The sequence of dictionaries to convert
         :returns: Sequence of resolvable object instances
@@ -344,6 +378,7 @@ class Namespace:
             raise TypeError(f"{type(obj).__name__} cannot be"
                             " directly added to a Namespace")
 
+        logger.debug(f"Adding object {obj.key()} to namespace")
         return add_into(self._ns, obj.key(), obj,
                         self.redefine, self.logger)
 
@@ -365,9 +400,10 @@ class Namespace:
 
     def feed_raw(self, data: Dict[str, Any]) -> None:
         """
-        Add raw data to the queue of objects to be added to this namespace. The
-        data will be converted to an object via the `to_object` method. This
-        queue is processed via the `expand()` method.
+        Add raw data to the queue of objects to be added to this
+        namespace. The data will be converted to an object via the
+        `to_object` method. This queue is processed via the `expand()`
+        method.
 
         :param data: The raw data dictionary to add
         """
@@ -377,9 +413,10 @@ class Namespace:
 
     def feedall_raw(self, datasequence: Iterable[Dict[str, Any]]) -> None:
         """
-        Add a sequence of raw data to the queue of objects to be added to this
-        namespace. The data will be converted to an object via the `to_object`
-        method. This queue is processed via the `expand()` method.
+        Add a sequence of raw data to the queue of objects to be
+        added to this namespace. The data will be converted to an
+        object via the `to_object` method. This queue is processed via
+        the `expand()` method.
 
         :param datasequence: The sequence of raw data dictionaries to add
         """
@@ -395,7 +432,14 @@ class Namespace:
         :param obj: The core object to add to the queue
         """
 
-        return self._feedline.append(obj)
+        if isinstance(obj, Template):
+            return self.add_template(obj)
+        elif isinstance(obj, TemplateCall):
+            return self._feedline.append(obj)
+        elif isinstance(obj, BaseObject):
+            return self.add(obj)
+        else:
+            raise TypeError(f"Unknown object type: {type(obj).__name__}")
 
 
     def feedall(self, sequence: Iterable[Core]) -> None:
@@ -407,24 +451,28 @@ class Namespace:
         :param sequence: The sequence of core objects to add to the queue
         """
 
-        return self._feedline.extend(sequence)
+        for obj in sequence:
+            self.feed(obj)
 
 
     def expand(self) -> None:
         """
-        Process the queue of objects that have been fed into this namespace via
-        the `feed` or `feedall` methods. At this point any templates in the
-        queue will be added to the namespace, and any template calls will be
-        expanded. This is the final step in the loading process.
+        Process the queue of objects that have been fed into this
+        namespace via the `feed` or `feedall` methods. At this point
+        any templates in the queue will be added to the namespace, and
+        any template calls will be expanded. This is the final step in
+        the loading process.
 
-        The redefine semantics are applied as objects are processed, so this
-        method will raise an exception if a redefinition is encountered and the
-        redefine setting is `ERROR`.
+        The redefine semantics are applied as objects are processed,
+        so this method will raise an exception if a redefinition is
+        encountered and the redefine setting is `ERROR`.
 
-        :raises ExpansionError: If the maximum depth is reached when attempting to
-            expand a recursively expanding template
-        :raises AssertionError: If the first deferal is not a TemplateCall when
-            no further objects can be added to the namespace (indicates a bug)
+        :raises ExpansionError: If the maximum depth is reached when
+          attempting to expand a recursively expanding template
+
+        :raises AssertionError: If the first deferal is not a
+          TemplateCall when no further objects can be added to the
+          namespace (indicates a bug)
         """
 
         work = self._feedline
@@ -444,32 +492,37 @@ class Namespace:
                 )
 
 
-    def _expand(self, sequence: Iterable[Core], deferals: List[Core], depth: int = 0) -> bool:
+    def _expand(
+            self,
+            sequence: Iterable[Core],
+            deferals: List[Core],
+            depth: int = 0) -> bool:
 
         # processes the sequence in order, either adding core objects
         # or templates to the namespace. If it hits a TemplateCall,
         # then attempts to expand that template and process its
-        # expansion via recursion. If the TemplateCall cannot be expanded,
-        # we defer, and all further core objects, expanded TemplateCalls,
-        # and unexpandable TemplateCalls are fed into the deferals list.
-        # So long as we invoked at least one .add or .add_template, we
-        # have impacte the namespace, and therefore we'll have the
-        # deferals fed back to us in another call.
+        # expansion via recursion. If the TemplateCall cannot be
+        # expanded, we defer, and all further core objects, expanded
+        # TemplateCalls, and unexpandable TemplateCalls are fed into
+        # the deferals list.  So long as we invoked at least one .add
+        # or .add_template, we have impacte the namespace, and
+        # therefore we'll have the deferals fed back to us in another
+        # call.
 
         # In this manner, all left-most available items are processed
-        # until a roadblock is hit. Template definitions will be pulled
-        # from what's available, and in this manner if we encounter
-        # a TemplateCall we cannot act on now, we can hope to act on it
-        # later on.
+        # until a roadblock is hit. Template definitions will be
+        # pulled from what's available, and in this manner if we
+        # encounter a TemplateCall we cannot act on now, we can hope
+        # to act on it later on.
 
         if depth > self.max_depth:
             raise ExpansionError(f"Maximum depth of {self.max_depth} reached")
 
-        # acted is a deadlock check. We need to have done at least one of the
-        # following actions to not be in a deadlock:
-        # 1. Added a template
-        # 2. Expanded a template call
-        # 3. Added an object
+        # acted is a deadlock check. We need to have done at least one
+        # of the following actions to not be in a deadlock:
+        #  1. Added a template
+        #  2. Expanded a template call
+        #  3. Added an object
         acted = False
 
         for obj in sequence:
@@ -531,7 +584,8 @@ class TemplateNamespace(Namespace):
 
     def __init__(
             self,
-            coretypes: Union[Mapping[str, Type[CoreObject]], Iterable[Type[CoreObject]]] = CORE_MODELS,
+            coretypes: Union[Mapping[str, Type[CoreObject]],
+                             Iterable[Type[CoreObject]]] = CORE_MODELS,
             redefine: Redefine = Redefine.ERROR,
             logger: Optional[logging.Logger] = None):
 
@@ -550,7 +604,9 @@ class TemplateNamespace(Namespace):
         self.ignored_types: Set[str] = ignores
 
 
-    def to_objects(self, dataseq: Iterable[Dict[str, Any]]) -> Iterable[Core]:
+    def to_objects(
+            self,
+            dataseq: Iterable[Dict[str, Any]]) -> Iterable[Core]:
         # updated to chop out the None values that our to_object will
         # return for ignored_types
         return filter(None, map(self.to_object, dataseq))
@@ -571,22 +627,23 @@ class TemplateNamespace(Namespace):
 
 class ExpanderNamespace(Namespace):
     """
-    A namespace that expands all core types to basic BaseObject instances. This
-    avoids schema validation, and enables us to guarantee template expansion.
-    Useful for when a user want to see the raw expanded output of their
-    templates.
+    A namespace that expands all core types to basic BaseObject
+    instances. This avoids schema validation, and enables us to
+    guarantee template expansion.  Useful for when a user want to see
+    the raw expanded output of their templates.
     """
 
     def __init__(
             self,
-            coretypes: Union[Mapping[str, Type[CoreObject]], Iterable[Type[CoreObject]]] = CORE_MODELS,
+            coretypes: Union[Mapping[str, Type[CoreObject]],
+                             Iterable[Type[CoreObject]]] = CORE_MODELS,
             redefine: Redefine = Redefine.ERROR,
             logger: Optional[logging.Logger] = None):
 
         if isinstance(coretypes, Mapping):
-            faketypes = {tn: BaseObject for tn in coretypes}
+            faketypes = {tn: DataObject for tn in coretypes}
         else:
-            faketypes = {tp.typename: BaseObject for tp in coretypes}
+            faketypes = {tp.typename: DataObject for tp in coretypes}
 
         super().__init__(
             coretypes=faketypes,

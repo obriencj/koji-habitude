@@ -17,9 +17,11 @@ from typing import List
 from click import echo
 from koji import GenericError, GSSAPIAuthError
 
-from ..exceptions import (ChangeApplyError, ChangeReadError, ExpansionError,
-                          HabitudeError, KojiError, RedefineError,
-                          TemplateError, ValidationError, YAMLError)
+from ..exceptions import (
+    ChangeApplyError, ChangeReadError, ExpansionError,
+    HabitudeError, KojiError, RedefineError,
+    TemplateError, ValidationError, YAMLError,
+)
 from ..loader import pretty_yaml
 from ..resolver import Reference
 from .theme import select_theme
@@ -173,7 +175,8 @@ def display_summary(summary, show_unchanged, theme=None):
     unchanged_count = len(unchanged_objects)
 
     if total_changes > 0:
-        summary_msg = f"Summary: {total_changes} changes across {total_objects - unchanged_count} objects"
+        summary_msg = (f"Summary: {total_changes} changes across"
+                       f" {total_objects - unchanged_count} objects")
         secho(summary_msg, tp='summary_text')
     else:
         secho("Summary: No changes needed", tp='summary_text')
