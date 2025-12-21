@@ -43,9 +43,11 @@ class ProcessorState(Enum):
     Processor state machine for managing the read/compare/apply cycle.
 
     State transitions:
-    READY_CHUNK → READY_READ → READY_COMPARE → READY_APPLY → READY_CHUNK
-    Any state → BROKEN (on error)
-    READY_CHUNK → EXHAUSTED (when stream empty)
+      READY_CHUNK → READY_READ → READY_COMPARE → READY_APPLY → READY_CHUNK
+
+      Any state → BROKEN (on error)
+
+      READY_CHUNK → EXHAUSTED (when stream empty)
     """
     READY_CHUNK = "ready-chunk"      # Ready to load new chunk
     READY_READ = "ready-read"        # Ready to fetch koji data
@@ -84,7 +86,8 @@ class Processor:
             dataseries: Iterable[BaseObject],
             resolver: Resolver,
             chunk_size: int = 100,
-            skip_phantoms: bool = False):
+            skip_phantoms: bool = False,
+            spinner_fn: Callable[[str], None] = None):
         """
         Initialize the processor.
 
@@ -94,6 +97,7 @@ class Processor:
         :param resolver: Resolver for dependency resolution
         :param chunk_size: Number of objects to process in each chunk
         :param skip_phantoms: Whether to skip phantoms
+        :param spinner_fn: Function to call with a spinner message
         """
 
         self.koji_session: ClientSession = koji_session
@@ -106,6 +110,22 @@ class Processor:
         self.state: ProcessorState = ProcessorState.READY_CHUNK
 
         self.change_reports: Dict[BaseKey, ChangeReport] = {}
+        self.spinner_fn: Callable[[str], None] = spinner_fn
+
+        self.read_batch_size: int = chunk_size
+        self.apply_batch_size: int = chunk_size * 10
+
+
+    def spin(self, message: str = None) -> None:
+        """
+        Call the spinner function with an optional message. The spinner
+        function can tick over whether or not there's a new message.
+        """
+
+        if message:
+            logger.debug(message)
+        if self.spinner_fn:
+            self.spinner_fn(message)
 
 
     def step(self, chunk_size: Optional[int] = None) -> int:
@@ -179,10 +199,13 @@ class Processor:
         if not self.current_chunk:
             logger.debug("No objects to read from koji")
             return
-        logger.debug(f"Fetching koji state for {len(self.current_chunk)} objects")
+
+        self.spin(f"Fetching koji state for {len(self.current_chunk)} objects")
+
+        batch = self.read_batch_size
 
         deferred_calls = []
-        with multicall(self.koji_session) as mc:
+        with multicall(self.koji_session, batch=batch) as mc:
             for obj in self.current_chunk:
 
                 # create and load the change report for this object
@@ -199,7 +222,7 @@ class Processor:
                 self.change_reports[obj.key()] = change_report
 
         if deferred_calls:
-            with multicall(self.koji_session) as mc:
+            with multicall(self.koji_session, batch=batch) as mc:
                 for call in deferred_calls:
                     call(mc)
 
@@ -274,14 +297,17 @@ class Processor:
         # after that multicall has run. This one quirk of the koji API is the
         # cause of a LOT of pain and complexity.
 
+        batch = self.apply_batch_size
+
         work = iter(self.current_chunk)
         holdover = next(work)
+
         while holdover:
             work_segment = chain([holdover], work)
             holdover = None
             work_check = []
 
-            with multicall(self.koji_session) as m:
+            with multicall(self.koji_session, batch=batch) as m:
                 for obj in work_segment:
 
                     # get the change report for this object
