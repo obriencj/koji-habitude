@@ -213,12 +213,12 @@ def display_resolver_report(report, theme=None):
 
     if report.discovered:
         secho("Discovered references:", tp='type_heading')
-        for key in report.discovered:
+        for key in sorted(report.discovered):
             echo(f"  {style(key[0], tp='object_name')} {style(key[1], tp='object_name')}")
 
     if report.phantoms:
         secho("Phantom references:", tp='type_heading')
-        for key in report.phantoms:
+        for key in sorted(report.phantoms):
             echo(f"  {style(key[0], tp='object_name')} {style(key[1], tp='object_name')}")
 
     echo()
