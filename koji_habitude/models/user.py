@@ -199,6 +199,13 @@ class UserModel(CoreModel):
         return deps
 
 
+    def model_dump(self, **kwargs: Any) -> Dict[str, Any]:
+        data = super().model_dump(**kwargs)
+        data['groups'] = sorted(data['groups'])
+        data['permissions'] = sorted(data['permissions'])
+        return data
+
+
 class User(UserModel, CoreObject):
     """
     Local user object from YAML.
