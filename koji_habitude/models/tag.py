@@ -857,12 +857,6 @@ class TagGroupModel(SubModel):
     packages: List[TagGroupPackage] = Field(alias='packages', default_factory=list)
 
 
-    def model_dump(self, **kwargs: Any) -> Dict[str, Any]:
-        data = super().model_dump(**kwargs)
-        data['packages'] = sorted(data['packages'], key=itemgetter('name'))
-        return data
-
-
 class TagGroup(TagGroupModel):
 
     exact_packages: bool = Field(alias='exact-packages', default=False)
@@ -1034,6 +1028,15 @@ class TagModel(CoreModel):
             data['inheritance'], key=itemgetter('priority'))
         data['external-repos'] = sorted(
             data['external-repos'], key=itemgetter('priority'))
+
+        # we sort this here instead of on the TagGroup model because
+        # we support pydantic v1 and v2, and while we add a model_dump
+        # method as an adapter for v1, it doesn't internally call the
+        # model_dump method on the TagGroup in that case.
+        for group in data['groups'].values():
+            group['packages'] = sorted(
+                group['packages'], key=itemgetter('name'))
+
         return data
 
 
