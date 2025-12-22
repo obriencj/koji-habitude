@@ -10,6 +10,7 @@ Tag model for koji tag objects with inheritance and external repo dependencies.
 
 
 import logging
+from operator import itemgetter
 from dataclasses import dataclass
 from typing import (TYPE_CHECKING, Any, ClassVar, Dict, Iterable, List,
                     Literal, Optional, Sequence)
@@ -856,6 +857,12 @@ class TagGroupModel(SubModel):
     packages: List[TagGroupPackage] = Field(alias='packages', default_factory=list)
 
 
+    def model_dump(self, **kwargs: Any) -> Dict[str, Any]:
+        data = super().model_dump(**kwargs)
+        data['packages'] = sorted(data['packages'], key=itemgetter('name'))
+        return data
+
+
 class TagGroup(TagGroupModel):
 
     exact_packages: bool = Field(alias='exact-packages', default=False)
@@ -1016,6 +1023,18 @@ class TagModel(CoreModel):
         deps.extend(('user', owner) for owner in owners.keys())
 
         return deps
+
+
+    def model_dump(self, **kwargs: Any) -> Dict[str, Any]:
+        data = super().model_dump(**kwargs)
+        data['arches'] = sorted(data['arches'])
+        data['packages'] = sorted(
+            data['packages'], key=itemgetter('name'))
+        data['inheritance'] = sorted(
+            data['inheritance'], key=itemgetter('priority'))
+        data['external-repos'] = sorted(
+            data['external-repos'], key=itemgetter('priority'))
+        return data
 
 
 class Tag(TagModel, CoreObject):

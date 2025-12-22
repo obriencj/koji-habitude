@@ -186,6 +186,13 @@ class GroupModel(CoreModel):
         return deps
 
 
+    def model_dump(self, **kwargs: Any) -> Dict[str, Any]:
+        data = super().model_dump(**kwargs)
+        data['members'] = sorted(data['members'])
+        data['permissions'] = sorted(data['permissions'])
+        return data
+
+
 class Group(GroupModel, CoreObject):
     """
     Local group object from YAML.
