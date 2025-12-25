@@ -1021,21 +1021,33 @@ class TagModel(CoreModel):
 
     def model_dump(self, **kwargs: Any) -> Dict[str, Any]:
         data = super().model_dump(**kwargs)
-        data['arches'] = sorted(data['arches'])
-        data['packages'] = sorted(
-            data['packages'], key=itemgetter('name'))
-        data['inheritance'] = sorted(
-            data['inheritance'], key=itemgetter('priority'))
-        data['external-repos'] = sorted(
-            data['external-repos'], key=itemgetter('priority'))
+        # we do all the membership checks because if exclude_defaults is True,
+        # then some of these might not be present in the data.
+
+        if 'arches' in data:
+            data['arches'] = sorted(data['arches'])
+
+        if 'packages' in data:
+            data['packages'] = sorted(
+                data['packages'], key=itemgetter('name'))
+
+        if 'inheritance' in data:
+            data['inheritance'] = sorted(
+                data['inheritance'], key=itemgetter('priority'))
+
+        if 'external-repos' in data:
+            data['external-repos'] = sorted(
+                data['external-repos'], key=itemgetter('priority'))
 
         # we sort this here instead of on the TagGroup model because
         # we support pydantic v1 and v2, and while we add a model_dump
         # method as an adapter for v1, it doesn't internally call the
         # model_dump method on the TagGroup in that case.
-        for group in data['groups'].values():
-            group['packages'] = sorted(
-                group['packages'], key=itemgetter('name'))
+        if 'groups' in data:
+            for group in data['groups'].values():
+                if 'packages' in group:
+                    group['packages'] = sorted(
+                        group['packages'], key=itemgetter('name'))
 
         return data
 
