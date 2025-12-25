@@ -186,13 +186,12 @@ class MagicSafeLoader(SafeLoader):
 
     def compose_document(self):
         # Allowing our anchors to persist across documents
-        self.get_event()
-        node = self.compose_node(None, None)
-        self.get_event()
 
-        # the default impl resets self.anchors here
-        # self.anchors = {}
+        anchors = self.anchors
+        node = super().compose_document()
+        self.anchors = anchors
         return node
+
 
     def construct_document(self, node):
         # Clever and simple trick borrowed from augurar, tweaked to only
