@@ -63,8 +63,8 @@ def edit_and_validate(yaml_content: str) -> Optional[Tuple[str, List[dict]]]:
     there are problems
 
     :param yaml_content: The YAML content to edit
-    :returns: Tuple of (edited_content, parsed_docs) if successful, None if
-        cancelled
+    :returns: Tuple of (edited_content, parsed_docs) if successful, (None,
+        None) if cancelled
     """
 
     while True:
@@ -73,7 +73,7 @@ def edit_and_validate(yaml_content: str) -> Optional[Tuple[str, List[dict]]]:
 
         # If edit returns None, consider cancelled
         if edited is None:
-            return None
+            return None, None
 
         # Parse edited YAML using loader module
         try:
@@ -98,7 +98,7 @@ def edit_and_validate(yaml_content: str) -> Optional[Tuple[str, List[dict]]]:
                 yaml_content = edited
                 break
             elif "QUIT".startswith(choice):
-                return None
+                return None, None
             else:
                 click.echo("Invalid choice. Please enter E or Q.", err=True)
 
