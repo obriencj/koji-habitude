@@ -1,9 +1,6 @@
 ---
-type: product
-name: gnutella
+type: multi
 
----
-type: vars
 x-gnutella-1_0-pkglist: &gnutella-1_0-pkglist
     - gnutella-cobol
     - gnutella-core
@@ -24,34 +21,38 @@ x-gnutella-2_0-pkglist: &gnutella-2_0-pkglist
     - gnutella-ai-daemon-plugins-gui
 
 
----
-type: gnutella-version
-version: "1.0"
-platforms:
-  - fedora-40
-  - almalinux-9
-packages: *gnutella-1_0-pkglist
+gnutella:
+  type: product
 
 
----
-type: gnutella-version
-version: "1.1"
-platforms:
-  - fedora-40
-  - almalinux-9
-packages: *gnutella-1_0-pkglist
+gnutella-1_0:
+  type: gnutella-version
+  version: "1.0"
+  platforms:
+    - fedora-40
+    - almalinux-9
+  packages: *gnutella-1_0-pkglist
 
 
----
-type: gnutella-version
-version: "2.0"
-arches:
-  - x86_64
-  - aarch64
-platforms:
-  - fedora-42
-  - almalinux-10
-packages_merge: [*gnutella-1_0-pkglist, *gnutella-2_0-pkglist]
+gnutella-1_1:
+  type: gnutella-version
+  version: "1.1"
+  platforms:
+    - fedora-40
+    - almalinux-9
+  packages: *gnutella-1_0-pkglist
+
+
+gnutella-2_0:
+  type: gnutella-version
+  version: "2.0"
+  arches:
+    - x86_64
+    - aarch64
+  platforms:
+    - fedora-42
+    - almalinux-10
+  packages_merge: [*gnutella-1_0-pkglist, *gnutella-2_0-pkglist]
 
 
 # The end.

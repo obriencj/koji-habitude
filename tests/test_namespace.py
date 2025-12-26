@@ -222,7 +222,9 @@ class TestNamespaceInitAndGuards(unittest.TestCase):
         # Check internal storage is initialized
         self.assertEqual(len(ns._feedline), 0)
         self.assertEqual(len(ns._ns), 0)
-        self.assertEqual(len(ns._templates), 0)
+
+        # the built-in 'multi' template
+        self.assertEqual(len(ns._templates), 1)
 
     def test_namespace_custom_initialization(self):
         """Test creating a Namespace with custom parameters."""

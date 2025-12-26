@@ -17,7 +17,7 @@ from pathlib import Path
 from re import Pattern, compile
 from typing import (
     Any, Callable, ClassVar, Dict, Iterator, List, Optional,
-    Set, Tuple, Type, TypeVar, Union,
+    Set, Tuple, Type, Union,
 )
 
 import yaml
@@ -39,14 +39,12 @@ from .exceptions import (
     TemplateRenderError, TemplateSyntaxError,
 )
 from .models import (
-    ArchiveType, BaseModel, BuildType, CoreObject, Channel,
-    ContentGenerator, DataMixin, ExternalRepo, Field, Group, Host,
-    IdentifiableMixin, LocalMixin, Permission, PrivateAttr,
-    SubModel, Tag, Target, User, field_validator,
+    BaseModel, DataMixin, Field, IdentifiableMixin,
+    LocalMixin, PrivateAttr, SubModel, field_validator,
 )
 
 
-logger = logging.getLogger("koji_habitude.templates")
+logger = logging.getLogger(__name__)
 
 
 class TemplateCall(DataMixin, BaseModel):
@@ -474,6 +472,7 @@ class Template(BaseModel, IdentifiableMixin, LocalMixin):
         if trace is None:
             trace = [traceval]
         else:
+            trace = list(trace)
             trace.append(traceval)
 
         merge = {"__trace__": trace}
@@ -509,6 +508,45 @@ class Template(BaseModel, IdentifiableMixin, LocalMixin):
 
     def render_call(self, call: TemplateCall):
         return self.render_and_load(call.data)
+
+
+class MultiTemplate(Template):
+    """
+    A MultiTemplate is a template that generates multiple YAML documents.
+    """
+
+    typename: ClassVar[str] = "multi"
+
+    def render_call(self, call: TemplateCall) -> Iterator[Dict[str, Any]]:
+        data = call.data
+
+        trace = data.get('__trace__')
+        if trace is not None:
+            trace = list(trace)
+            trace.append({
+                'name': call.name,
+                'file': None,
+                'line': None,
+            })
+
+        filename = data.get('__file__')
+
+        for key, value in data.items():
+            if key.startswith('_') or key.startswith('x-'):
+                continue
+
+            if not value:
+                continue
+
+            if isinstance(value, dict):
+                if 'name' not in value:
+                    value['name'] = key
+                if trace and '__trace__' not in value:
+                    value['__trace__'] = trace
+                if filename and '__file__' not in value:
+                    value['__file__'] = filename
+
+            yield value
 
 
 # The end.
