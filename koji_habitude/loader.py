@@ -179,7 +179,6 @@ class MagicSafeLoader(SafeLoader):
     """
     A SafeLoader with slightly tweaked behavior.
 
-    * allows our anchors to persist across documents
     * adds a ``__line__`` key to each document, representing the line number
       in the file that the document started on.
     """
@@ -187,16 +186,9 @@ class MagicSafeLoader(SafeLoader):
     def compose_document(self):
         # Allowing our anchors to persist across documents
 
-        anchors = dict(self.anchors)
+        anchors = self.anchors
         node = super().compose_document()
-        self.anchors.update(anchors)
-        return node
-
-
-    def _compose_document(self):
-        anchors = dict(self.anchors)
-        node = super().compose_document()
-        self.anchors.update(anchors)
+        self.anchors = anchors
         return node
 
 
