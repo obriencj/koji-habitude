@@ -16,10 +16,10 @@ from itertools import chain
 from pathlib import Path
 from typing import (
     Any, Dict, Iterable, Iterator, List, Optional, Protocol,
-    Sequence, Type, TypeVar, Union,
+    Sequence, TextIO, Type, Union,
 )
 
-from yaml import dump, load_all, YAMLError as PyYAMLError
+from yaml import dump, load_all as _load_all, YAMLError as PyYAMLError
 try:
     from yaml import CSafeLoader as SafeLoader, CDumper as Dumper
 except ImportError:
@@ -34,6 +34,7 @@ __all__ = (
     'YAMLLoader',
     'combine_find_files',
     'find_files',
+    'load_all',
     'load_yaml_files',
     'pretty_yaml',
     'pretty_yaml_all',
@@ -46,6 +47,17 @@ logger = logging.getLogger(__name__)
 # this is mostly for testing purposes, but it can be overridden by the user if
 # they hate saving memory
 ENABLE_INTERNING = True
+
+
+def load_all(fd: TextIO) -> Iterator[Dict[str, Any]]:
+    """
+    Load all YAML documents from the given file descriptor.
+
+    :param fd: The file descriptor to load from
+    :returns: Iterator of YAML documents
+    """
+    for doc in _load_all(fd, Loader=MagicSafeLoader):
+        yield doc
 
 
 def load_yaml_files(
@@ -167,20 +179,18 @@ class MagicSafeLoader(SafeLoader):
     """
     A SafeLoader with slightly tweaked behavior.
 
-    * allows our anchors to persist across documents
     * adds a ``__line__`` key to each document, representing the line number
       in the file that the document started on.
     """
 
     def compose_document(self):
         # Allowing our anchors to persist across documents
-        self.get_event()
-        node = self.compose_node(None, None)
-        self.get_event()
 
-        # the default impl resets self.anchors here
-        # self.anchors = {}
+        anchors = self.anchors
+        node = super().compose_document()
+        self.anchors = anchors
         return node
+
 
     def construct_document(self, node):
         # Clever and simple trick borrowed from augurar, tweaked to only
@@ -244,7 +254,7 @@ class YAMLLoader(LoaderProtocol):
         with open(self.filename, 'r') as fd:
             logger.debug(f"Loading YAML file {self.filename}")
             try:
-                for doc in load_all(fd, Loader=MagicSafeLoader):
+                for doc in load_all(fd):
                     doc['__file__'] = self.filename
                     logger.debug(f"Loaded YAML document {self.filename}:{doc['__line__']}")
                     yield intern(doc) if interning else doc
