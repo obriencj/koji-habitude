@@ -28,7 +28,7 @@ from typing import Any, Dict, Iterator, List, Type, Union
 from .koji import ClientSession, session
 from .loader import MultiLoader, YAMLLoader
 from .models import BaseObject
-from .namespace import Namespace, TemplateNamespace
+from .namespace import Namespace, TemplateNamespace, Redefine
 from .processor import CompareOnlyProcessor, Processor, ProcessorSummary
 from .resolver import Resolver, ResolverReport
 from .solver import Solver
@@ -136,7 +136,7 @@ class Workflow:
 
         data_ns = self.cls_namespace()
         if templates:
-            data_ns.merge_templates(templates)
+            data_ns.merge_templates(templates, redefine=Redefine.ALLOW)
         data_ns.feedall_raw(self.load_yaml(paths))
         data_ns.expand()
         return data_ns

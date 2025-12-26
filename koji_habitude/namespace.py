@@ -207,7 +207,7 @@ class Namespace:
         # templates, mapping simply as `tmpl.name: tmpl`
         self._templates: Dict[str, Template] = {}
         if enable_templates:
-            self._templates["multi"] = MultiTemplate
+            self._templates["multi"] = MultiTemplate()
 
         # if we're finding templates recursively expanding to templates,
         # only allow that nonsense 100 deep then error

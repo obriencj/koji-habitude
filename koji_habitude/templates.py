@@ -517,17 +517,21 @@ class MultiTemplate(Template):
 
     typename: ClassVar[str] = "multi"
 
+    def __init__(self):
+        super().__init__(name='multi', content="#")
+
+
     def render_call(self, call: TemplateCall) -> Iterator[Dict[str, Any]]:
         data = call.data
+        data.pop('type', None)
 
-        trace = data.get('__trace__')
-        if trace is not None:
-            trace = list(trace)
-            trace.append({
-                'name': call.name,
-                'file': None,
-                'line': None,
-            })
+        trace = data.get('__trace__', ())
+        trace = list(trace)
+        trace.append({
+            'name': 'multi',
+            'file': None,
+            'line': None,
+        })
 
         filename = data.get('__file__')
 
@@ -541,12 +545,13 @@ class MultiTemplate(Template):
             if isinstance(value, dict):
                 if 'name' not in value:
                     value['name'] = key
-                if trace and '__trace__' not in value:
-                    value['__trace__'] = trace
-                if filename and '__file__' not in value:
-                    value['__file__'] = filename
+                value['__trace__'] = trace
+                value['__file__'] = filename
 
-            yield value
+                yield value
+
+            else:
+                logger.debug(f"stray key:value in multi: f{key}:f{value!r}")
 
 
 # The end.
