@@ -136,7 +136,7 @@ pip install -e .
 
 **AI Assistance**: This project was developed with assistance from
 [Claude](https://claude.ai) (Claude 3.5 and 4.5 Sonnet) via [Cursor
-IDE](https://cursor.com). See [VIBE.md](VIBE.md) for details.
+IDE](https://cursor.com).
 
 **License**: GNU General Public License v3 or later. See
 <https://www.gnu.org/licenses/> for details.

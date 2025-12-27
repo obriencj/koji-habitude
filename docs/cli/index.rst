@@ -23,9 +23,10 @@ The main commands operate on collections of YAML files:
    apply
    compare
    diff
+   dump
+   edit
    expand
    fetch
-   dump
    list-templates
 
 Template Commands

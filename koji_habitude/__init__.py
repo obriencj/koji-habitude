@@ -1,5 +1,5 @@
 """
-koji-habitude - __init__
+koji-habitude
 
 Main package initialization for koji-habitude.
 

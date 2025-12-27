@@ -44,6 +44,7 @@ The following core koji object types are supported:
    yaml_format/build-type
    yaml_format/archive-type
    yaml_format/template
+   yaml_format/multi
 
 Templates
 ---------
@@ -55,6 +56,17 @@ trigger template expansion, creating final koji objects through recursive proces
 
 See :doc:`yaml_format/template` for the full template specification including
 model definitions, validation rules, and detailed examples.
+
+Multi Type
+----------
+
+The ``multi`` type is a special macro template that expands a single document
+containing key-value pairs into multiple YAML documents. This feature exists
+primarily to enable the use of YAML anchors across many objects, as YAML
+specification does not allow anchors to be shared between separate documents.
+
+See :doc:`yaml_format/multi` for the complete multi type specification including
+expansion rules, field descriptions, and detailed examples.
 
 Validation
 ----------
