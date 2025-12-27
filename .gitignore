@@ -72,3 +72,5 @@ Thumbs.db
 *.local
 local.cfg
 *.tar.gz
+
+tools/*.yml
