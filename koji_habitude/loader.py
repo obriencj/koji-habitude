@@ -183,20 +183,11 @@ class MagicSafeLoader(SafeLoader):
       in the file that the document started on.
     """
 
-    def compose_document(self):
-        # Allowing our anchors to persist across documents
-
-        anchors = self.anchors
-        node = super().compose_document()
-        self.anchors = anchors
-        return node
-
-
-    def construct_document(self, node):
+    def construct_mapping(self, node):
         # Clever and simple trick borrowed from augurar, tweaked to only
         # decorate the documents, not every dict
         # * https://stackoverflow.com/questions/13319067/parsing-yaml-return-with-line-number
-        mapping = super().construct_document(node)
+        mapping = super().construct_mapping(node)
         mapping['__line__'] = node.start_mark.line + 1
         return mapping
 

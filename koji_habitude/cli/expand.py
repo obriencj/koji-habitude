@@ -13,7 +13,9 @@ import click
 
 from . import main
 from ..loader import load_yaml_files, pretty_yaml_all
-from ..namespace import ExpanderNamespace, Namespace, TemplateNamespace
+from ..namespace import (
+    ExpanderNamespace, Namespace, Redefine, TemplateNamespace,
+)
 from .util import catchall, resplit, sort_objects_for_output
 
 
@@ -63,7 +65,7 @@ def expand(data, templates=None, recursive=False,
         template_ns.feedall_raw(load_yaml_files(templates, recursive=recursive))
         template_ns.expand()
 
-    namespace.merge_templates(template_ns)
+    namespace.merge_templates(template_ns, redefine=Redefine.ALLOW)
 
     # Load and process data files
     namespace.feedall_raw(load_yaml_files(data, recursive=recursive))
