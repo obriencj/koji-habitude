@@ -20,12 +20,12 @@ changes to existing koji objects without needing to maintain local YAML files.
 
 The command will:
 
-1. Connect to the Koji hub instance (read-only, no authentication required)
+1. Connect to the Koji hub instance
 2. Load the specified remote objects
 3. Convert them to YAML format
 4. Open them in your system editor (via ``$EDITOR`` environment variable)
 5. Validate the edited YAML after each save
-6. Show a comparison of changes (delta) against the remote state
+6. Show a comparison of changes against the remote state
 7. Prompt for action: [A]pply / [E]dit / [Q]uit
 
 The interactive workflow allows you to:
@@ -143,7 +143,7 @@ Use Cases
   command line
 
 Related Commands
----------------
+----------------
 
 - :doc:`apply` - Apply changes from local YAML files
 - :doc:`compare` - Preview changes without applying (dry-run)
