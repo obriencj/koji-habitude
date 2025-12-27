@@ -82,4 +82,33 @@ class TestGroupModel(unittest.TestCase):
         self.assertEqual(deps, [])
 
 
+class TestGroupModelSorting(unittest.TestCase):
+    """
+    Test Group model sorting in to_dict() output.
+    """
+
+    def test_group_to_dict_sorts_all_fields(self):
+        """
+        Test that to_dict() returns all sorted fields in the correct order.
+        """
+
+        # Create group with unsorted data in all sorted fields
+        data = {
+            'type': 'group',
+            'name': 'test-group',
+            'members': ['user-z', 'user-a', 'user-m'],  # Unsorted
+            'permissions': ['permission-c', 'permission-a', 'permission-b']  # Unsorted
+        }
+        group = Group.from_dict(data)
+
+        # Get the dictionary output
+        result = group.to_dict()
+
+        # Verify members are sorted alphabetically
+        self.assertEqual(result['members'], ['user-a', 'user-m', 'user-z'])
+
+        # Verify permissions are sorted alphabetically
+        self.assertEqual(result['permissions'], ['permission-a', 'permission-b', 'permission-c'])
+
+
 # The end.

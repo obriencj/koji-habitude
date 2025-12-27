@@ -660,6 +660,29 @@ class ChangeReport:
         self.state = ChangeReportState.APPLIED
 
 
+    def iter(
+            self,
+            skip_phantoms: bool = False,
+            call_skip: bool = True) -> Iterable[Change]:
+        """
+        Iterates over the changes in the report, yielding each change.
+
+        :param skip_phantoms: Whether to skip phantoms
+        :returns: Iterable of changes
+        """
+
+        if not skip_phantoms:
+            yield from self.changes
+            return
+
+        for change in self.changes:
+            if change.skip_check(self.resolver):
+                if call_skip:
+                    change.skip()
+            else:
+                yield change
+
+
     def check_results(self) -> None:
         """
         Checks the results of the changes in the report. This will raise an

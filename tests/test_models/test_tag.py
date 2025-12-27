@@ -818,4 +818,85 @@ class TestTagModelDependencyResolution(unittest.TestCase):
         self.assertEqual(deps, expected)
 
 
+class TestTagModelSorting(unittest.TestCase):
+    """
+    Test Tag model sorting in to_dict() output.
+    """
+
+    def test_tag_to_dict_sorts_all_fields(self):
+        """
+        Test that to_dict() returns all sorted fields in the correct order.
+        """
+
+        # Create tag with unsorted data in all sorted fields
+        data = {
+            'type': 'tag',
+            'name': 'test-tag',
+            'arches': ['i686', 'x86_64', 'aarch64', 'ppc64le'],  # Unsorted
+            'packages': [
+                {'name': 'package-z', 'owner': 'user1'},
+                {'name': 'package-a', 'owner': 'user2'},
+                {'name': 'package-m', 'owner': 'user3'}
+            ],  # Unsorted by name
+            'inheritance': [
+                {'name': 'parent3', 'priority': 30},
+                {'name': 'parent1', 'priority': 10},
+                {'name': 'parent2', 'priority': 20}
+            ],  # Unsorted by priority
+            'external-repos': [
+                {'name': 'repo2', 'priority': 20},
+                {'name': 'repo1', 'priority': 10},
+                {'name': 'repo3', 'priority': 30}
+            ],  # Unsorted by priority
+            'groups': {
+                'build': {
+                    'packages': [
+                        {'name': 'pkg-c'},
+                        {'name': 'pkg-a'},
+                        {'name': 'pkg-b'}
+                    ]  # Unsorted by name
+                },
+                'srpm': {
+                    'packages': [
+                        {'name': 'pkg-z'},
+                        {'name': 'pkg-x'},
+                        {'name': 'pkg-y'}
+                    ]  # Unsorted by name
+                }
+            }
+        }
+        tag = Tag.from_dict(data)
+
+        # Get the dictionary output
+        result = tag.to_dict()
+
+        # Verify arches are sorted alphabetically
+        self.assertEqual(result['arches'], ['aarch64', 'i686', 'ppc64le', 'x86_64'])
+
+        # Verify packages are sorted by name
+        package_names = [pkg['name'] for pkg in result['packages']]
+        self.assertEqual(package_names, ['package-a', 'package-m', 'package-z'])
+
+        # Verify inheritance is sorted by priority
+        inheritance_priorities = [inh['priority'] for inh in result['inheritance']]
+        self.assertEqual(inheritance_priorities, [10, 20, 30])
+        inheritance_names = [inh['name'] for inh in result['inheritance']]
+        self.assertEqual(inheritance_names, ['parent1', 'parent2', 'parent3'])
+
+        # Verify external-repos are sorted by priority
+        repo_priorities = [repo['priority'] for repo in result['external-repos']]
+        self.assertEqual(repo_priorities, [10, 20, 30])
+        repo_names = [repo['name'] for repo in result['external-repos']]
+        self.assertEqual(repo_names, ['repo1', 'repo2', 'repo3'])
+
+        # Verify group packages are sorted by name
+        build_packages = result['groups']['build']['packages']
+        build_package_names = [pkg['name'] for pkg in build_packages]
+        self.assertEqual(build_package_names, ['pkg-a', 'pkg-b', 'pkg-c'])
+
+        srpm_packages = result['groups']['srpm']['packages']
+        srpm_package_names = [pkg['name'] for pkg in srpm_packages]
+        self.assertEqual(srpm_package_names, ['pkg-x', 'pkg-y', 'pkg-z'])
+
+
 # The end.

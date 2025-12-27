@@ -105,4 +105,33 @@ class TestUserModel(unittest.TestCase):
         self.assertEqual(deps, [])
 
 
+class TestUserModelSorting(unittest.TestCase):
+    """
+    Test User model sorting in to_dict() output.
+    """
+
+    def test_user_to_dict_sorts_all_fields(self):
+        """
+        Test that to_dict() returns all sorted fields in the correct order.
+        """
+
+        # Create user with unsorted data in all sorted fields
+        data = {
+            'type': 'user',
+            'name': 'test-user',
+            'groups': ['group-z', 'group-a', 'group-m'],  # Unsorted
+            'permissions': ['permission-c', 'permission-a', 'permission-b']  # Unsorted
+        }
+        user = User.from_dict(data)
+
+        # Get the dictionary output
+        result = user.to_dict()
+
+        # Verify groups are sorted alphabetically
+        self.assertEqual(result['groups'], ['group-a', 'group-m', 'group-z'])
+
+        # Verify permissions are sorted alphabetically
+        self.assertEqual(result['permissions'], ['permission-a', 'permission-b', 'permission-c'])
+
+
 # The end.

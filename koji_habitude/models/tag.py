@@ -10,6 +10,7 @@ Tag model for koji tag objects with inheritance and external repo dependencies.
 
 
 import logging
+from operator import itemgetter
 from dataclasses import dataclass
 from typing import (TYPE_CHECKING, Any, ClassVar, Dict, Iterable, List,
                     Literal, Optional, Sequence)
@@ -367,16 +368,18 @@ class TagAddInheritance(Add):
 
     def break_multicall(self, resolver: 'Resolver') -> bool:
 
-        # quick explanation here. Adding to tag inheritance requires knowing the
-        # parent tag's ID -- it's the only API in koji that has this behavior.
-        # We have a hook at the end of the TagCreate's apply method which will
-        # queue up a fetch of the newly created tag's ID, but until the MC
-        # completes that value isn't available to us. What we're doing here is
-        # using a resolver (which we got from the ChangeReport) to look up the
-        # parent tag entry by its key, and then attempting to see if it exists.
-        # If it does, we'll have the ID and we can continue. If checking raises
-        # a MultiCallNotReady, then damnit we need to break out of the multicall
-        # so it can complete and get us that value.
+        # quick explanation here. Adding to tag inheritance requires
+        # knowing the parent tag's ID -- it's the only API in koji
+        # that has this behavior.  We have a hook at the end of the
+        # TagCreate's apply method which will queue up a fetch of the
+        # newly created tag's ID, but until the MC completes that
+        # value isn't available to us. What we're doing here is using
+        # a resolver (which we got from the ChangeReport) to look up
+        # the parent tag entry by its key, and then attempting to see
+        # if it exists.  If it does, we'll have the ID and we can
+        # continue. If checking raises a MultiCallNotReady, then
+        # damnit we need to break out of the multicall so it can
+        # complete and get us that value.
 
         logger.debug(f"Checking if TagAddInheritance ({self.obj.name}) needs to break out of multicall")
 
@@ -385,7 +388,10 @@ class TagAddInheritance(Add):
 
         tinfo = tag.remote()
         if tinfo is None:
-            assert not tag.is_phantom()
+            if tag.is_phantom():
+                logger.debug(f"Parent tag '{self.parent.name}' is phantom, skipping")
+                return False
+
             logger.debug("MultiCallNotReady, breaking out of multicall")
             return True
 
@@ -503,13 +509,25 @@ class TagPackageListAdd(Add):
     obj: 'Tag'
     package: 'PackageEntry'
 
+    _phantom_owner: bool = False
+
+    _skippable: ClassVar[bool] = True
+
+    def skip_check_impl(self, resolver: 'Resolver') -> bool:
+        # We don't actually skip, but we do set the owner to None if it's a
+        # phantom
+        owner = resolver.resolve(('user', self.package.owner))
+        self._phantom_owner = owner.is_phantom()
+        return False
+
     def impl_apply(self, session: MultiCallSession):
         arches_list = self.package.extra_arches
         arches = ' '.join(arches_list) if arches_list else None
+        owner = self.package.owner if not self._phantom_owner else None
         return session.packageListAdd(
             self.obj.name,
             self.package.name,
-            owner=self.package.owner,
+            owner=owner,
             block=self.package.block,
             extra_arches=arches,
             force=True)
@@ -518,7 +536,8 @@ class TagPackageListAdd(Add):
         if self.package.block:
             return f"Block package {self.package.name}"
         else:
-            info = " with owner {self.package.owner}" if self.package.owner else ""
+            owner = self.package.owner if not self._phantom_owner else None
+            info = f" with owner {owner}" if owner else ""
             if self.package.extra_arches:
                 arches_str = ', '.join(self.package.extra_arches)
                 info += f" with extra_arches [{arches_str}]"
@@ -554,6 +573,12 @@ class TagPackageListSetOwner(Modify):
     obj: 'Tag'
     package: str
     owner: str
+
+    _skippable: ClassVar[bool] = True
+
+    def skip_check_impl(self, resolver: 'Resolver') -> bool:
+        owner = resolver.resolve(('user', self.owner))
+        return owner.is_phantom()
 
     def impl_apply(self, session: MultiCallSession):
         return session.packageListSetOwner(self.obj.name, self.package, self.owner, force=True)
@@ -994,6 +1019,39 @@ class TagModel(CoreModel):
         return deps
 
 
+    def model_dump(self, **kwargs: Any) -> Dict[str, Any]:
+        data = super().model_dump(**kwargs)
+        # we do all the membership checks because if exclude_defaults is True,
+        # then some of these might not be present in the data.
+
+        if 'arches' in data:
+            data['arches'] = sorted(data['arches'])
+
+        if 'packages' in data:
+            data['packages'] = sorted(
+                data['packages'], key=itemgetter('name'))
+
+        if 'inheritance' in data:
+            data['inheritance'] = sorted(
+                data['inheritance'], key=itemgetter('priority'))
+
+        if 'external-repos' in data:
+            data['external-repos'] = sorted(
+                data['external-repos'], key=itemgetter('priority'))
+
+        # we sort this here instead of on the TagGroup model because
+        # we support pydantic v1 and v2, and while we add a model_dump
+        # method as an adapter for v1, it doesn't internally call the
+        # model_dump method on the TagGroup in that case.
+        if 'groups' in data:
+            for group in data['groups'].values():
+                if 'packages' in group:
+                    group['packages'] = sorted(
+                        group['packages'], key=itemgetter('name'))
+
+        return data
+
+
 class Tag(TagModel, CoreObject):
     """
     Local tag object from YAML.
@@ -1187,16 +1245,27 @@ class RemoteTag(TagModel, RemoteObject):
 
 
     def set_koji_groups(self, result: VirtualPromise):
-        self.groups = {
-            group['name']: RemoteTagGroup(
+        groups = {}
+
+        for group in result.result:
+            pkgs = [TagGroupPackage(
+                        name=package['package'],
+                        block=package['blocked'])
+                    for package in group['packagelist']
+                    if package.get('tag_id') == self.koji_id]
+
+            if group.get('tag_id') != self.koji_id and not pkgs:
+                # omit empty groups that are not owned by this tag
+                continue
+
+            groups[group['name']] = RemoteTagGroup(
+                # koji_id=group['group_id'],
                 name=group['name'],
                 description=group['description'],
                 block=group['blocked'],
-                packages=[TagGroupPackage(
-                    name=package['package'],
-                    block=package['blocked'])
-                    for package in group['packagelist']])
-            for group in result.result}
+                packages=pkgs)
+
+        self.groups = groups
 
 
     def set_koji_inheritance(self, result: VirtualPromise):
@@ -1230,7 +1299,13 @@ class RemoteTag(TagModel, RemoteObject):
         # This would require multiple API calls
 
         promise_call(self.set_koji_packages, session.listPackages, tagID=self.name)
-        promise_call(self.set_koji_groups, session.getTagGroups, self.name, inherit=False, incl_blocked=True)
+
+        # workaround, don't set inherit=False
+        # https://pagure.io/koji/issues/4503
+        # if/when fixed, add a version check
+        # XXX: promise_call(self.set_koji_groups, session.getTagGroups, self.name, inherit=False, incl_blocked=True)
+        promise_call(self.set_koji_groups, session.getTagGroups, self.name, incl_blocked=True)
+
         promise_call(self.set_koji_inheritance, session.getInheritanceData, self.name)
         promise_call(self.set_koji_external_repos, session.getTagExternalRepos, tag_info=self.name)
 

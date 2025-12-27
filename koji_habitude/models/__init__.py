@@ -14,8 +14,10 @@ Core koji object models package.
 from typing import Dict, List, Type
 
 from .archive_type import ArchiveType
-from .base import (BaseKey, BaseObject, BaseStatus, CoreModel, CoreObject,
-                   IdentifiableMixin, LocalMixin, ResolvableMixin, SubModel)
+from .base import (
+    BaseKey, BaseObject, BaseStatus, CoreModel, CoreObject, DataMixin,
+    IdentifiableMixin, LocalMixin, ResolvableMixin, SubModel,
+)
 from .build_type import BuildType
 from .change import Add, Change, ChangeReport, Create, Modify, Remove, Update
 from .channel import Channel
@@ -41,6 +43,7 @@ __all__ = (
     'CoreObject',
 
     # Pydantic mixins
+    'DataMixin',
     'IdentifiableMixin',
     'LocalMixin',
     'ResolvableMixin',

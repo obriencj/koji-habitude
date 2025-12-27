@@ -32,7 +32,8 @@ def call_from_args(
         template_name: str,
         variables: List[str]) -> Dict[str, Any]:
     """
-    Construct a TemplateCall yaml document from the given template name and variables.
+    Construct a TemplateCall yaml document from the given template
+    name and variables.
 
     :param template_name: The name of the template to call
     :param variables: The variables to pass to the template
