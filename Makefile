@@ -109,7 +109,7 @@ docs-gen:	## Generate schema documentation from Pydantic models
 	$(TOX) -qe docs-gen
 
 
-docs: clean-docs docs/overview.rst	## Build sphinx docs
+docs: clean-docs	## Build sphinx docs
 	$(TOX) -qe sphinx
 
 
