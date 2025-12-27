@@ -1,5 +1,4 @@
 
-.. include:: ../README.md
-   :parser: myst_parser.sphinx_
-
-.. The end.
+``` {include} ../README.md
+:relative-docs: docs/
+```

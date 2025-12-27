@@ -6,7 +6,6 @@ Koji Habitude
    :caption: Welcome
 
    overview
-   vibe
 
 .. toctree::
    :maxdepth: 2
