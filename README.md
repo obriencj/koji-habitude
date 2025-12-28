@@ -1,17 +1,5 @@
 # koji-habitude
 
-**🚧 WORK IN PROGRESS 🚧**
-
-This project is *not* production ready. It's coming along fast, but there are
-challenges cropping up all of the time. Until this project has a version of 1.0,
-do not attempt to use it with a production Koji instance.
-
-However, if you have a test instance you want to try it on, give that a go and
-let me know!
-
-
-## Overview
-
 koji-habitude is an object management tool for [Koji](https://pagure.io/koji)
 build systems. It provides a declarative approach to managing koji objects
 through YAML templates and data files.
@@ -31,28 +19,6 @@ keep project packagers happy.
 - Apply changes in the correct order through tiered execution
 - Validate configurations offline before deployment
 
-## Current Status
-
-As noted before, this project is still a work-in-progress, but most of the core
-features have been implemented. Some are still being refined, but overall it is
-in an operational state.
-
-**Implemented:**
-
-- CLI framework with the essential commands
-- 11 primary Koji object types are implemented, with both local and remote
-  representations
-- Templates and template calls are functional
-- Dependency-aware ordering works
-- Reference detection (eg. if you inherit from a tag you don't define)
-- Middling unit testing coverage (419 tests, 72% coverage)
-
-**Next Steps:**
-
-- CLI testing coverage improvements
-- Further integration testing on real koji instance
-- Documentation
-
 
 ## Command-Line Interface
 
@@ -61,7 +27,7 @@ koji-habitude provides a comprehensive CLI built with
 includes:
 
 - **Primary commands**: `apply`, `compare`, `expand`, `fetch`, `dump`,
-  `list-templates`, `diff`
+  `list-templates`, `diff`, and `edit`
 - **Template subcommands**: Work with individual templates using `template
   show`, `template expand`, `template compare`, `template diff`, `template
   apply`
