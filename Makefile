@@ -10,6 +10,8 @@ PYTHON ?= python3
 TOX ?= tox
 PORT ?= 8900
 
+VERSION ?= $(shell $(PYTHON) -B setup.py --version 2>/dev/null)
+
 
 define checkfor
 	@if ! which $(1) >/dev/null 2>&1 ; then \
@@ -48,16 +50,19 @@ help:
 build:
 	$(TOX) -qe build
 
+
+version:
+	@$(PYTHON) -B setup.py --version 2>/dev/null
+
 # Create source archive for RPM building
 archive:
-	@VERSION=$$($(PYTHON) setup.py --version 2>/dev/null) ; \
-	if [ -z "$$VERSION" ]; then \
+	if [ -z "$(VERSION)" ]; then \
 		echo "Error: Could not determine version from setup.py" >&2 ; \
 		exit 1 ; \
 	fi ; \
-	ARCHIVE="koji-habitude-$$VERSION.tar.gz" ; \
+	ARCHIVE="koji-habitude-$(VERSION).tar.gz" ; \
 	echo "Creating archive: $$ARCHIVE" ; \
-	git archive --format=tar.gz --prefix="koji-habitude-$$VERSION/" \
+	git archive --format=tar.gz --prefix="koji-habitude-$(VERSION)/" \
 		-o "$$ARCHIVE" HEAD ; \
 	echo "Archive created successfully: $$ARCHIVE"
 
