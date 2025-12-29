@@ -1,6 +1,6 @@
 %global srcname koji-habitude
-%global srcver 0.9.0
-%global srcrel 1
+%global srcver 0.9.1
+%global srcrel 0
 %global dstname koji_habitude
 %global sum Synchronizes local koji data expectations with a hub instance
 
