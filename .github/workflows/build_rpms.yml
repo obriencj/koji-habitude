@@ -24,11 +24,6 @@ jobs:
         run: |
           sudo apt-get install bash git make podman
 
-      - name: Determine Version
-        id: version
-        run: |
-          echo "pkg_version=$(make version)" >> "$GITHUB_ENV"
-
       - name: Generate Archive
         run: |
           make srpm
@@ -46,8 +41,6 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-          - 'fedora40'
-          - 'fedora42'
           - 'almalinux8'
           - 'almalinux9'
           - 'almalinux10'
