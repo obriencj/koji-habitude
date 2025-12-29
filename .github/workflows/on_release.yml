@@ -57,8 +57,6 @@ jobs:
 
     permissions:
       contents: write
-      pages: write
-      id-token: write
 
     needs:
       - build-metadata
@@ -132,6 +130,10 @@ jobs:
           skip-existing: true
 
   deploy-docs:
+    permissions:
+      pages: write
+      id-token: write
+
     uses: ./.github/workflows/deploy_docs.yml
 
   # announce:
