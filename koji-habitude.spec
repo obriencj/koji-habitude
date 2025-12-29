@@ -4,6 +4,16 @@
 %global dstname koji_habitude
 %global sum Synchronizes local koji data expectations with a hub instance
 
+# we don't generate binaries, let's turn that part off
+%global debug_package %{nil}
+
+# we'll build on RHEL/Rocky/Alma 8, but we need to use the python39 module
+%if 0%{?rhel} && 0%{?rhel} <= 8
+%global pythree python39
+%else
+%global pythree python3
+%endif
+
 
 Name:           %{srcname}
 Version:        0.1.0
@@ -16,10 +26,14 @@ Source0:        %{srcname}-%{version}.tar.gz
 
 BuildArch:      noarch
 
-BuildRequires:  python3-devel
-BuildRequires:  python3-pip
-BuildRequires:  python3-setuptools
-BuildRequires:  python3-wheel
+BuildRequires:  %{pythree}-devel
+BuildRequires:  %{pythree}-pip
+BuildRequires:  %{pythree}-setuptools
+BuildRequires:  %{pythree}-wheel
+
+%if 0%{?rhel} && 0%{?rhel} <= 8
+BuildRequires:  python39-rpm-macros
+%endif
 
 
 %description
@@ -32,32 +46,39 @@ execution.
 %prep
 %autosetup -n %{srcname}-%{version}
 
-
 %build
 %py3_build_wheel
-
 
 %install
 %py3_install_wheel  %{dstname}-%{version}-py3-none-any.whl
 
 
-%package -n python3-%{srcname}
+%package -n %{pythree}-%{srcname}
 Summary: %{sum}
 
-
 # Runtime dependencies
-Requires:       python3-click
-Requires:       python3-koji
-Requires:       python3-pyyaml
-Requires:       python3-jinja2
-Requires:       python3-pydantic
+Requires:       %{pythree}-click
+Requires:       %{pythree}-koji
+Requires:       %{pythree}-pyyaml
+Requires:       %{pythree}-jinja2
+Requires:       %{pythree}-pydantic
+
+%if 0%{?rhel} && 0%{?rhel} <= 8
+%{?py_provides:%py_provides %{srcname}}
+%else
+%{?python_provide:%python_provide %{pythree}-%{srcname}}
+%{?py_provides:%py_provides %{srcname}}
+%endif
 
 
-%{?python_provide:%python_provide python3-%{srcname}}
-%{?py_provides:%py_provides python3-%{srcname}}
+%description -n %{pythree}-%{srcname}
+koji-habitude is a configuration management tool for Koji build systems.
+It provides a declarative approach to managing koji objects through YAML
+templates and data files, with intelligent dependency resolution and tiered
+execution.
 
 
-%files
+%files -n %{pythree}-%{srcname}
 %license LICENSE
 %doc README.md
 %{python3_sitelib}/%{dstname}/
