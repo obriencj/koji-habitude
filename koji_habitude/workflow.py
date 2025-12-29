@@ -28,7 +28,7 @@ from typing import Any, Dict, Iterator, List, Type, Union
 from .koji import ClientSession, session
 from .loader import MultiLoader, YAMLLoader
 from .models import BaseObject
-from .namespace import Namespace, TemplateNamespace
+from .namespace import Namespace, TemplateNamespace, Redefine
 from .processor import CompareOnlyProcessor, Processor, ProcessorSummary
 from .resolver import Resolver, ResolverReport
 from .solver import Solver
@@ -38,14 +38,12 @@ class WorkflowState(Enum):
     """
     The states of the workflow.
 
-    See the `Workflow.run` and `Workflow.resume` methods for more
-    information.
+    See the `Workflow.run` and `Workflow.resume` methods for more information.
 
-    These values are passed to the callback
-    `Workflow.workflow_state_change` when the workflow transitions
-    between states. The callback can return True to pause the
-    workflow, in which case `Workflow.resume` can be called to resume
-    the workflow from the current state.
+    These values are passed to the callback `Workflow.workflow_state_change`
+    when the workflow transitions between states. The callback can return True
+    to pause the workflow, in which case `Workflow.resume` can be called to
+    resume the workflow from the current state.
     """
 
     READY = "ready"
@@ -84,10 +82,10 @@ class WorkflowPhantomsError(Exception):
 class Workflow:
     """
     A Workflow represents the combination of the individual features and steps
-    of koji-habitude, providing a simplified interface for loading YAML, feeding
-    and validating the data into a Namespace, expanding templates, resolving
-    dependencies, identifying change sets, and applying the relevant changes
-    onto a Koji hub instance.
+    of koji-habitude, providing a simplified interface for loading YAML,
+    feeding and validating the data into a Namespace, expanding templates,
+    resolving dependencies, identifying change sets, and applying the relevant
+    changes onto a Koji hub instance.
     """
 
     paths: List[Union[str, Path]] = None
@@ -138,7 +136,7 @@ class Workflow:
 
         data_ns = self.cls_namespace()
         if templates:
-            data_ns.merge_templates(templates)
+            data_ns.merge_templates(templates, redefine=Redefine.ALLOW)
         data_ns.feedall_raw(self.load_yaml(paths))
         data_ns.expand()
         return data_ns
@@ -251,17 +249,17 @@ class Workflow:
     def run(self) -> WorkflowState:
         """
         Run the workflow, starting from the READY state and iterating over the
-        phases. As the workflow progresses, state transitions are triggered, and
-        the overridable callback `workflow_state_change` is invoked. If the
-        callback returns True, the workflow is paused and this method returns
-        the current state. If the workflow completes successfully, this method
-        returns `WorkflowState.COMPLETED`.
+        phases. As the workflow progresses, state transitions are triggered,
+        and the overridable callback `workflow_state_change` is invoked. If
+        the callback returns True, the workflow is paused and this method
+        returns the current state. If the workflow completes successfully,
+        this method returns `WorkflowState.COMPLETED`.
 
         A paused workflow can be resumed by calling the `resume` method, which
         will pick up where the workflow left off, and may be paused again.
 
-        If an exception is raised during the run, the workflow state is set
-        to `WorkflowState.FAILED` and the exception is re-raised.
+        If an exception is raised during the run, the workflow state is set to
+        `WorkflowState.FAILED` and the exception is re-raised.
         """
 
         if self.state != WorkflowState.READY:
@@ -422,8 +420,8 @@ class CompareWorkflow(Workflow):
 @dataclass
 class DictWorkflow(Workflow):
     """
-    Workflow for operating over pre-created dictionaries of objects, rather than
-    using a loader to pull data from a filesystem.
+    Workflow for operating over pre-created dictionaries of objects, rather
+    than using a loader to pull data from a filesystem.
     """
 
     objects: List[Dict[str, Any]] = field(default_factory=list)
@@ -443,25 +441,23 @@ class DictWorkflow(Workflow):
 
 class ApplyDictWorkflow(DictWorkflow):
     """
-    Workflow for applying data onto a Koji hub instance, using pre-created dictionaries
-    of objects.
+    Workflow for applying data onto a Koji hub instance, using pre-created
+    dictionaries of objects.
 
-    This is used by the `template apply` command to apply a single template's expansion
-    onto a Koji hub instance.
+    This is used by the `template apply` command to apply a single template's
+    expansion onto a Koji hub instance.
     """
 
     def __init__(
             self,
             objects: List[Dict[str, Any]],
             template_paths: List[Union[str, Path]] = None,
-            recursive: bool = False,
             profile: str = 'koji',
             chunk_size: int = 100,
             skip_phantoms: bool = False):
         super().__init__(
             objects=objects,
             template_paths=template_paths,
-            recursive=recursive,
             profile=profile,
             chunk_size=chunk_size,
             skip_phantoms=skip_phantoms)
@@ -469,25 +465,23 @@ class ApplyDictWorkflow(DictWorkflow):
 
 class CompareDictWorkflow(DictWorkflow):
     """
-    Workflow for comparing data against a Koji hub instance, using pre-created dictionaries
-    of objects.
+    Workflow for comparing data against a Koji hub instance, using pre-created
+    dictionaries of objects.
 
-    This is used by the `template compare` command to compare a single template's expansion
-    against the objects on a Koji hub instance.
+    This is used by the `template compare` command to compare a single
+    template's expansion against the objects on a Koji hub instance.
     """
 
     def __init__(
             self,
             objects: List[Dict[str, Any]],
             template_paths: List[Union[str, Path]] = None,
-            recursive: bool = False,
             profile: str = 'koji',
             chunk_size: int = 100,
             skip_phantoms: bool = False):
         super().__init__(
             objects=objects,
             template_paths=template_paths,
-            recursive=recursive,
             profile=profile,
             chunk_size=chunk_size,
             skip_phantoms=skip_phantoms,

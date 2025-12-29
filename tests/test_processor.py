@@ -222,11 +222,7 @@ class TestProcessorBasic(ProcessorTestBase):
         self.assertEqual(summary.steps_completed, 0)  # 0 steps needed - already exhausted
         self.assertEqual(summary.state, ProcessorState.EXHAUSTED)
         self.assertEqual(summary.total_changes, 0)
-        self.assertEqual(summary.total_read_calls, 0)
-        self.assertEqual(summary.total_write_calls, 0)
         self.assertEqual(len(summary.change_reports), 0)
-        self.assertEqual(len(summary.read_calls), 0)
-        self.assertEqual(len(summary.write_calls), 0)
 
     def test_processor_state_transitions_empty(self):
         """Test state transitions with empty solver."""

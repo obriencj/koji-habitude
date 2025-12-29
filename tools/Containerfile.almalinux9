@@ -1,0 +1,11 @@
+FROM almalinux:9
+
+RUN dnf install -y epel-release python3-devel rpm-build yum-utils
+RUN dnf config-manager --set-enabled crb
+
+WORKDIR /build
+COPY tools/build.sh .
+
+ENTRYPOINT [ "./build.sh" ]
+
+#The end.

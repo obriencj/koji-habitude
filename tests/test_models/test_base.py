@@ -39,7 +39,6 @@ class TestBaseModels(unittest.TestCase):
         self.assertEqual(obj.filename, 'test.yaml')
         self.assertEqual(obj.lineno, 42)
         self.assertEqual(obj.trace, [{'key': 'value'}])
-        self.assertEqual(obj.data, data)
 
     def test_base_object_key_method(self):
         """

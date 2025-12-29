@@ -12,14 +12,19 @@ Base class for koji object models
 
 
 from enum import Enum
-from typing import (TYPE_CHECKING, Any, ClassVar, Dict, List, Optional,
-                    Protocol, Sequence, Tuple, Type, TypeVar)
+from typing import (
+    TYPE_CHECKING, Any, ClassVar, Dict, List, Optional,
+    Protocol, Sequence, Tuple, Type, TypeVar,
+)
 
 from koji import MultiCallNotReady, MultiCallSession, VirtualCall
 from typing_extensions import TypeAlias
 
 from ..koji import PromiseMultiCallSession
-from .compat import Field, Mixin, PrivateAttr, BaseModel, StrictModel, field_validator
+from .compat import (
+    Field, Mixin, PrivateAttr, BaseModel,
+    StrictModel, field_validator,
+)
 
 if TYPE_CHECKING:
     from ..resolver import Resolver
@@ -32,6 +37,7 @@ __all__ = (
     'SubModel',
 
     # Pydantic mixins
+    'DataMixin',
     'IdentifiableMixin',
     'LocalMixin',
     'ResolvableMixin',
@@ -45,7 +51,8 @@ __all__ = (
 
 BaseKey: TypeAlias = Tuple[str, str]
 """
-A tuple of (typename, name), used as the key for objects across this package
+A tuple of (typename, name), used as the key for objects across this
+package
 """
 
 
@@ -66,12 +73,14 @@ class BaseStatus(Enum):
 
     DISCOVERED = "discovered"
     """
-    Dependency which is not defined in a Namespace, but is known to exist on the Koji instance
+    Dependency which is not defined in a Namespace, but is known to
+    exist on the Koji instance
     """
 
     PHANTOM = "phantom"
     """
-    Dependency which is not defined in a Namespace, and not known to exist on the Koji instance
+    Dependency which is not defined in a Namespace, and not known to
+    exist on the Koji instance
     """
 
 
@@ -127,9 +136,8 @@ class LocalMixin(Mixin):
 
     filename: Optional[str] = Field(alias='__file__', default=None)
     lineno: Optional[int] = Field(alias='__line__', default=None)
-    trace: Optional[List[Dict[str, Any]]] = Field(alias='__trace__', default_factory=list)
-
-    _data: Optional[Dict[str, Any]] = PrivateAttr(default=None)
+    trace: Optional[List[Dict[str, Any]]] = Field(
+        alias='__trace__', default_factory=list)
 
 
     def filepos(self) -> Tuple[Optional[str], Optional[int]]:
@@ -147,47 +155,75 @@ class LocalMixin(Mixin):
     @classmethod
     def from_dict(cls: Type[LocalT], data: Dict[str, Any]) -> LocalT:
         """
-        Create an instance directly from a dictionary. Records the original data
-        dict for later review via the `data` property.
+        Create an instance directly from a dictionary. Records the
+        original data dict for later review via the `data` property.
         """
 
-        obj = cls.model_validate(data)
-        obj._data = data
-        return obj
+        return cls.model_validate(data)
 
 
     def to_dict(self, **kwargs: Any) -> Dict[str, Any]:
         """
-        Return a dictionary representation of this object. This is distinct from
-        the original data that was used to create the object, and may include
-        fields with default values and validated forms.
+        Return a dictionary representation of this object. This is
+        distinct from the original data that was used to create the
+        object, and may include fields with default values and
+        validated forms.
         """
 
         return self.model_dump(by_alias=True, **kwargs)
 
 
+DataT = TypeVar('DataT', bound='DataMixin')
+
+
+class DataMixin(LocalMixin):
+    """
+    A mixin that loads from a local representation, and also stores a
+    copy of that original dict as the `data` attribute.
+    """
+
+    # We cannot make this a PrivateAttr because doing so breaks
+    # Pydantic v1.10 compatibility. This is because v1.10 creates a
+    # __slots__ attribute for the class when there are private
+    # attributes, and you cannot use __slots__ with multiple
+    # inheritance, which is the whole damned point of mixins.
+    # Combining DataMixin with ResolvableMixin explodes pydantic v1.10
+    _data: Optional[Dict[str, Any]] = None
+
+
+    @classmethod
+    def from_dict(cls: Type[DataT], data: Dict[str, Any]) -> DataT:
+        """
+        Create an instance directly from a dictionary. Records the
+        original data dict for later review via the `data` property.
+        """
+
+        obj = super().from_dict(data)
+        obj._data = data
+        return obj
+
+
     @property
     def data(self) -> Optional[Dict[str, Any]]:
         """
-        Access the raw data that was used if this object was created via `from_dict`
+        Access the raw data that was used if this object was created
+        via `from_dict`
         """
+
         return self._data
 
 
 class ResolvableMixin(IdentifiableMixin):
 
-    # We cannot make this a PrivateAttr because doing so breaks Pydantic v1.10
-    # compatibility. This is because v1.10 creates a __slots__ attribute for the
-    # class when there are private attributes, and you cannot use __slots__ with
-    # multiple inheritance, which is the whole damned point of mixins. The _data
-    # attribute from LocalMixin is the one that conflicts with us. Inheriting
-    # from LocalMixin and ResolvableMixin together explodes pydantic v1.10
-    _remote: Optional[VirtualCall] = None
+    _remote: Optional[VirtualCall] = PrivateAttr(default=None)
 
 
     @property
     def status(self) -> BaseStatus:
-        return BaseStatus.PRESENT if self.remote() is not None else BaseStatus.PENDING
+        if self.remote() is not None:
+            return BaseStatus.PRESENT
+        else:
+            return BaseStatus.PENDING
 
 
     def is_phantom(self) -> bool:
@@ -195,27 +231,40 @@ class ResolvableMixin(IdentifiableMixin):
 
 
     def remote(self):
+        if self._remote is None:
+            return None
+
         try:
-            return self._remote.result if self._remote is not None else None
+            return self._remote.result
         except MultiCallNotReady:
             return None
 
 
-    def load_remote(self, session: MultiCallSession, reload: bool = False) -> VirtualCall:
+    def load_remote(
+            self,
+            session: MultiCallSession,
+            reload: bool = False) -> VirtualCall:
+
         if reload or self._remote is None:
             self._remote = self.query_remote(session, self.key())
         return self._remote
 
 
     @classmethod
-    def query_remote(cls, session: MultiCallSession, key: BaseKey) -> VirtualCall:
+    def query_remote(
+            cls,
+            session: MultiCallSession,
+            key: BaseKey) -> VirtualCall:
+
         raise NotImplementedError("Subclasses must implement query_remote")
 
 
 class SubModel(BaseModel):
     """
-    A base model for submodels that need to be validated by alias and name.
+    A base model for submodels that need to be validated by alias and
+    name
     """
+
     pass
 
 
@@ -239,16 +288,14 @@ class CoreObject(LocalMixin, ResolvableMixin, BaseModel):
 
     typename: ClassVar[str] = 'object'
 
-    # TODO: this is a holdover from when we allowed arbitrary fields in the
-    # YAML. We should remove this in favor of comments, most likely.
+    # TODO: this is a holdover from when we allowed arbitrary fields
+    # in the YAML. We should remove this in favor of comments, most
+    # likely.
     description: Optional[str] = Field(alias='description', default=None)
 
     _auto_split: ClassVar[bool] = False
     _is_split: bool = PrivateAttr(default=False)
     _was_split: bool = PrivateAttr(default=False)
-
-    # pydantic v1.10 compatibility for ResolvableMixin
-    _remote: Optional[VirtualCall] = PrivateAttr(default=None)
 
 
     def dependency_keys(self) -> Sequence[BaseKey]:
@@ -316,7 +363,10 @@ class RemoteObject(IdentifiableMixin, BaseModel):
 
 
     @classmethod
-    def from_koji(cls: Type[RemoteT], data: Optional[Dict[str, Any]]) -> RemoteT:
+    def from_koji(
+            cls: Type[RemoteT],
+            data: Optional[Dict[str, Any]]) -> RemoteT:
+
         raise NotImplementedError("Subclasses must implement from_koji")
 
 
@@ -325,7 +375,9 @@ class RemoteObject(IdentifiableMixin, BaseModel):
 
 
     def to_dict(self, **kwargs: Any) -> Dict[str, Any]:
-        return self.model_dump(by_alias=True, exclude={'koji_id'}, **kwargs)
+        return self.model_dump(by_alias=True,
+                               exclude={'koji_id'},
+                               **kwargs)
 
 
     def __repr__(self) -> str:

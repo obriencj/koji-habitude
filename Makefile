@@ -10,6 +10,13 @@ PYTHON ?= python3
 TOX ?= tox
 PORT ?= 8900
 
+VERSION ?= $(shell $(PYTHON) -B setup.py --version 2>/dev/null)
+
+# Container build configuration
+PLATFORM ?= almalinux9
+CONTAINER_IMAGE = koji-habitude-builder:$(PLATFORM)
+ARCHIVE_FILE = koji-habitude-$(VERSION).tar.gz
+
 
 define checkfor
 	@if ! which $(1) >/dev/null 2>&1 ; then \
@@ -19,7 +26,7 @@ define checkfor
 endef
 
 
-.PHONY: build flake8 mypy twine test clean help tidy purge quicktest docs overview clean-docs preview-docs coverage docs-gen archive
+.PHONY: build flake8 mypy twine test clean help tidy purge quicktest docs overview clean-docs preview-docs coverage docs-gen archive srpm rpm
 
 # Default target
 help:
@@ -48,18 +55,76 @@ help:
 build:
 	$(TOX) -qe build
 
+
+version:
+	@$(PYTHON) -B setup.py --version 2>/dev/null
+
 # Create source archive for RPM building
 archive:
-	@VERSION=$$($(PYTHON) setup.py --version 2>/dev/null) ; \
-	if [ -z "$$VERSION" ]; then \
+	if [ -z "$(VERSION)" ]; then \
 		echo "Error: Could not determine version from setup.py" >&2 ; \
 		exit 1 ; \
 	fi ; \
-	ARCHIVE="koji-habitude-$$VERSION.tar.gz" ; \
+	ARCHIVE="koji-habitude-$(VERSION).tar.gz" ; \
 	echo "Creating archive: $$ARCHIVE" ; \
-	git archive --format=tar.gz --prefix="koji-habitude-$$VERSION/" \
+	git archive --format=tar.gz --prefix="koji-habitude-$(VERSION)/" \
 		-o "$$ARCHIVE" HEAD ; \
 	echo "Archive created successfully: $$ARCHIVE"
+
+# Ensure dist directories exist
+dist/SRPMS:
+	mkdir -p dist/SRPMS
+
+dist/%/RPMS:
+	mkdir -p dist/$*/RPMS
+
+# Build SRPM in container
+srpm: archive dist/SRPMS
+	@if [ -z "$(VERSION)" ]; then \
+		echo "Error: Could not determine version from setup.py" >&2 ; \
+		exit 1 ; \
+	fi
+	@echo "Building SRPM for platform: $(PLATFORM)"
+	@echo "Using archive: $(ARCHIVE_FILE)"
+	@if [ ! -f "tools/Containerfile.$(PLATFORM)" ]; then \
+		echo "Error: Containerfile not found: tools/Containerfile.$(PLATFORM)" >&2 ; \
+		exit 1 ; \
+	fi
+	podman build -f tools/Containerfile.$(PLATFORM) -t $(CONTAINER_IMAGE) .
+	podman run --rm \
+		-v "$(PWD)/$(ARCHIVE_FILE):/build/$(ARCHIVE_FILE):ro,z" \
+		-v "$(PWD)/koji-habitude.spec:/build/koji-habitude.spec:ro,z" \
+		-v "$(PWD)/dist/SRPMS:/output:z" \
+		$(CONTAINER_IMAGE) \
+		srpm /build/$(ARCHIVE_FILE) /build/koji-habitude.spec
+	@echo "SRPM built successfully in dist/SRPMS/"
+
+# Build RPM in container
+rpm: archive
+	@if [ -z "$(PLATFORM)" ]; then \
+		echo "Error: PLATFORM must be specified (e.g., make rpm PLATFORM=almalinux9)" >&2 ; \
+		exit 1 ; \
+	fi
+	@if [ -z "$(VERSION)" ]; then \
+		echo "Error: Could not determine version from setup.py" >&2 ; \
+		exit 1 ; \
+	fi
+	@echo "Building RPM for platform: $(PLATFORM)"
+	@echo "Using archive: $(ARCHIVE_FILE)"
+	@if [ ! -f "tools/Containerfile.$(PLATFORM)" ]; then \
+		echo "Error: Containerfile not found: tools/Containerfile.$(PLATFORM)" >&2 ; \
+		exit 1 ; \
+	fi
+	@mkdir -p dist/$(PLATFORM)/RPMS
+	$(MAKE) dist/$(PLATFORM)/RPMS
+	podman build -f tools/Containerfile.$(PLATFORM) -t $(CONTAINER_IMAGE) .
+	podman run --rm \
+		-v "$(PWD)/$(ARCHIVE_FILE):/build/$(ARCHIVE_FILE):ro,z" \
+		-v "$(PWD)/koji-habitude.spec:/build/koji-habitude.spec:ro,z" \
+		-v "$(PWD)/dist/$(PLATFORM)/RPMS:/output:z" \
+		$(CONTAINER_IMAGE) \
+		rpm /build/$(ARCHIVE_FILE) /build/koji-habitude.spec
+	@echo "RPM built successfully in dist/$(PLATFORM)/RPMS/noarch/"
 
 # Run flake8 linting
 flake8:
@@ -108,36 +173,17 @@ purge:  clean
 docs-gen:	## Generate schema documentation from Pydantic models
 	$(TOX) -qe docs-gen
 
-docs: clean-docs docs/overview.rst	## Build sphinx docs
+
+docs: clean-docs	## Build sphinx docs
 	$(TOX) -qe sphinx
 
 
-overview: docs/overview.rst  ## rebuilds the overview from README.md
-
-
-docs/overview.rst: README.md
-	@if which pandoc >/dev/null 2>&1 ; then \
-		echo "Using system pandoc..." ; \
-		pandoc --from=markdown --to=rst -o $@ $< ; \
-	else \
-		echo "pandoc not found, using containerized version..." ; \
-		podman run --rm -v "$(PWD):/workspace":Z -w /workspace \
-			docker.io/pandoc/core:latest \
-			--from=markdown --to=rst -o /workspace/$@ /workspace/$< ; \
-	fi
-	@# Convert relative links: docs/ -> ../, /index.rst -> /, other .rst -> /
-	@sed -i \
-	    -e 's|<docs/|<../|g' \
-		-e 's|/index\.rst>`__|/>`__|g' \
-		-e 's|\.rst>`__|/>`__|g' $@
-
-
 clean-docs:	## Remove built docs
-	@rm -rf build/sphinx
+	@rm -rf build/docs
 
 
 preview-docs: docs	## Build and hosts docs locally
-	@$(PYTHON) -B -m http.server -d build/sphinx \
+	@$(PYTHON) -B -m http.server -d build/docs \
 	  -b 127.0.0.1 $(PORT)
 
 

@@ -12,11 +12,17 @@ Helper functions for koji client operations.
 
 
 import logging
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
+from typing import (
+    TYPE_CHECKING, Any, Callable, Dict, List, Optional, TypeVar,
+)
 
-from koji import (ClientSession, MultiCallSession, VirtualCall, VirtualMethod,
-                  read_config)
+from koji import (
+    ClientSession, MultiCallSession, VirtualCall, VirtualMethod,
+    read_config,
+)
+from .intern import intern
 from koji_cli.lib import activate_session
+
 
 if TYPE_CHECKING:
     from .models import BaseKey
@@ -31,14 +37,33 @@ __all__ = (
 logger = logging.getLogger(__name__)
 
 
-def session(profile: str = 'koji', authenticate: bool = False) -> ClientSession:
+ENABLE_INTERNING = True
+
+
+class InterningClientSession(ClientSession):
+    """
+    A client session that may intern the results of API calls to conserve
+    memory
+    """
+
+    def _callMethod(self, name, args, kwargs=None, retry=True):
+        return intern(super()._callMethod(name, args, kwargs, retry))
+
+
+def session(
+        profile: str = 'koji',
+        authenticate: bool = False) -> ClientSession:
     """
     Create a koji client session.
     """
 
     conf = read_config(profile)
     server = conf["server"]
-    session = ClientSession(server, opts=conf)
+    session: ClientSession
+    if ENABLE_INTERNING:
+        session = InterningClientSession(server, opts=conf)
+    else:
+        session = ClientSession(server, opts=conf)
     session.logger = logger
 
     if authenticate:
@@ -52,10 +77,11 @@ def session(profile: str = 'koji', authenticate: bool = False) -> ClientSession:
 
 class VirtualPromise(VirtualCall):
     """
-    A VirtualCall that triggers a callback when the call is completed. Unlike a
-    VirtualCallProcessor, which performs a transformation on the result lazily,
-    a VirtualPromise triggers its callback when the parent
-    PromiseMultiCallSession stores the result value or exception into it.
+    A VirtualCall that triggers a callback when the call is
+    completed. Unlike a VirtualCallProcessor, which performs a
+    transformation on the result lazily, a VirtualPromise triggers its
+    callback when the parent PromiseMultiCallSession stores the result
+    value or exception into it.
     """
 
     def __init__(self, method: str, args, kwargs):
@@ -71,6 +97,7 @@ class VirtualPromise(VirtualCall):
 
     @_result.setter
     def _result(self, value: Any):
+        value = intern(value) if ENABLE_INTERNING else value
         self._real_result = value
         if trigger_fn := self._trigger:
             self._trigger = None
@@ -107,7 +134,10 @@ def call_processor(post_process, sessionmethod, *args, **kwargs):
     """
 
     if not isinstance(sessionmethod, VirtualMethod):
-        raise TypeError(f"sessionmethod must be a VirtualMethod, got {type(sessionmethod)}")
+        raise TypeError(
+            "sessionmethod must be a VirtualMethod,"
+            f" got {type(sessionmethod)}"
+        )
 
     result = sessionmethod(*args, **kwargs)
     if isinstance(result, VirtualCall):
@@ -124,12 +154,21 @@ def promise_call(
     if isinstance(promise, VirtualPromise):
         promise.into(intofn)
     else:
-        raise TypeError(f"sessionmethod must return a VirtualPromise, got {type(promise)}")
+        raise TypeError(
+            "sessionmethod must return a VirtualPromise,"
+            f"got {type(promise)}"
+        )
 
 
 class PromiseMultiCallSession(MultiCallSession):
 
-    def _callMethod(self, name: str, args, kwargs=None, retry=True) -> VirtualPromise:
+    def _callMethod(
+            self,
+            name: str,
+            args,
+            kwargs=None,
+            retry=True) -> VirtualPromise:
+
         logger.debug(f"callMethod({name!r}, {args!r}, {kwargs!r})")
         if kwargs is None:
             kwargs = {}
@@ -138,17 +177,20 @@ class PromiseMultiCallSession(MultiCallSession):
         return ret
 
 
+CallDict = Dict['BaseKey', List[VirtualCall]]
+
+
 class ReportingMulticall(PromiseMultiCallSession):
     """
-    A multicall that reports the results of the calls.
+    A multicall that associates the results of the calls with an object key.
     """
 
     def __init__(
             self,
             session: ClientSession,
             strict: bool = False,
-            batch: Optional[bool] = None,
-            associations: Optional[Dict['BaseKey', List[VirtualCall]]] = None):
+            batch: Optional[int] = 100,
+            associations: Optional[CallDict] = None):
 
         super().__init__(session, strict=strict, batch=batch)
 
@@ -159,8 +201,15 @@ class ReportingMulticall(PromiseMultiCallSession):
         self._call_log: List[VirtualCall] = associations.setdefault(None, [])
 
 
-    def _callMethod(self, name: str, args, kwargs=None, retry=True) -> VirtualPromise:
-        result = super()._callMethod(name, args, kwargs=kwargs, retry=retry)  # type: ignore
+    def _callMethod(
+            self,
+            name: str,
+            args,
+            kwargs=None,
+            retry=True) -> VirtualPromise:
+
+        result = super()._callMethod(
+            name, args, kwargs=kwargs, retry=retry)  # type: ignore
         self._call_log.append(result)
         return result
 
@@ -171,19 +220,17 @@ class ReportingMulticall(PromiseMultiCallSession):
 
 def multicall(
         session: ClientSession,
-        associations: Optional[Dict['BaseKey', List[VirtualCall]]] = None) -> ReportingMulticall:
-
+        batch: Optional[int] = 100) -> PromiseMultiCallSession:
     """
     Create a multicall session that will record the calls made to it
     into the call_log list.
 
-    Args:
-        session: The koji session to create the multicall session from
-        associations: Dict of BaseKey to list of VirtualCall objects
+    :param session: The koji session to create the multicall session from
+    :param batch: The batch size for the multicall session
     """
 
     # note that we make the call log mandatory here.
-    mc = ReportingMulticall(session, associations=associations)
+    mc = PromiseMultiCallSession(session, batch=batch)
     vars(mc)['_currentuser'] = vars(session)['_currentuser']
     return mc
 
