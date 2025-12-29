@@ -56,9 +56,6 @@ build:
 	$(TOX) -qe build
 
 
-version:
-	@$(PYTHON) -B setup.py --version 2>/dev/null
-
 # Create source archive for RPM building
 archive:
 	if [ -z "$(VERSION)" ]; then \
@@ -190,6 +187,15 @@ preview-docs: docs	## Build and hosts docs locally
 preview-coverage: coverage	## Build and hosts coverage report locally
 	@$(PYTHON) -B -m http.server -d build/coverage \
 	  -b 127.0.0.1 $(PORT)
+
+
+# CI Support targets
+
+version:
+	@echo $(VERSION)
+
+release-notes:
+	@cat docs/release-notes/v$(VERSION).md
 
 
 # The end.

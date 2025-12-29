@@ -98,7 +98,9 @@ pip install -e .
 
 **Author**: Christopher O'Brien <obriencj@gmail.com>
 
-**Repository**: https://github.com/obriencj/koji-habitude
+**Original Git Repository**: https://github.com/obriencj/koji-habitude
+
+**Documentation**: https://obriencj.github.io/koji-habitude
 
 **AI Assistance**: This project was developed with assistance from
 [Claude](https://claude.ai) (Claude 3.5 and 4.5 Sonnet) via [Cursor

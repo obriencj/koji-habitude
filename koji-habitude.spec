@@ -1,6 +1,6 @@
 %global srcname koji-habitude
-%global server 0.1.0
-%global srcrel 0
+%global srcver 0.9.0
+%global srcrel 1
 %global dstname koji_habitude
 %global sum Synchronizes local koji data expectations with a hub instance
 
@@ -16,7 +16,7 @@
 
 
 Name:           %{srcname}
-Version:        0.1.0
+Version:        %{srcver}
 Release:        %{srcrel}%{?dist}
 Summary:        %{sum}
 
@@ -87,6 +87,9 @@ execution.
 
 
 %changelog
+* Mon Dec 29 2025 Christopher O'Brien <obriencj@gmail.com> - 0.9.0-1
+- See the 0.9.0 release notes for a list of initial features
+
 * Mon Oct 13 2025 Christopher O'Brien <obriencj@gmail.com> - 0.1.0-1
 - Initial RPM package for koji-habitude
 - Provides CLI tool for declarative koji configuration management

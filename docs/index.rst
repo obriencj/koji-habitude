@@ -21,3 +21,9 @@ Koji Habitude
    koji_habitude
    local_models
    remote_models
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Release Notes
+
+   release-notes

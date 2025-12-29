@@ -22,7 +22,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          sudo apt-get install make pandoc
+          sudo apt-get install make
 
       - name: Record Version
         run: |
@@ -57,6 +57,8 @@ jobs:
 
     permissions:
       contents: write
+      pages: write
+      id-token: write
 
     needs:
       - build-metadata
@@ -132,44 +134,44 @@ jobs:
   deploy-docs:
     uses: ./.github/workflows/deploy_docs.yml
 
-  announce:
-    name: Announce release
-    runs-on: ubuntu-latest
+  # announce:
+  #   name: Announce release
+  #   runs-on: ubuntu-latest
 
-    needs:
-      - deploy-release
-      - deploy-docs
-      - deploy-pypi
+  #   needs:
+  #     - deploy-release
+  #     - deploy-docs
+  #     - deploy-pypi
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
 
-      - name: Fetch python dist content
-        uses: actions/download-artifact@v4
-        with:
-          name: Version
+  #     - name: Fetch python dist content
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: Version
 
-      - name: Get the package version
-        run: |
-          echo "DIST_VERSION=$(cat VERSION)" >> "$GITHUB_ENV"
+  #     - name: Get the package version
+  #       run: |
+  #         echo "DIST_VERSION=$(cat VERSION)" >> "$GITHUB_ENV"
 
-      - name: Get current date
-        run: |
-          echo "RELEASE_DATE=$(date +'%Y-%m-%d')" >> "$GITHUB_ENV"
+  #     - name: Get current date
+  #       run: |
+  #         echo "RELEASE_DATE=$(date +'%Y-%m-%d')" >> "$GITHUB_ENV"
 
-      - name: Post announcement
-        uses: rzr/fediverse-action@master
-        with:
-          host: fosstodon.org
-          access-token: ${{ secrets.MASTODON_ACCESS_TOKEN }}
+  #     - name: Post announcement
+  #       uses: rzr/fediverse-action@master
+  #       with:
+  #         host: fosstodon.org
+  #         access-token: ${{ secrets.MASTODON_ACCESS_TOKEN }}
 
-          message: |
-            koji-habitude ${{ env.DIST_VERSION }} was released on ${{ env.RELEASE_DATE }}
+  #         message: |
+  #           koji-habitude ${{ env.DIST_VERSION }} was released on ${{ env.RELEASE_DATE }}
 
-            View the release on GitHub: https://github.com/obriencj/koji-habitude/releases/tag/${{ github.ref_name }}
+  #           View the release on GitHub: https://github.com/obriencj/koji-habitude/releases/tag/${{ github.ref_name }}
 
-            #koji #kojihabitude
+  #           #koji #kojihabitude
 
 
 # The end.
