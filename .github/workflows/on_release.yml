@@ -22,7 +22,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          sudo apt-get install make pandoc
+          sudo apt-get install make
 
       - name: Record Version
         run: |
