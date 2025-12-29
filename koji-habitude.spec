@@ -1,11 +1,13 @@
 %global srcname koji-habitude
+%global server 0.1.0
+%global srcrel 0
 %global dstname koji_habitude
 %global sum Synchronizes local koji data expectations with a hub instance
 
 
-Name:           python3-%{srcname}
+Name:           %{srcname}
 Version:        0.1.0
-Release:        1%{?dist}
+Release:        %{srcrel}%{?dist}
 Summary:        %{sum}
 
 License:        GPL-3.0-or-later
@@ -19,31 +21,12 @@ BuildRequires:  python3-pip
 BuildRequires:  python3-setuptools
 BuildRequires:  python3-wheel
 
-# Runtime dependencies
-Requires:       python3-click
-Requires:       python3-koji
-Requires:       python3-pyyaml
-Requires:       python3-jinja2
-Requires:       python3-pydantic
-
-%{?python_provide:%python_provide python3-%{srcname}}
-%{?py_provides:%py_provides python3-%{srcname}}
-
 
 %description
 koji-habitude is a configuration management tool for Koji build systems.
 It provides a declarative approach to managing koji objects through YAML
 templates and data files, with intelligent dependency resolution and tiered
 execution.
-
-Key Features:
-- Define koji objects (tags, external repos, users, targets, hosts, groups,
-  channels, permissions, build types, archive types) in YAML
-- Use Jinja2 templates for dynamic configuration generation
-- Automatically resolve dependencies between objects
-- Preview template expansion results
-- Apply changes in the correct order through tiered execution
-- Validate configurations offline before deployment
 
 
 %prep
@@ -56,6 +39,22 @@ Key Features:
 
 %install
 %py3_install_wheel  %{dstname}-%{version}-py3-none-any.whl
+
+
+%package -n python3-%{srcname}
+Summary: %{sum}
+
+
+# Runtime dependencies
+Requires:       python3-click
+Requires:       python3-koji
+Requires:       python3-pyyaml
+Requires:       python3-jinja2
+Requires:       python3-pydantic
+
+
+%{?python_provide:%python_provide python3-%{srcname}}
+%{?py_provides:%py_provides python3-%{srcname}}
 
 
 %files

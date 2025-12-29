@@ -12,6 +12,11 @@ PORT ?= 8900
 
 VERSION ?= $(shell $(PYTHON) -B setup.py --version 2>/dev/null)
 
+# Container build configuration
+PLATFORM ?= almalinux9
+CONTAINER_IMAGE = koji-habitude-builder:$(PLATFORM)
+ARCHIVE_FILE = koji-habitude-$(VERSION).tar.gz
+
 
 define checkfor
 	@if ! which $(1) >/dev/null 2>&1 ; then \
@@ -21,7 +26,7 @@ define checkfor
 endef
 
 
-.PHONY: build flake8 mypy twine test clean help tidy purge quicktest docs overview clean-docs preview-docs coverage docs-gen archive
+.PHONY: build flake8 mypy twine test clean help tidy purge quicktest docs overview clean-docs preview-docs coverage docs-gen archive srpm rpm
 
 # Default target
 help:
@@ -65,6 +70,61 @@ archive:
 	git archive --format=tar.gz --prefix="koji-habitude-$(VERSION)/" \
 		-o "$$ARCHIVE" HEAD ; \
 	echo "Archive created successfully: $$ARCHIVE"
+
+# Ensure dist directories exist
+dist/SRPMS:
+	mkdir -p dist/SRPMS
+
+dist/%/RPMS:
+	mkdir -p dist/$*/RPMS
+
+# Build SRPM in container
+srpm: archive dist/SRPMS
+	@if [ -z "$(VERSION)" ]; then \
+		echo "Error: Could not determine version from setup.py" >&2 ; \
+		exit 1 ; \
+	fi
+	@echo "Building SRPM for platform: $(PLATFORM)"
+	@echo "Using archive: $(ARCHIVE_FILE)"
+	@if [ ! -f "tools/Containerfile.$(PLATFORM)" ]; then \
+		echo "Error: Containerfile not found: tools/Containerfile.$(PLATFORM)" >&2 ; \
+		exit 1 ; \
+	fi
+	podman build -f tools/Containerfile.$(PLATFORM) -t $(CONTAINER_IMAGE) .
+	podman run --rm \
+		-v "$(PWD)/$(ARCHIVE_FILE):/build/$(ARCHIVE_FILE):ro,z" \
+		-v "$(PWD)/koji-habitude.spec:/build/koji-habitude.spec:ro,z" \
+		-v "$(PWD)/dist/SRPMS:/output:z" \
+		$(CONTAINER_IMAGE) \
+		srpm /build/$(ARCHIVE_FILE) /build/koji-habitude.spec
+	@echo "SRPM built successfully in dist/SRPMS/"
+
+# Build RPM in container
+rpm: archive
+	@if [ -z "$(PLATFORM)" ]; then \
+		echo "Error: PLATFORM must be specified (e.g., make rpm PLATFORM=almalinux9)" >&2 ; \
+		exit 1 ; \
+	fi
+	@if [ -z "$(VERSION)" ]; then \
+		echo "Error: Could not determine version from setup.py" >&2 ; \
+		exit 1 ; \
+	fi
+	@echo "Building RPM for platform: $(PLATFORM)"
+	@echo "Using archive: $(ARCHIVE_FILE)"
+	@if [ ! -f "tools/Containerfile.$(PLATFORM)" ]; then \
+		echo "Error: Containerfile not found: tools/Containerfile.$(PLATFORM)" >&2 ; \
+		exit 1 ; \
+	fi
+	@mkdir -p dist/$(PLATFORM)/RPMS
+	$(MAKE) dist/$(PLATFORM)/RPMS
+	podman build -f tools/Containerfile.$(PLATFORM) -t $(CONTAINER_IMAGE) .
+	podman run --rm \
+		-v "$(PWD)/$(ARCHIVE_FILE):/build/$(ARCHIVE_FILE):ro,z" \
+		-v "$(PWD)/koji-habitude.spec:/build/koji-habitude.spec:ro,z" \
+		-v "$(PWD)/dist/$(PLATFORM)/RPMS:/output:z" \
+		$(CONTAINER_IMAGE) \
+		rpm /build/$(ARCHIVE_FILE) /build/koji-habitude.spec
+	@echo "RPM built successfully in dist/$(PLATFORM)/RPMS/noarch/"
 
 # Run flake8 linting
 flake8:

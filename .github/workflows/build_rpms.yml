@@ -22,7 +22,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          sudo apt-get install bash git make
+          sudo apt-get install bash git make podman
 
       - name: Determine Version
         id: version
@@ -31,60 +31,49 @@ jobs:
 
       - name: Generate Archive
         run: |
-          make archive
-
-      - name: Generate Source RPM
-        id: srpm
-        uses: next-actions/build-srpm@master
-        with:
-          tarball: koji-habitude-${{ env.pkg_version }}.tar.gz
-          specfile: koji-habitude.spec
+          make srpm
 
       - name: Store Source RPM
         uses: actions/upload-artifact@v4
         with:
           name: RPMs-srpm
-          path: ${{ steps.srpm.outputs.path }}
+          path: dist/SRPMS/*.src.rpm
 
-  # build-rpm:
-  #   runs-on: ubuntu-24.04
+  build-rpm:
+    runs-on: ubuntu-24.04
 
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       platform:
-  #         - 'fedora38'
-  #         - 'fedora39'
-  #         - 'fedora40'
-  #         - 'rockylinux8'
-  #         - 'rockylinux9'
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - 'fedora40'
+          - 'fedora42'
+          - 'almalinux8'
+          - 'almalinux9'
+          - 'almalinux10'
 
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  #     - name: Setup Python
-  #       uses: actions/setup-python@v5
-  #       with:
-  #         python-version: 3.9
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.9
 
-  #     - name: Install Dependencies
-  #       run: |
-  #         sudo apt-get install bash git make podman
+      - name: Install Dependencies
+        run: |
+          sudo apt-get install bash git make podman
 
-  #     - name: Generate Archive
-  #       run: |
-  #         make archive
+      - name: Generate Archive
+        run: |
+          make rpm PLATFORM=${{ matrix.platform }}
 
-  #     - name: Generate RPM ${{ matrix.platform }}
-  #       run: |
-  #         tools/launch-build.sh ${{ matrix.platform }}
-
-  #     - name: Store RPM ${{ matrix.platform }}
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: RPMs-${{ matrix.platform }}
-  #         path: dist/${{ matrix.platform }}/RPMS/noarch/*.rpm
+      - name: Store RPM ${{ matrix.platform }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: RPMs-${{ matrix.platform }}
+          path: dist/${{ matrix.platform }}/RPMS/noarch/*.rpm
 
 
 # The end.
