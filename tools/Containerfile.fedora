@@ -1,0 +1,10 @@
+FROM fedora:latest
+
+RUN dnf install --disablerepo="*" --enablerepo="fedora,updates" --setopt install_weak_deps=0 -y python3-devel rpm-build yum-utils
+
+WORKDIR /build
+COPY tools/build.sh .
+
+ENTRYPOINT [ "./build.sh" ]
+
+#The end.
