@@ -368,7 +368,7 @@ def find_files(
 
     found: List[Path] = []
     for ext in extensions:
-        found.extend(pglob(f"*{ext}"))
+        found.extend(p for p in pglob(f"*{ext}") if p.is_file())
 
     return sorted(found)
 
