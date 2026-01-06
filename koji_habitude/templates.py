@@ -313,6 +313,18 @@ class Template(BaseModel, IdentifiableMixin, LocalMixin):
     _undeclared: Set[str] = PrivateAttr(default=None)
     _jinja2_template: Jinja2Template = PrivateAttr(default=None)
     _base_path: Optional[Path] = PrivateAttr(default=None)
+    _logger: Optional[logging.Logger] = PrivateAttr(default=None)
+
+
+    @property
+    def logger(self) -> logging.Logger:
+        """
+        The logger for the template
+        """
+
+        if self._logger is None:
+            self._logger = logging.getLogger(f"template.{self.name}")
+        return self._logger
 
 
     @property
@@ -361,32 +373,30 @@ class Template(BaseModel, IdentifiableMixin, LocalMixin):
             extensions=['jinja2.ext.do', 'jinja2.ext.loopcontrols'],
             undefined=StrictUndefined)
 
+        if self.template_content:
+            if self.template_file:
+                raise TemplateError(
+                    original_error=ValueError(
+                        "Template content is not allowed when template file is specified"),
+                    template=self)
+        elif not self.template_file:
+            raise TemplateError(
+                original_error=ValueError(
+                    "Template content is required when template file is not specified"),
+                template=self)
+        elif Path(self.template_file).is_absolute():
+            raise TemplateError(
+                original_error=ValueError(
+                    "Absolute paths are not allowed with template file loading"
+                ),
+                template=self)
+
         try:
             if self.template_content:
-                if self.template_file:
-                    raise TemplateError(
-                        original_error=ValueError(
-                            "Template content is not allowed when template file is specified"),
-                        template=self)
-
-                ast = jinja_env.parse(self.template_content)
-
+                src = self.template_content
             else:
-                if not self.template_file:
-                    raise TemplateError(
-                        original_error=ValueError(
-                            "Template content is required when template file is not specified"),
-                        template=self)
-
-                elif Path(self.template_file).is_absolute():
-                    raise TemplateError(
-                        original_error=ValueError(
-                            "Absolute paths are not allowed with template file loading"
-                        ),
-                        template=self)
-
                 src = loader.get_source(jinja_env, self.template_file)[0]
-                ast = jinja_env.parse(src)
+            ast = jinja_env.parse(src)
 
         except Jinja2TemplateSyntaxError as e:
             raise TemplateSyntaxError(
@@ -433,11 +443,18 @@ class Template(BaseModel, IdentifiableMixin, LocalMixin):
 
         tmodel = self.template_model
         if tmodel:
-            call_model = tmodel.new(data)
             model_name = tmodel.name or 'model'
-            render_data = {model_name: call_model, '_data': data}
+            render_data = {model_name: tmodel.new(data)}
+
+        elif self.defaults:
+            # we already made a copy earlier
+            render_data = data
+
         else:
-            render_data = dict(data, _data=data)
+            render_data = dict(data)
+
+        render_data['_data'] = data
+        render_data['_logger'] = self.logger
 
         try:
             return self._jinja2_template.render(**render_data)
@@ -526,14 +543,15 @@ class MultiTemplate(Template):
         data.pop('type', None)
 
         trace = data.get('__trace__', ())
-        trace = list(trace)
-        trace.append({
-            'name': 'multi',
-            'file': None,
-            'line': None,
-        })
+        if trace:
+            trace = list(trace)
+            trace.append({
+                'name': 'multi',
+                'file': data.get('__file__', call.filename),
+                'line': data.get('__line__', call.lineno),
+            })
 
-        filename = data.get('__file__')
+        filename = data.get('__file__', call.filename)
 
         for key, value in data.items():
             if key.startswith('_') or key.startswith('x-'):
@@ -543,10 +561,11 @@ class MultiTemplate(Template):
                 continue
 
             if isinstance(value, dict):
-                if 'name' not in value:
-                    value['name'] = key
-                value['__trace__'] = trace
-                value['__file__'] = filename
+                value.setdefault('name', key)
+                if trace:
+                    value['__trace__'] = trace
+                if filename:
+                    value['__file__'] = filename
 
                 yield value
 
