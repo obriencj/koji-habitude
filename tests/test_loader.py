@@ -20,7 +20,7 @@ from koji_habitude.loader import find_files, combine_find_files, YAMLLoader, Mul
 
 # Global file count constants for test data directories
 # Update these when adding/removing test files
-TEMPLATES_YAML_COUNT = 9  # .yaml and .yml files in templates/ (excluding .j2)
+TEMPLATES_YAML_COUNT = 13  # .yaml and .yml files in templates/ (excluding .j2)
 TEMPLATES_J2_COUNT = 1    # .j2 files in templates/
 TEMPLATES_TOTAL_COUNT = TEMPLATES_YAML_COUNT + TEMPLATES_J2_COUNT
 
