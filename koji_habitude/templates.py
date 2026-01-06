@@ -438,6 +438,8 @@ class Template(BaseModel, IdentifiableMixin, LocalMixin):
         Render the template with the given data into a str
         """
 
+        render_data: Dict[str, Any]
+
         if self.defaults:
             data = dict(self.defaults, **data)
 
@@ -445,10 +447,6 @@ class Template(BaseModel, IdentifiableMixin, LocalMixin):
         if tmodel:
             model_name = tmodel.name or 'model'
             render_data = {model_name: tmodel.new(data)}
-
-        elif self.defaults:
-            # we already made a copy earlier
-            render_data = data
 
         else:
             render_data = dict(data)
