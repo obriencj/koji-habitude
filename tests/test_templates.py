@@ -19,6 +19,7 @@ from pydantic import ValidationError
 
 from koji_habitude.loader import MultiLoader, YAMLLoader
 from koji_habitude.templates import (
+    MultiTemplate,
     Template,
     TemplateCall,
     TemplateModelDefinition,
@@ -1449,6 +1450,601 @@ class TestTemplateDynamicModels(unittest.TestCase):
         self.assertEqual(results[0]["type"], "tag")
         self.assertEqual(results[0]["name"], "test-tag")
         self.assertEqual(results[0]["arches"], "x86_64, aarch64")
+
+
+class TestMultiTemplate(unittest.TestCase):
+    """
+    Test cases for the MultiTemplate class.
+    """
+
+    def setUp(self):
+        """
+        Set up test fixtures.
+        """
+
+        self.multi_template = MultiTemplate()
+        self.test_data_dir = Path(__file__).parent / 'data'
+        self.templates_dir = self.test_data_dir / 'templates'
+
+    def test_multi_name_assignment_when_missing(self):
+        """
+        Verify that when a dict value lacks a 'name' field, the key is used as the name.
+        Also verify that __line__ from loader is preserved on nested dicts (where each object was defined).
+        """
+
+        yaml_file = self.templates_dir / 'test_multi_simple.yaml'
+        loader = YAMLLoader(yaml_file)
+        documents = list(loader.load())
+
+        self.assertEqual(len(documents), 1, "Should load one document")
+        call_data = documents[0]
+
+        # Verify loader set __line__ on nested dicts (tag1 at line 4, tag2 at line 7)
+        self.assertIn('tag1', call_data, "Should have tag1")
+        self.assertIn('tag2', call_data, "Should have tag2")
+        self.assertIn('__line__', call_data['tag1'], "Loader should set __line__ on tag1 dict")
+        self.assertIn('__line__', call_data['tag2'], "Loader should set __line__ on tag2 dict")
+        tag1_line = call_data['tag1']['__line__']
+        tag2_line = call_data['tag2']['__line__']
+
+        call = TemplateCall.from_dict(call_data)
+
+        results = list(self.multi_template.render_call(call))
+
+        self.assertEqual(len(results), 2, "Should yield two objects")
+        self.assertEqual(results[0]['name'], 'tag1', "First object should have key as name")
+        self.assertEqual(results[1]['name'], 'tag2', "Second object should have key as name")
+        # Verify __line__ is preserved from where each object was defined
+        self.assertIn('__line__', results[0], "Should preserve __line__ from loader")
+        self.assertEqual(results[0]['__line__'], tag1_line, "Should preserve tag1's __line__ (line 4)")
+        self.assertIn('__line__', results[1], "Should preserve __line__ from loader")
+        self.assertEqual(results[1]['__line__'], tag2_line, "Should preserve tag2's __line__ (line 7)")
+
+    def test_multi_name_assignment_when_present(self):
+        """
+        Verify that when a dict value has a 'name' field, it's preserved and not overridden.
+        Also verify that __line__ from loader is preserved (where each object was defined).
+        """
+
+        yaml_file = self.templates_dir / 'test_multi_names.yaml'
+        loader = YAMLLoader(yaml_file)
+        documents = list(loader.load())
+
+        self.assertEqual(len(documents), 1, "Should load one document")
+        call_data = documents[0]
+
+        # Verify loader set __line__ on nested dicts (tag-key at line 4, another-key at line 8)
+        self.assertIn('tag-key', call_data, "Should have tag-key")
+        self.assertIn('another-key', call_data, "Should have another-key")
+        self.assertIn('__line__', call_data['tag-key'], "Loader should set __line__ on tag-key dict")
+        self.assertIn('__line__', call_data['another-key'], "Loader should set __line__ on another-key dict")
+        tag_key_line = call_data['tag-key']['__line__']
+        another_key_line = call_data['another-key']['__line__']
+
+        call = TemplateCall.from_dict(call_data)
+
+        results = list(self.multi_template.render_call(call))
+
+        self.assertEqual(len(results), 2, "Should yield two objects")
+        self.assertEqual(results[0]['name'], 'explicit-tag-name', "Should preserve explicit name")
+        self.assertEqual(results[1]['name'], 'another-explicit-name', "Should preserve explicit name")
+        # Verify __line__ is preserved from where each object was defined
+        self.assertIn('__line__', results[0], "Should preserve __line__ from loader")
+        self.assertEqual(results[0]['__line__'], tag_key_line, "Should preserve tag-key's __line__ (line 4)")
+        self.assertIn('__line__', results[1], "Should preserve __line__ from loader")
+        self.assertEqual(results[1]['__line__'], another_key_line, "Should preserve another-key's __line__ (line 8)")
+
+    def test_multi_file_metadata_from_call(self):
+        """
+        Verify __file__ from loader is propagated and __line__ from nested dicts is preserved.
+        """
+
+        yaml_file = self.templates_dir / 'test_multi_metadata.yaml'
+        loader = YAMLLoader(yaml_file)
+        documents = list(loader.load())
+
+        self.assertEqual(len(documents), 1, "Should load one document")
+        call_data = documents[0]
+
+        # Verify loader set __file__ on document and __line__ on nested dicts
+        self.assertIn('__file__', call_data, "Loader should set __file__ on document")
+        self.assertIn('my-tag', call_data, "Should have my-tag")
+        self.assertIn('another-tag', call_data, "Should have another-tag")
+        self.assertIn('__line__', call_data['my-tag'], "Loader should set __line__ on my-tag dict")
+        self.assertIn('__line__', call_data['another-tag'], "Loader should set __line__ on another-tag dict")
+        my_tag_line = call_data['my-tag']['__line__']
+        another_tag_line = call_data['another-tag']['__line__']
+
+        call = TemplateCall.from_dict(call_data)
+
+        results = list(self.multi_template.render_call(call))
+
+        self.assertEqual(len(results), 2, "Should yield two objects")
+        # Verify __file__ is propagated from loader
+        self.assertIn('__file__', results[0], "Should propagate __file__ from loader")
+        self.assertEqual(results[0]['__file__'], str(yaml_file), "Should use loader-provided __file__")
+        # Verify __line__ is preserved from where each object was defined
+        self.assertIn('__line__', results[0], "Should preserve __line__ from loader")
+        self.assertEqual(results[0]['__line__'], my_tag_line, "Should preserve my-tag's __line__ (line 4)")
+        self.assertIn('__line__', results[1], "Should preserve __line__ from loader")
+        self.assertEqual(results[1]['__line__'], another_tag_line, "Should preserve another-tag's __line__ (line 7)")
+
+    def test_multi_file_metadata_from_data(self):
+        """
+        Verify __file__ from loader is propagated and __line__ from nested dicts is preserved.
+        """
+
+        yaml_file = self.templates_dir / 'test_multi_metadata.yaml'
+        loader = YAMLLoader(yaml_file)
+        documents = list(loader.load())
+
+        self.assertEqual(len(documents), 1, "Should load one document")
+        call_data = documents[0]
+
+        # Verify loader set __file__ on document and __line__ on nested dicts
+        self.assertIn('__file__', call_data, "Loader should set __file__")
+        loader_file = call_data['__file__']
+        self.assertIn('my-tag', call_data, "Should have my-tag")
+        self.assertIn('__line__', call_data['my-tag'], "Loader should set __line__ on my-tag dict")
+        my_tag_line = call_data['my-tag']['__line__']
+
+        call = TemplateCall.from_dict(call_data)
+
+        results = list(self.multi_template.render_call(call))
+
+        self.assertEqual(len(results), 2, "Should yield two objects")
+        # Verify loader-provided metadata is propagated
+        self.assertIn('__file__', results[0], "Should propagate __file__ from loader")
+        self.assertEqual(results[0]['__file__'], loader_file, "Should use loader-provided __file__")
+        # Verify __line__ is preserved from where object was defined
+        self.assertIn('__line__', results[0], "Should preserve __line__ from loader")
+        self.assertEqual(results[0]['__line__'], my_tag_line, "Should preserve my-tag's __line__ (line 4)")
+
+    def test_multi_file_metadata_precedence(self):
+        """
+        Verify loader-provided __file__ is propagated and __line__ from nested dicts is preserved.
+        """
+
+        yaml_file = self.templates_dir / 'test_multi_metadata.yaml'
+        loader = YAMLLoader(yaml_file)
+        documents = list(loader.load())
+
+        self.assertEqual(len(documents), 1, "Should load one document")
+        call_data = documents[0]
+
+        # Verify loader set __file__ on document and __line__ on nested dicts
+        self.assertIn('__file__', call_data, "Loader should set __file__")
+        loader_file = call_data['__file__']
+        self.assertIn('my-tag', call_data, "Should have my-tag")
+        self.assertIn('__line__', call_data['my-tag'], "Loader should set __line__ on my-tag dict")
+        my_tag_line = call_data['my-tag']['__line__']
+
+        call = TemplateCall.from_dict(call_data)
+
+        results = list(self.multi_template.render_call(call))
+
+        self.assertEqual(len(results), 2, "Should yield two objects")
+        # Verify loader-provided metadata is propagated
+        self.assertEqual(results[0]['__file__'], loader_file, "Should use loader-provided __file__")
+        # Verify __line__ is preserved from where object was defined
+        self.assertEqual(results[0]['__line__'], my_tag_line, "Should preserve my-tag's __line__ (line 4)")
+
+    def test_multi_both_file_and_line_metadata(self):
+        """
+        Verify __file__ from loader is propagated and __line__ from nested dicts is preserved.
+        """
+
+        yaml_file = self.templates_dir / 'test_multi_metadata.yaml'
+        loader = YAMLLoader(yaml_file)
+        documents = list(loader.load())
+
+        self.assertEqual(len(documents), 1, "Should load one document")
+        call_data = documents[0]
+
+        # Verify loader set __file__ on document and __line__ on nested dicts
+        self.assertIn('__file__', call_data, "Loader should set __file__")
+        loader_file = call_data['__file__']
+        self.assertIn('my-tag', call_data, "Should have my-tag")
+        self.assertIn('another-tag', call_data, "Should have another-tag")
+        self.assertIn('__line__', call_data['my-tag'], "Loader should set __line__ on my-tag dict")
+        self.assertIn('__line__', call_data['another-tag'], "Loader should set __line__ on another-tag dict")
+        my_tag_line = call_data['my-tag']['__line__']
+        another_tag_line = call_data['another-tag']['__line__']
+
+        call = TemplateCall.from_dict(call_data)
+
+        results = list(self.multi_template.render_call(call))
+
+        self.assertEqual(len(results), 2, "Should yield two objects")
+        # Verify both metadata fields are preserved/propagated
+        self.assertIn('__file__', results[0], "Should have __file__ metadata")
+        self.assertIn('__line__', results[0], "Should have __line__ metadata")
+        self.assertEqual(results[0]['__file__'], loader_file, "Should propagate loader __file__")
+        self.assertEqual(results[0]['__line__'], my_tag_line, "Should preserve my-tag's __line__ (line 4)")
+        self.assertEqual(results[1]['__file__'], loader_file, "Should propagate loader __file__ to all results")
+        self.assertEqual(results[1]['__line__'], another_tag_line, "Should preserve another-tag's __line__ (line 7)")
+
+    def test_multi_line_metadata_from_loader(self):
+        """
+        Verify __line__ from loader (on nested dicts) is preserved on yielded objects.
+        """
+
+        yaml_file = self.templates_dir / 'test_multi_metadata.yaml'
+        loader = YAMLLoader(yaml_file)
+        documents = list(loader.load())
+
+        self.assertEqual(len(documents), 1, "Should load one document")
+        call_data = documents[0]
+
+        # Verify loader set __line__ on nested dicts (where each object was defined)
+        self.assertIn('my-tag', call_data, "Should have my-tag")
+        self.assertIn('another-tag', call_data, "Should have another-tag")
+        self.assertIn('__line__', call_data['my-tag'], "Loader should set __line__ on my-tag dict")
+        self.assertIn('__line__', call_data['another-tag'], "Loader should set __line__ on another-tag dict")
+        my_tag_line = call_data['my-tag']['__line__']
+        another_tag_line = call_data['another-tag']['__line__']
+
+        call = TemplateCall.from_dict(call_data)
+
+        results = list(self.multi_template.render_call(call))
+
+        self.assertEqual(len(results), 2, "Should yield two objects")
+        # Verify __line__ is preserved from where each object was defined
+        self.assertIn('__line__', results[0], "Should preserve __line__ from loader")
+        self.assertEqual(results[0]['__line__'], my_tag_line, "Should preserve my-tag's __line__ (line 4)")
+        self.assertIn('__line__', results[1], "Should preserve __line__ from loader")
+        self.assertEqual(results[1]['__line__'], another_tag_line, "Should preserve another-tag's __line__ (line 7)")
+
+    def test_multi_line_metadata_from_data(self):
+        """
+        Verify __line__ from loader (on nested dicts in data) is preserved on yielded objects.
+        """
+
+        yaml_file = self.templates_dir / 'test_multi_metadata.yaml'
+        loader = YAMLLoader(yaml_file)
+        documents = list(loader.load())
+
+        self.assertEqual(len(documents), 1, "Should load one document")
+        call_data = documents[0]
+
+        # Verify loader set __line__ on nested dicts (where each object was defined)
+        self.assertIn('my-tag', call_data, "Should have my-tag")
+        self.assertIn('__line__', call_data['my-tag'], "Loader should set __line__ on my-tag dict")
+        my_tag_line = call_data['my-tag']['__line__']
+
+        call = TemplateCall.from_dict(call_data)
+
+        results = list(self.multi_template.render_call(call))
+
+        self.assertEqual(len(results), 2, "Should yield two objects")
+        # Verify __line__ is preserved from where object was defined
+        self.assertIn('__line__', results[0], "Should preserve __line__ from loader")
+        self.assertEqual(results[0]['__line__'], my_tag_line, "Should preserve my-tag's __line__ (line 4)")
+
+    def test_multi_line_metadata_precedence(self):
+        """
+        Verify loader-provided __line__ on nested dicts is preserved (not overwritten).
+        """
+
+        yaml_file = self.templates_dir / 'test_multi_metadata.yaml'
+        loader = YAMLLoader(yaml_file)
+        documents = list(loader.load())
+
+        self.assertEqual(len(documents), 1, "Should load one document")
+        call_data = documents[0]
+
+        # Verify loader set __line__ on nested dicts (where each object was defined)
+        self.assertIn('my-tag', call_data, "Should have my-tag")
+        self.assertIn('__line__', call_data['my-tag'], "Loader should set __line__ on my-tag dict")
+        my_tag_line = call_data['my-tag']['__line__']
+
+        call = TemplateCall.from_dict(call_data)
+
+        results = list(self.multi_template.render_call(call))
+
+        self.assertEqual(len(results), 2, "Should yield two objects")
+        # Verify loader-provided __line__ is preserved
+        self.assertIn('__line__', results[0], "Should have __line__ metadata")
+        self.assertEqual(results[0]['__line__'], my_tag_line, "Should preserve my-tag's __line__ (line 4)")
+
+    def test_multi_trace_propagation_empty(self):
+        """
+        Verify trace handling when __trace__ is empty or missing.
+        Verify loader-provided __file__ and __line__ are used in trace.
+        """
+
+        yaml_file = self.templates_dir / 'test_multi_metadata.yaml'
+        loader = YAMLLoader(yaml_file)
+        documents = list(loader.load())
+
+        self.assertEqual(len(documents), 1, "Should load one document")
+        call_data = documents[0]
+
+        # Verify loader set metadata
+        self.assertIn('__file__', call_data, "Loader should set __file__")
+        self.assertIn('__line__', call_data, "Loader should set __line__")
+        loader_file = call_data['__file__']
+        loader_line = call_data['__line__']
+
+        call = TemplateCall.from_dict(call_data)
+
+        results = list(self.multi_template.render_call(call))
+
+        self.assertEqual(len(results), 2, "Should yield two objects")
+        # Trace should be initialized with multi entry using loader-provided file/line
+        if '__trace__' in results[0]:
+            trace = results[0]['__trace__']
+            self.assertIsInstance(trace, list, "Trace should be a list if present")
+            if trace:
+                self.assertEqual(trace[-1]['name'], 'multi', "Should have multi trace entry")
+                self.assertEqual(trace[-1]['file'], loader_file, "Trace should use loader-provided file")
+                self.assertEqual(trace[-1]['line'], loader_line, "Trace should use loader-provided line")
+
+    def test_multi_trace_propagation_existing(self):
+        """
+        Verify existing trace chain is extended with multi entry using loader-provided file/line.
+        """
+
+        yaml_file = self.templates_dir / 'test_multi_metadata.yaml'
+        loader = YAMLLoader(yaml_file)
+        documents = list(loader.load())
+
+        self.assertEqual(len(documents), 1, "Should load one document")
+        call_data = documents[0]
+
+        # Add existing trace to simulate nested expansion
+        existing_trace = [{
+            'name': 'parent-template',
+            'file': '/path/to/parent.yaml',
+            'line': 5,
+        }]
+        call_data['__trace__'] = existing_trace
+
+        # Verify loader set metadata
+        self.assertIn('__file__', call_data, "Loader should set __file__")
+        self.assertIn('__line__', call_data, "Loader should set __line__")
+        loader_file = call_data['__file__']
+        loader_line = call_data['__line__']
+
+        call = TemplateCall.from_dict(call_data)
+
+        results = list(self.multi_template.render_call(call))
+
+        self.assertEqual(len(results), 2, "Should yield two objects")
+        self.assertIn('__trace__', results[0], "Should have trace metadata")
+        trace = results[0]['__trace__']
+        self.assertIsInstance(trace, list, "Trace should be a list")
+        self.assertGreaterEqual(len(trace), 2, "Trace should have at least two entries")
+        # Original trace entry should be preserved
+        self.assertEqual(trace[0]['name'], 'parent-template', "Should preserve original trace")
+        # Multi entry should use loader-provided file/line
+        self.assertEqual(trace[-1]['name'], 'multi', "Should have multi trace entry")
+        self.assertEqual(trace[-1]['file'], loader_file, "Trace should use loader-provided file")
+        self.assertEqual(trace[-1]['line'], loader_line, "Trace should use loader-provided line")
+
+    def test_multi_trace_entry_contents(self):
+        """
+        Verify trace entry contains correct name, file, and line from loader.
+        """
+
+        yaml_file = self.templates_dir / 'test_multi_metadata.yaml'
+        loader = YAMLLoader(yaml_file)
+        documents = list(loader.load())
+
+        self.assertEqual(len(documents), 1, "Should load one document")
+        call_data = documents[0]
+
+        # Verify loader set metadata
+        self.assertIn('__file__', call_data, "Loader should set __file__")
+        self.assertIn('__line__', call_data, "Loader should set __line__")
+        loader_file = call_data['__file__']
+        loader_line = call_data['__line__']
+
+        call = TemplateCall.from_dict(call_data)
+
+        results = list(self.multi_template.render_call(call))
+
+        self.assertEqual(len(results), 2, "Should yield two objects")
+        if '__trace__' in results[0]:
+            trace = results[0]['__trace__']
+            if trace and len(trace) > 0:
+                # Check the last entry (should be the multi entry)
+                multi_entry = trace[-1]
+                self.assertEqual(multi_entry['name'], 'multi', "Trace entry should have name 'multi'")
+                self.assertIn('file', multi_entry, "Trace entry should have file")
+                self.assertIn('line', multi_entry, "Trace entry should have line")
+                self.assertEqual(multi_entry['file'], loader_file, "Trace entry should use loader-provided file")
+                self.assertEqual(multi_entry['line'], loader_line, "Trace entry should use loader-provided line")
+
+    def test_multi_skips_private_keys(self):
+        """
+        Verify keys starting with '_' are skipped.
+        Also verify __line__ from loader is preserved on valid objects (where each was defined).
+        """
+
+        yaml_file = self.templates_dir / 'test_multi_edge_cases.yaml'
+        loader = YAMLLoader(yaml_file)
+        documents = list(loader.load())
+
+        self.assertEqual(len(documents), 1, "Should load one document")
+        call_data = documents[0]
+
+        # Verify loader set __line__ on nested dicts
+        self.assertIn('valid-tag', call_data, "Should have valid-tag")
+        self.assertIn('another-valid-tag', call_data, "Should have another-valid-tag")
+        self.assertIn('__line__', call_data['valid-tag'], "Loader should set __line__ on valid-tag dict")
+        self.assertIn('__line__', call_data['another-valid-tag'], "Loader should set __line__ on another-valid-tag dict")
+        valid_tag_line = call_data['valid-tag']['__line__']
+        another_valid_tag_line = call_data['another-valid-tag']['__line__']
+
+        call = TemplateCall.from_dict(call_data)
+
+        results = list(self.multi_template.render_call(call))
+
+        # Should only yield objects for non-private keys (valid-tag, another-valid-tag)
+        valid_results = [r for r in results if 'name' in r]
+        self.assertEqual(len(valid_results), 2, "Should only yield objects for non-private keys")
+        names = {obj['name'] for obj in valid_results}
+        self.assertIn('valid-tag', names, "Should include valid tag")
+        self.assertIn('another-valid-tag', names, "Should include another valid tag")
+        # Verify __line__ is preserved from where each object was defined
+        for result in valid_results:
+            self.assertIn('__line__', result, "Should preserve __line__ from loader")
+        # Check specific line numbers
+        valid_tag_result = next(r for r in valid_results if r['name'] == 'valid-tag')
+        another_valid_tag_result = next(r for r in valid_results if r['name'] == 'another-valid-tag')
+        self.assertEqual(valid_tag_result['__line__'], valid_tag_line, "Should preserve valid-tag's __line__")
+        self.assertEqual(another_valid_tag_result['__line__'], another_valid_tag_line, "Should preserve another-valid-tag's __line__")
+
+    def test_multi_skips_extension_keys(self):
+        """
+        Verify keys starting with 'x-' are skipped.
+        Also verify __line__ from loader is preserved on valid objects (where each was defined).
+        """
+
+        yaml_file = self.templates_dir / 'test_multi_edge_cases.yaml'
+        loader = YAMLLoader(yaml_file)
+        documents = list(loader.load())
+
+        self.assertEqual(len(documents), 1, "Should load one document")
+        call_data = documents[0]
+
+        # Verify loader set __line__ on nested dicts
+        self.assertIn('valid-tag', call_data, "Should have valid-tag")
+        self.assertIn('another-valid-tag', call_data, "Should have another-valid-tag")
+        self.assertIn('__line__', call_data['valid-tag'], "Loader should set __line__ on valid-tag dict")
+        self.assertIn('__line__', call_data['another-valid-tag'], "Loader should set __line__ on another-valid-tag dict")
+        valid_tag_line = call_data['valid-tag']['__line__']
+        another_valid_tag_line = call_data['another-valid-tag']['__line__']
+
+        call = TemplateCall.from_dict(call_data)
+
+        results = list(self.multi_template.render_call(call))
+
+        # Should only yield objects for non-extension keys (valid-tag, another-valid-tag)
+        valid_results = [r for r in results if 'name' in r]
+        self.assertEqual(len(valid_results), 2, "Should only yield objects for non-extension keys")
+        names = {obj['name'] for obj in valid_results}
+        self.assertIn('valid-tag', names, "Should include valid tag")
+        self.assertIn('another-valid-tag', names, "Should include another valid tag")
+        # Verify __line__ is preserved from where each object was defined
+        for result in valid_results:
+            self.assertIn('__line__', result, "Should preserve __line__ from loader")
+        # Check specific line numbers
+        valid_tag_result = next(r for r in valid_results if r['name'] == 'valid-tag')
+        another_valid_tag_result = next(r for r in valid_results if r['name'] == 'another-valid-tag')
+        self.assertEqual(valid_tag_result['__line__'], valid_tag_line, "Should preserve valid-tag's __line__")
+        self.assertEqual(another_valid_tag_result['__line__'], another_valid_tag_line, "Should preserve another-valid-tag's __line__")
+
+    def test_multi_skips_empty_values(self):
+        """
+        Verify empty/falsy values are skipped.
+        Also verify __line__ from loader is preserved on valid objects (where each was defined).
+        """
+
+        yaml_file = self.templates_dir / 'test_multi_edge_cases.yaml'
+        loader = YAMLLoader(yaml_file)
+        documents = list(loader.load())
+
+        self.assertEqual(len(documents), 1, "Should load one document")
+        call_data = documents[0]
+
+        # Verify loader set __line__ on nested dicts
+        self.assertIn('valid-tag', call_data, "Should have valid-tag")
+        self.assertIn('another-valid-tag', call_data, "Should have another-valid-tag")
+        self.assertIn('__line__', call_data['valid-tag'], "Loader should set __line__ on valid-tag dict")
+        self.assertIn('__line__', call_data['another-valid-tag'], "Loader should set __line__ on another-valid-tag dict")
+        valid_tag_line = call_data['valid-tag']['__line__']
+        another_valid_tag_line = call_data['another-valid-tag']['__line__']
+
+        call = TemplateCall.from_dict(call_data)
+
+        results = list(self.multi_template.render_call(call))
+
+        # Should only yield objects for non-empty dict values (valid-tag, another-valid-tag)
+        valid_results = [r for r in results if 'name' in r]
+        self.assertEqual(len(valid_results), 2, "Should only yield objects for non-empty dict values")
+        names = {obj['name'] for obj in valid_results}
+        self.assertIn('valid-tag', names, "Should include valid tag")
+        self.assertIn('another-valid-tag', names, "Should include another valid tag")
+        # Verify __line__ is preserved from where each object was defined
+        for result in valid_results:
+            self.assertIn('__line__', result, "Should preserve __line__ from loader")
+        # Check specific line numbers
+        valid_tag_result = next(r for r in valid_results if r['name'] == 'valid-tag')
+        another_valid_tag_result = next(r for r in valid_results if r['name'] == 'another-valid-tag')
+        self.assertEqual(valid_tag_result['__line__'], valid_tag_line, "Should preserve valid-tag's __line__")
+        self.assertEqual(another_valid_tag_result['__line__'], another_valid_tag_line, "Should preserve another-valid-tag's __line__")
+
+    def test_multi_skips_non_dict_values(self):
+        """
+        Verify non-dict values are skipped (logged but not yielded).
+        Also verify __line__ from loader is preserved on valid objects (where each was defined).
+        """
+
+        yaml_file = self.templates_dir / 'test_multi_edge_cases.yaml'
+        loader = YAMLLoader(yaml_file)
+        documents = list(loader.load())
+
+        self.assertEqual(len(documents), 1, "Should load one document")
+        call_data = documents[0]
+
+        # Verify loader set __line__ on nested dicts
+        self.assertIn('valid-tag', call_data, "Should have valid-tag")
+        self.assertIn('another-valid-tag', call_data, "Should have another-valid-tag")
+        self.assertIn('__line__', call_data['valid-tag'], "Loader should set __line__ on valid-tag dict")
+        self.assertIn('__line__', call_data['another-valid-tag'], "Loader should set __line__ on another-valid-tag dict")
+        valid_tag_line = call_data['valid-tag']['__line__']
+        another_valid_tag_line = call_data['another-valid-tag']['__line__']
+
+        call = TemplateCall.from_dict(call_data)
+
+        results = list(self.multi_template.render_call(call))
+
+        # Should only yield objects for dict values (valid-tag, another-valid-tag)
+        valid_results = [r for r in results if 'name' in r]
+        self.assertEqual(len(valid_results), 2, "Should only yield objects for dict values")
+        names = {obj['name'] for obj in valid_results}
+        self.assertIn('valid-tag', names, "Should include valid tag")
+        self.assertIn('another-valid-tag', names, "Should include another valid tag")
+        # Verify __line__ is preserved from where each object was defined
+        for result in valid_results:
+            self.assertIn('__line__', result, "Should preserve __line__ from loader")
+        # Check specific line numbers
+        valid_tag_result = next(r for r in valid_results if r['name'] == 'valid-tag')
+        another_valid_tag_result = next(r for r in valid_results if r['name'] == 'another-valid-tag')
+        self.assertEqual(valid_tag_result['__line__'], valid_tag_line, "Should preserve valid-tag's __line__")
+        self.assertEqual(another_valid_tag_result['__line__'], another_valid_tag_line, "Should preserve another-valid-tag's __line__")
+
+    def test_multi_removes_type_field(self):
+        """
+        Verify 'type' field is removed from data before processing.
+        Also verify __line__ from loader is preserved (where each object was defined).
+        """
+
+        yaml_file = self.templates_dir / 'test_multi_metadata.yaml'
+        loader = YAMLLoader(yaml_file)
+        documents = list(loader.load())
+
+        self.assertEqual(len(documents), 1, "Should load one document")
+        call_data = documents[0]
+
+        # Verify loader set __line__ on nested dicts
+        self.assertIn('my-tag', call_data, "Should have my-tag")
+        self.assertIn('__line__', call_data['my-tag'], "Loader should set __line__ on my-tag dict")
+        my_tag_line = call_data['my-tag']['__line__']
+
+        call = TemplateCall.from_dict(call_data)
+
+        results = list(self.multi_template.render_call(call))
+
+        self.assertEqual(len(results), 2, "Should yield two objects")
+        # The 'type' field should be removed from the top-level data
+        # but the objects themselves should still have their 'type' field
+        self.assertEqual(results[0]['type'], 'tag', "Object should retain its type")
+        # Verify __line__ is preserved from where object was defined
+        self.assertIn('__line__', results[0], "Should preserve __line__ from loader")
+        self.assertEqual(results[0]['__line__'], my_tag_line, "Should preserve my-tag's __line__ (line 4)")
 
 
 # The end.

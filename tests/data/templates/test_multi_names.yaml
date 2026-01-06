@@ -1,0 +1,12 @@
+---
+type: multi
+
+tag-key:
+  type: tag
+  name: explicit-tag-name
+
+another-key:
+  type: tag
+  name: another-explicit-name
+  arches:
+    - x86_64

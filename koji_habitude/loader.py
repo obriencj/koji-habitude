@@ -189,6 +189,7 @@ class MagicSafeLoader(SafeLoader):
         # * https://stackoverflow.com/questions/13319067/parsing-yaml-return-with-line-number
         mapping = super().construct_mapping(node)
         mapping['__line__'] = node.start_mark.line + 1
+        logger.debug(f"Constructed mapping: {mapping}")
         return mapping
 
 

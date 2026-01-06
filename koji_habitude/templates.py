@@ -559,6 +559,9 @@ class MultiTemplate(Template):
                 continue
 
             if isinstance(value, dict):
+                if _empty_enough(value):
+                    continue
+
                 value.setdefault('name', key)
                 if trace:
                     value['__trace__'] = trace
@@ -569,6 +572,17 @@ class MultiTemplate(Template):
 
             else:
                 logger.debug(f"stray key:value in multi: f{key}:f{value!r}")
+
+
+def _empty_enough(value: Dict) -> bool:
+    """
+    Determine if the value is empty enough to be skipped.
+    """
+
+    for key in value:
+        if key not in ('__file__', '__line__', '__trace__'):
+            return False
+    return True
 
 
 # The end.

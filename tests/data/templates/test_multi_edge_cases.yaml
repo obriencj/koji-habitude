@@ -1,0 +1,41 @@
+---
+type: multi
+
+valid-tag:
+  type: tag
+
+_private-key:
+  type: tag
+
+__another_private:
+  type: tag
+
+x-extension:
+  type: tag
+
+x-config:
+  type: tag
+
+empty-dict: {}
+
+none-value: null
+
+false-value: false
+
+empty-list: []
+
+empty-string: ""
+
+zero-value: 0
+
+string-value: not-a-dict
+
+list-value:
+  - 1
+  - 2
+  - 3
+
+int-value: 42
+
+another-valid-tag:
+  type: tag

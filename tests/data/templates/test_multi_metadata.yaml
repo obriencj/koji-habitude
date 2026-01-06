@@ -1,0 +1,10 @@
+---
+type: multi
+
+my-tag:
+  type: tag
+
+another-tag:
+  type: tag
+  arches:
+    - x86_64
