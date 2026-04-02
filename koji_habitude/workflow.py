@@ -433,7 +433,7 @@ class DictWorkflow(Workflow):
 
         data_ns = self.cls_namespace()
         if templates:
-            data_ns.merge_templates(templates)
+            data_ns.merge_templates(templates, redefine=Redefine.ALLOW)
         data_ns.feedall_raw(self.objects)
         data_ns.expand()
         return data_ns
