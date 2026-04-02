@@ -478,12 +478,14 @@ class CompareDictWorkflow(DictWorkflow):
             self,
             objects: List[Dict[str, Any]],
             template_paths: List[Union[str, Path]] = None,
+            recursive: bool = False,
             profile: str = 'koji',
             chunk_size: int = 100,
             skip_phantoms: bool = False):
         super().__init__(
             objects=objects,
             template_paths=template_paths,
+            recursive=recursive,
             profile=profile,
             chunk_size=chunk_size,
             skip_phantoms=skip_phantoms,
