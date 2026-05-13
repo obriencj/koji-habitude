@@ -1044,7 +1044,8 @@ class TagModel(CoreModel):
         # method as an adapter for v1, it doesn't internally call the
         # model_dump method on the TagGroup in that case.
         if 'groups' in data:
-            for group in data['groups'].values():
+            groups = data['groups']
+            for group in groups.values():
                 if 'packages' in group:
                     group['packages'] = sorted(
                         group['packages'], key=itemgetter('name'))
@@ -1083,6 +1084,13 @@ class Tag(TagModel, CoreObject):
             seen[repo.priority] = repo
 
 
+    @field_validator('extras', mode='before')
+    def convert_extras_from_simplified(cls, data: Any) -> Any:
+        data.pop('__file__', None)
+        data.pop('__line__', None)
+        return data
+
+
     @field_validator('groups', mode='before')
     def convert_groups_from_simplified(cls, data: Any) -> Any:
         fixed: Dict[str, Dict[str, Any]] = {}
@@ -1104,6 +1112,10 @@ class Tag(TagModel, CoreObject):
                 fixed[item['name']] = item
 
         elif isinstance(data, dict):
+
+            data.pop('__file__', None)
+            data.pop('__line__', None)
+
             for name, item in data.items():
                 if isinstance(item, str):
                     raise ValueError(f"Group {name} must be a dictionary or list, got {type(item)}")
