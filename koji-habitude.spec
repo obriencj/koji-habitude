@@ -87,6 +87,9 @@ execution.
 
 
 %changelog
+* Fri May 15 2026 Christopher O'Brien <obriencj@gmail.com> - 0.9.1-1
+- See the 0.9.1 release notes for a list of initial features
+
 * Mon Dec 29 2025 Christopher O'Brien <obriencj@gmail.com> - 0.9.0-1
 - See the 0.9.0 release notes for a list of initial features
 
