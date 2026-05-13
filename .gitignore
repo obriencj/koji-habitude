@@ -74,3 +74,4 @@ local.cfg
 *.tar.gz
 
 tools/*.yml
+\#*
